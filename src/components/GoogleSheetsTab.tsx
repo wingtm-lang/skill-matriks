@@ -23,6 +23,7 @@ interface GoogleSheetsTabProps {
   onSyncOperators?: (newOperators: Operator[]) => void;
 }
 
+
 export const GoogleSheetsTab: React.FC<GoogleSheetsTabProps> = ({
   operators,
   selectedFactory,
@@ -47,7 +48,7 @@ export const GoogleSheetsTab: React.FC<GoogleSheetsTabProps> = ({
 
     try {
       // Panggil endpoint /api/sheets/operators yang mengekstrak dari sheet 'by_worker'
-      const res = await fetch('/api/sheets/operators');
+      const res = await fetch('https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Z5fnKejoelvuKkHQ1f.../exec');
       const data = await res.json();
 
       if (res.ok && data.success && Array.isArray(data.operators) && data.operators.length > 0) {
