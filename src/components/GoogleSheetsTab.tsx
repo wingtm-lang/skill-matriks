@@ -47,8 +47,10 @@ export const GoogleSheetsTab: React.FC<GoogleSheetsTabProps> = ({
     setSyncError(null);
 
     try {
-      // Panggil endpoint /api/sheets/operators yang mengekstrak dari sheet 'by_worker'
-      const res = await fetch('https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Z5fnKejoelvuKkHQ1f.../exec');
+      // Panggil endpoint /api/sheets/operators atau endpoint kustom jika valid
+      const customUrl = 'https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Z5fnKejoelvuKkHQ1f.../exec';
+      const fetchUrl = (customUrl && !customUrl.includes('...')) ? customUrl : '/api/sheets/operators';
+      const res = await fetch(fetchUrl);
       const data = await res.json();
 
       if (res.ok && data.success && Array.isArray(data.operators) && data.operators.length > 0) {
