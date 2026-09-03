@@ -38,49 +38,126 @@ export default function App() {
   const [availableFactories, setAvailableFactories] = useState<string[]>(FACTORIES);
   const [availableLines, setAvailableLines] = useState<string[]>(LINES);
 
-  // Fetch live operators from Google Sheets API via server
+  // Fetch live operators directly from Google Apps Script Web App
   const fetchLiveOperators = useCallback(async () => {
     setIsLoadingSheets(true);
     setSyncError(null);
 
     try {
-      const response = await fetch('/api/sheets/operators');
-      const data = await response.json();
+      // Masukkan URL Web App Google Apps Script kamu secara utuh di sini
+      const gasUrl = "https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Zj5fnKejoelvuKkHQ1fQV-8UA_lRhtuTPMcmUFBH-xqN-kCVr3Dw/exec";
 
-      if (response.ok && data.success && Array.isArray(data.operators) && data.operators.length > 0) {
-        const normalizedOps = data.operators.map((op: Operator) => ({
-          ...op,
-          factory: normalizeFactoryName(op.factory),
-          line: normalizeLineName(op.line),
-          status: op.status || 'ACTIVE'
-        }));
+      const response = await fetch(gasUrl);
+      const textData = await response.text();
+
+      let result;
+      try {
+        result = JSON.parse(textData);
+      } catch (e) {
+        throw new Error("Respons dari Google Sheets bukan JSON yang valid. Periksa deployment GAS.");
+      }
+
+      if (result.status === "success" && Array.isArray(result.data)) {
+        const rows = result.data;
+        const headers: any[] = rows[0] || []; // Baris pertama adalah header spreadsheet
+        const dataRows = rows.slice(1); // Baris data operator setelah header
+
+        const findColIdx = (name: string, fallbackIdx: number) => {
+          if (!Array.isArray(headers)) return fallbackIdx;
+          const directIdx = headers.indexOf(name);
+          if (directIdx !== -1) return directIdx;
+          const fuzzyIdx = headers.findIndex(
+            (h) => typeof h === "string" && h.trim().toLowerCase() === name.trim().toLowerCase()
+          );
+          if (fuzzyIdx !== -1) return fuzzyIdx;
+          const partialIdx = headers.findIndex(
+            (h) => typeof h === "string" && h.toLowerCase().includes(name.toLowerCase())
+          );
+          return partialIdx !== -1 ? partialIdx : fallbackIdx;
+        };
+
+        const idxWorkerCode = findColIdx("Worker Code", 4);
+        const idxWorker = findColIdx("Worker", 5);
+        const idxFactory = findColIdx("Factory", 0);
+        const idxLine = findColIdx("Line", 1);
+        const idxStatus = findColIdx("Status", 17);
+        const idxDoj = findColIdx("D.O.J", 6);
+        const idxDate = findColIdx("Date", 3);
+        const idxRate = findColIdx("Actual Rate", 12);
+        const idxMachine = findColIdx("Cat", 16);
+
+        // Mapping baris spreadsheet ke objek Operator
+        const normalizedOps: Operator[] = dataRows.map((row: any, index: number) => {
+          const rawCode = row[idxWorkerCode] !== undefined && row[idxWorkerCode] !== null ? String(row[idxWorkerCode]).trim() : `OP-${index + 1}`;
+          const rawName = row[idxWorker] !== undefined && row[idxWorker] !== null ? String(row[idxWorker]).trim() : `Operator ${index + 1}`;
+          const rawFactory = row[idxFactory] !== undefined && row[idxFactory] !== null ? String(row[idxFactory]) : "1";
+          const rawLine = row[idxLine] !== undefined && row[idxLine] !== null ? String(row[idxLine]) : "1";
+          const rawStatus = row[idxStatus] !== undefined && row[idxStatus] !== null ? String(row[idxStatus]).trim() : "ACTIVE";
+          const rawDoj = row[idxDoj] !== undefined && row[idxDoj] !== null ? String(row[idxDoj]).trim() : "-";
+          const rawDate = row[idxDate] !== undefined && row[idxDate] !== null ? String(row[idxDate]).trim() : undefined;
+          const rawRateVal = row[idxRate] !== undefined ? parseFloat(String(row[idxRate]).replace("%", "").replace(",", ".").trim()) : 75;
+          const rateVal = !isNaN(rawRateVal) ? rawRateVal : 75;
+          const machineCat = String(row[idxMachine] || "").toUpperCase();
+
+          return {
+            id: String(row[headers.indexOf("Worker Code")] || rawCode || index),
+            no: index + 1,
+            factory: normalizeFactoryName(String(row[headers.indexOf("Factory")] || rawFactory || "1")),
+            line: normalizeLineName(String(row[headers.indexOf("Line")] || rawLine || "1")),
+            nik: String(row[headers.indexOf("Worker Code")] || rawCode || ""),
+            name: String(row[headers.indexOf("Worker")] || rawName || "Unknown"),
+            status: String(row[headers.indexOf("Status")] || rawStatus || "ACTIVE"),
+            doj: rawDoj || "-",
+            workTimeMonths: 12,
+            recordDate: rawDate,
+            lockstitch: machineCat.includes("SN") || machineCat.includes("LOCKSTITCH") || !machineCat ? rateVal : 75,
+            overlock: machineCat.includes("OL") || machineCat.includes("OVERLOCK") ? rateVal : null,
+            flatseam: machineCat.includes("FS") || machineCat.includes("FLATSEAM") ? rateVal : null,
+            special: machineCat.includes("SP") || machineCat.includes("SPECIAL") ? rateVal : null,
+            buttonHole: machineCat.includes("BH") || machineCat.includes("BUTTON HOLE") ? rateVal : null,
+            buttonSet: machineCat.includes("BS") || machineCat.includes("BUTTON SET") ? rateVal : null,
+            chainstitch: machineCat.includes("CS") || machineCat.includes("CHAINSTITCH") ? rateVal : null,
+            bartack: machineCat.includes("BT") || machineCat.includes("BARTACK") ? rateVal : null,
+          };
+        });
+
         setOperators(normalizedOps);
         setIsLiveFromSheets(true);
-        setSyncMessage(`Tersambung ke Google Sheets: ${data.count} operator berhasil dimuat`);
+        setSyncMessage(`Tersambung ke Google Sheets: ${normalizedOps.length} operator berhasil dimuat`);
 
-        // Dynamically update available factories & lines with natural numeric sorting
-        if (data.factories && data.factories.length > 0) {
-          const normFact = data.factories.map((f: string) => normalizeFactoryName(f));
-          const mergedFactories = sortFactoriesNumerically(
-            Array.from(new Set([...FACTORIES, ...normFact]))
-          );
-          setAvailableFactories(mergedFactories);
+        // Dynamically update available factories & lines
+        const uniqueFactories = Array.from(new Set(normalizedOps.map((op) => op.factory).filter(Boolean)));
+        if (uniqueFactories.length > 0) {
+          setAvailableFactories(sortFactoriesNumerically(Array.from(new Set([...FACTORIES, ...uniqueFactories]))));
         }
-        if (data.lines && data.lines.length > 0) {
-          const normLn = data.lines.map((l: string) => normalizeLineName(l));
-          const mergedLines = sortLinesNumerically(
-            Array.from(new Set([...LINES, ...normLn]))
-          );
-          setAvailableLines(mergedLines);
+        const uniqueLines = Array.from(new Set(normalizedOps.map((op) => op.line).filter(Boolean)));
+        if (uniqueLines.length > 0) {
+          setAvailableLines(sortLinesNumerically(Array.from(new Set([...LINES, ...uniqueLines]))));
         }
       } else {
-        setIsLiveFromSheets(false);
-        setSyncError(data.error || "Tidak ada data operator ditemukan di Google Sheets.");
+        throw new Error(result.message || "Gagal mengambil data dari Google Sheets.");
       }
     } catch (err: any) {
-      console.warn("Network error fetching Google Sheets operators:", err);
-      setIsLiveFromSheets(false);
-      setSyncError("Koneksi server/jaringan terputus saat mengambil data Google Sheets.");
+      setSyncError(err.toString());
+      // Fallback ke proxy server jika ada kendala jaringan browser langsung
+      try {
+        const fallbackRes = await fetch("/api/sheets/operators");
+        const fallbackData = await fallbackRes.json();
+        if (fallbackRes.ok && fallbackData.success && Array.isArray(fallbackData.operators) && fallbackData.operators.length > 0) {
+          const fallbackOps = fallbackData.operators.map((op: Operator) => ({
+            ...op,
+            factory: normalizeFactoryName(op.factory),
+            line: normalizeLineName(op.line),
+            status: op.status || "ACTIVE",
+          }));
+          setOperators(fallbackOps);
+          setIsLiveFromSheets(true);
+          setSyncMessage(`Tersambung ke Google Sheets (Proxy): ${fallbackData.count} operator berhasil dimuat`);
+          setSyncError(null);
+        }
+      } catch (fallbackErr) {
+        console.warn("Fallback failed:", fallbackErr);
+      }
     } finally {
       setIsLoadingSheets(false);
     }
