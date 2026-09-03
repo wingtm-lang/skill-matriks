@@ -1,0 +1,145 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: #E0F0F0;
+    --surface: #F8F8F8;
+    --card: #FFFFFF;
+    --primary: #405858;
+    --primary-dark: #385050;
+    --accent: #D0A018;
+    --accent-hover: #B88C10;
+    --accent-secondary: #2AAFA3;
+    --soft-teal: #C8D8D8;
+    --light-teal: #E0E8E8;
+    --text-primary: #304848;
+    --text-secondary: #788888;
+    --muted: #98A8A8;
+    --border: #E0E8E8;
+    --gold-bg: #F5EAC5;
+    --gold-text: #8A6A08;
+    --teal-bg: #D9F1EF;
+    --teal-text: #247F77;
+    --neutral-badge-bg: #E8EEEE;
+    --neutral-badge-text: #405858;
+    --error: #C96B6B;
+    --card-shadow: 0 8px 30px rgba(48, 72, 72, 0.06);
+    --card-shadow-hover: 0 12px 36px rgba(48, 72, 72, 0.10);
+  }
+
+  body {
+    background-color: #E0F0F0;
+    color: #304848;
+    font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Custom Soft UI & Neumorphic-inspired touches */
+.soft-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E0E8E8;
+  border-radius: 20px;
+  box-shadow: 0 8px 30px rgba(48, 72, 72, 0.06);
+  transition: all 0.2s ease-in-out;
+}
+
+.soft-card-hover:hover {
+  box-shadow: 0 12px 36px rgba(48, 72, 72, 0.10);
+  border-color: #C8D8D8;
+}
+
+.btn-primary {
+  background-color: #D0A018;
+  color: #FFFFFF;
+  border-radius: 14px;
+  font-weight: 600;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+.btn-primary:hover {
+  background-color: #B88C10;
+}
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-secondary {
+  background-color: #E0F0F0;
+  color: #405858;
+  border: 1px solid #C8D8D8;
+  border-radius: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+.btn-secondary:hover {
+  background-color: #C8D8D8;
+  color: #304848;
+}
+
+.btn-dark {
+  background-color: #405858;
+  color: #FFFFFF;
+  border-radius: 14px;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+.btn-dark:hover {
+  background-color: #385050;
+}
+
+.soft-input {
+  background-color: #F8F8F8;
+  border: 1px solid #E0E8E8;
+  color: #304848;
+  border-radius: 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.soft-input:focus {
+  outline: none;
+  border-color: #2AAFA3;
+  box-shadow: 0 0 0 3px rgba(42, 175, 163, 0.15);
+}
+
+.badge-gold {
+  background-color: #F5EAC5;
+  color: #8A6A08;
+}
+
+.badge-teal {
+  background-color: #D9F1EF;
+  color: #247F77;
+}
+
+.badge-neutral {
+  background-color: #E8EEEE;
+  color: #405858;
+}
+
+/* Custom soft scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #E0F0F0;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C8D8D8;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #98A8A8;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
