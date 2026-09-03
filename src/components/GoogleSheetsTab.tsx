@@ -166,35 +166,37 @@ export const GoogleSheetsTab: React.FC<GoogleSheetsTabProps> = ({
   const spreadsheetId = "1tA8YyHxFr1xwGWvdwHLOXaF9q8SjgbDuxDinzuH6kag";
   const sheetUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
 
-  // Ganti bagian fetch atau variabel URL-nya menjadi langsung mengarah ke string URL GAS secara mutlak:
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Z5fnKejoelvuKkHQ1f.../exec";
-
   const handleManualSync = async () => {
     setIsSyncing(true);
     setSyncSuccess(false);
     setSyncError(null);
+
     try {
-      const res = await fetch(GAS_URL);
-      const data = await res.json();
+      // Masukkan URL Web App Google Apps Script kamu secara langsung di sini secara utuh
+      const gasUrl = "https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Zj5fnKejoelvuKkHQ1fQV-8UA_lRhtuTPMcmUFBH-xqN-kCVr3Dw/exec";
       
+      const res = await fetch(gasUrl);
+      const textData = await res.text();
+      
+      // Validasi apakah respons dari Google Apps Script berupa JSON
+      let data;
+      try {
+        data = JSON.parse(textData);
+      } catch (e) {
+        throw new Error("Respons server bukan format JSON yang valid. Pastikan deployment GAS sudah benar.");
+      }
+
       if (data.status === "success" && Array.isArray(data.data)) {
-        // Sesuaikan parsing data dari array rows Google Sheets
-        setSyncedCount(data.data.length - 1); // dikurangi header
+        setSyncedCount(data.data.length - 1); // Mengabaikan baris header
         setSyncSuccess(true);
-        setLastSyncTime(new Date().toLocaleString('id-ID'));
+        setLastSyncTime(new Date().toLocaleTimeString());
+        
         if (onSyncOperators) {
           const parsedOps = parseSheetRowsToOperators(data.data);
           onSyncOperators(parsedOps.length > 0 ? parsedOps : (data.data as any));
         }
-      } else if (data.status === "success" && Array.isArray(data.operators)) {
-        setSyncedCount(data.operators.length);
-        setSyncSuccess(true);
-        setLastSyncTime(new Date().toLocaleString('id-ID'));
-        if (onSyncOperators) {
-          onSyncOperators(data.operators);
-        }
       } else {
-        setSyncError(data.message || data.error || "Gagal sinkronisasi data dari Google Apps Script.");
+        throw new Error(data.message || "Gagal memproses data dari spreadsheet.");
       }
     } catch (err: any) {
       setSyncError(err.toString());
