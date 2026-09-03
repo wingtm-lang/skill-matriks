@@ -246,12 +246,36 @@ export default function App() {
               selectedLine={selectedLine}
               userRole={userRole}
               onSyncOperators={(newOps) => {
-                const normalizedOps = newOps.map((op: Operator) => ({
-                  ...op,
-                  factory: normalizeFactoryName(op.factory),
-                  line: normalizeLineName(op.line),
-                  status: op.status || 'ACTIVE'
-                }));
+                if (!Array.isArray(newOps)) return;
+                const normalizedOps = newOps.map((op: any, idx: number) => {
+                  if (Array.isArray(op)) {
+                    return {
+                      id: `op-sync-${idx + 1}`,
+                      no: idx + 1,
+                      nik: op[4] || `OP-${idx + 1}`,
+                      name: op[5] || `Operator ${idx + 1}`,
+                      factory: normalizeFactoryName(op[0]),
+                      line: normalizeLineName(op[1]),
+                      doj: op[6] || '-',
+                      workTimeMonths: 12,
+                      status: op[17] || 'ACTIVE',
+                      lockstitch: 75,
+                      overlock: null,
+                      flatseam: null,
+                      special: null,
+                      buttonHole: null,
+                      buttonSet: null,
+                      chainstitch: null,
+                      bartack: null,
+                    };
+                  }
+                  return {
+                    ...op,
+                    factory: normalizeFactoryName(op.factory),
+                    line: normalizeLineName(op.line),
+                    status: op.status || 'ACTIVE'
+                  };
+                });
                 setOperators(normalizedOps);
                 setIsLiveFromSheets(true);
               }}

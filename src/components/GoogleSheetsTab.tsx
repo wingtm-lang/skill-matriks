@@ -24,6 +24,131 @@ interface GoogleSheetsTabProps {
 }
 
 
+// Helper untuk mengonversi baris mentah Google Sheets (tab by_worker) menjadi array Operator
+const parseSheetRowsToOperators = (rows: any[]): Operator[] => {
+  if (!rows || rows.length === 0) return [];
+  
+  // Jika sudah merupakan array of object Operator
+  if (typeof rows[0] === 'object' && !Array.isArray(rows[0])) {
+    return rows as Operator[];
+  }
+
+  // Jika berupa array 2D baris Google Sheets
+  const isHeaderFirst = Array.isArray(rows[0]) && (
+    rows[0].some((c: any) => typeof c === 'string' && /worker|nik|factory|line|name/i.test(c))
+  );
+  const dataRows = isHeaderFirst ? rows.slice(1) : rows;
+
+  const operatorMap = new Map<string, {
+    nik: string;
+    name: string;
+    doj: string;
+    factory: string;
+    line: string;
+    status: string;
+    recordDate?: string;
+    lockstitchRates: number[];
+    overlockRates: number[];
+    flatseamRates: number[];
+    specialRates: number[];
+    buttonHoleRates: number[];
+    buttonSetRates: number[];
+    bartackRates: number[];
+    chainstitchRates: number[];
+  }>();
+
+  dataRows.forEach((row: any, idx: number) => {
+    if (!Array.isArray(row)) return;
+    const rawFactory = (row[0] !== undefined && row[0] !== null) ? row[0].toString().trim() : "Factory 1";
+    const rawLine = (row[1] !== undefined && row[1] !== null) ? row[1].toString().trim() : "Line 1";
+    const nik = (row[4] || row[0] || `OP-${idx + 1}`).toString().trim();
+    const name = (row[5] || row[1] || `Operator ${nik}`).toString().trim();
+    const doj = (row[6] || "-").toString().trim();
+
+    let rowDate = "";
+    for (let c = 0; c < Math.min(row.length, 7); c++) {
+      const cellVal = (row[c] || "").toString().trim();
+      if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(cellVal) || /^\d{1,2}[-/]\d{1,2}[-/]\d{2,4}/.test(cellVal)) {
+        rowDate = cellVal;
+        break;
+      }
+    }
+
+    const rawProdVal = (row[12] !== undefined && row[12] !== "") ? row[12] : (row[11] || "75");
+    const prodRate = parseFloat(String(rawProdVal).replace('%', '').replace(',', '.').trim()) || 75;
+    const rawCatVal = (row[16] && row[16].toString().trim()) || (row[15] && row[15].toString().trim()) || "";
+    const machineCategory = rawCatVal.toString().trim().toUpperCase();
+    const rawStatusVal = (row[17] !== undefined && row[17] !== null) ? row[17].toString().trim() : "ACTIVE";
+
+    if (!operatorMap.has(nik)) {
+      operatorMap.set(nik, {
+        nik,
+        name: name || `Operator ${nik}`,
+        doj: doj || "-",
+        factory: rawFactory.startsWith("Factory") ? rawFactory : `Factory ${rawFactory}`,
+        line: rawLine.startsWith("Line") ? rawLine : `Line ${rawLine}`,
+        status: rawStatusVal || "ACTIVE",
+        recordDate: rowDate || undefined,
+        lockstitchRates: [],
+        overlockRates: [],
+        flatseamRates: [],
+        specialRates: [],
+        buttonHoleRates: [],
+        buttonSetRates: [],
+        bartackRates: [],
+        chainstitchRates: [],
+      });
+    }
+
+    const op = operatorMap.get(nik)!;
+    if (doj && op.doj === "-") op.doj = doj;
+    if (name && !op.name) op.name = name;
+
+    if (machineCategory.includes("LOCKSTITCH") || machineCategory === "SN") {
+      op.lockstitchRates.push(prodRate);
+    } else if (machineCategory.includes("OVERLOCK") || machineCategory === "OL") {
+      op.overlockRates.push(prodRate);
+    } else if (machineCategory.includes("FLATSEAM") || machineCategory === "FS") {
+      op.flatseamRates.push(prodRate);
+    } else if (machineCategory.includes("BUTTON HOLE") || machineCategory === "BH") {
+      op.buttonHoleRates.push(prodRate);
+    } else if (machineCategory.includes("BUTTON SET") || machineCategory === "BS") {
+      op.buttonSetRates.push(prodRate);
+    } else if (machineCategory.includes("BARTACK") || machineCategory === "BT") {
+      op.bartackRates.push(prodRate);
+    } else if (machineCategory.includes("CHAINSTITCH") || machineCategory === "CS") {
+      op.chainstitchRates.push(prodRate);
+    } else if (machineCategory.includes("SPECIAL") || machineCategory === "SP") {
+      op.specialRates.push(prodRate);
+    } else {
+      op.lockstitchRates.push(prodRate);
+    }
+  });
+
+  const avg = (arr: number[]) => arr.length > 0 ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
+
+  return Array.from(operatorMap.values()).map((item, index): Operator => ({
+    id: `op-sheet-${item.nik}-${index + 1}`,
+    no: index + 1,
+    nik: item.nik,
+    name: item.name,
+    doj: item.doj,
+    workTimeMonths: 12,
+    factory: item.factory,
+    line: item.line,
+    status: (item.status as any) || 'ACTIVE',
+    recordDate: item.recordDate,
+    lockstitch: avg(item.lockstitchRates),
+    overlock: avg(item.overlockRates),
+    flatseam: avg(item.flatseamRates),
+    special: avg(item.specialRates),
+    buttonHole: avg(item.buttonHoleRates),
+    buttonSet: avg(item.buttonSetRates),
+    chainstitch: avg(item.chainstitchRates),
+    bartack: avg(item.bartackRates),
+  }));
+};
+
 export const GoogleSheetsTab: React.FC<GoogleSheetsTabProps> = ({
   operators,
   selectedFactory,
@@ -41,43 +166,38 @@ export const GoogleSheetsTab: React.FC<GoogleSheetsTabProps> = ({
   const spreadsheetId = "1tA8YyHxFr1xwGWvdwHLOXaF9q8SjgbDuxDinzuH6kag";
   const sheetUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
 
+  // Ganti bagian fetch atau variabel URL-nya menjadi langsung mengarah ke string URL GAS secara mutlak:
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Z5fnKejoelvuKkHQ1f.../exec";
+
   const handleManualSync = async () => {
     setIsSyncing(true);
     setSyncSuccess(false);
     setSyncError(null);
-
     try {
-      // Panggil endpoint /api/sheets/operators atau endpoint kustom jika valid
-      const customUrl = 'https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Z5fnKejoelvuKkHQ1f.../exec';
-      const fetchUrl = (customUrl && !customUrl.includes('...')) ? customUrl : '/api/sheets/operators';
-      const res = await fetch(fetchUrl);
+      const res = await fetch(GAS_URL);
       const data = await res.json();
-
-      if (res.ok && data.success && Array.isArray(data.operators) && data.operators.length > 0) {
-        setSyncedCount(data.count);
+      
+      if (data.status === "success" && Array.isArray(data.data)) {
+        // Sesuaikan parsing data dari array rows Google Sheets
+        setSyncedCount(data.data.length - 1); // dikurangi header
         setSyncSuccess(true);
         setLastSyncTime(new Date().toLocaleString('id-ID'));
-        
+        if (onSyncOperators) {
+          const parsedOps = parseSheetRowsToOperators(data.data);
+          onSyncOperators(parsedOps.length > 0 ? parsedOps : (data.data as any));
+        }
+      } else if (data.status === "success" && Array.isArray(data.operators)) {
+        setSyncedCount(data.operators.length);
+        setSyncSuccess(true);
+        setLastSyncTime(new Date().toLocaleString('id-ID'));
         if (onSyncOperators) {
           onSyncOperators(data.operators);
         }
       } else {
-        // Fallback coba baca metadata sheet
-        const metaRes = await fetch('/api/sheets/fetch');
-        const metaData = await metaRes.json();
-        if (metaRes.ok && metaData.success) {
-          setSheetDetails(metaData);
-          setSyncSuccess(true);
-          setLastSyncTime(new Date().toLocaleString('id-ID'));
-        } else {
-          setSyncError(data.error || metaData.error || "Gagal mengambil data baris 'by_worker'.");
-          setLastSyncTime(new Date().toLocaleString('id-ID'));
-        }
+        setSyncError(data.message || data.error || "Gagal sinkronisasi data dari Google Apps Script.");
       }
     } catch (err: any) {
-      console.warn("Sync error, falling back to local IE dataset", err);
-      setSyncError("Koneksi gagal atau offline. Menggunakan dataset lokal sistem.");
-      setLastSyncTime(new Date().toLocaleString('id-ID'));
+      setSyncError(err.toString());
     } finally {
       setIsSyncing(false);
     }
