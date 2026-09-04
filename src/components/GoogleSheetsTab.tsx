@@ -14,6 +14,7 @@ import {
   Table
 } from 'lucide-react';
 import { Operator } from '../types';
+import { normalizeFactoryName, normalizeLineName } from '../utils/ieCalculations';
 
 interface GoogleSheetsTabProps {
   operators: Operator[];
@@ -192,8 +193,43 @@ export const GoogleSheetsTab: React.FC<GoogleSheetsTabProps> = ({
         setLastSyncTime(new Date().toLocaleTimeString());
         
         if (onSyncOperators) {
-          const parsedOps = parseSheetRowsToOperators(data.data);
-          onSyncOperators(parsedOps.length > 0 ? parsedOps : (data.data as any));
+          const rows = data.data;
+          const dataRows = Array.isArray(rows[0]) ? rows.slice(1) : rows;
+          const normalizedOps: Operator[] = dataRows.map((row: any, index: number) => {
+            const rawProdRate = Number(row[12] || 0);
+            const machineCat = String(row[16] || "").toUpperCase();
+            return {
+              id: String(row[4] || index), // Kolom E: Worker Code
+              no: index + 1,
+              factory: normalizeFactoryName(String(row[0] || "1")), // Kolom A: Factory
+              line: normalizeLineName(String(row[1] || "1")), // Kolom B: Line
+              nik: String(row[4] || ""), // Kolom E: Worker Code
+              name: String(row[5] || "Unknown"), // Kolom F: Worker
+              machine: String(row[7] || ""), // Kolom H: Machine
+              styleNo: String(row[8] || ""), // Kolom I: Style No
+              process: String(row[9] || ""), // Kolom J: Process
+              productionRate: Number(row[12] || 0), // Kolom M: Production Rate (%)
+              points: Number(row[13] || 1), // Kolom N: POINT (langsung dari Sheets)
+              workMonth: Number(row[14] || 1), // Kolom O: Work Month (langsung dari Sheets)
+              dateOfResign: String(row[15] || ""), // Kolom P: Date of Resign
+              machineCategory: String(row[16] || ""), // Kolom Q: Machine Category
+              status: String(row[17] || "ACTIVE"), // Kolom R: Status
+
+              // Kompatibilitas dengan fitur Skill Matrix & Line Balancing
+              doj: String(row[6] || "-"),
+              workTimeMonths: Number(row[14] || 1),
+              resignDate: row[15] ? String(row[15]) : null,
+              lockstitch: machineCat.includes("SN") || machineCat.includes("LOCKSTITCH") || (!machineCat && rawProdRate > 0) ? rawProdRate : (rawProdRate > 0 ? null : 75),
+              overlock: machineCat.includes("OL") || machineCat.includes("OVERLOCK") ? rawProdRate : null,
+              flatseam: machineCat.includes("FS") || machineCat.includes("FLATSEAM") ? rawProdRate : null,
+              special: machineCat.includes("SP") || machineCat.includes("SPECIAL") ? rawProdRate : null,
+              buttonHole: machineCat.includes("BH") || machineCat.includes("BUTTON HOLE") ? rawProdRate : null,
+              buttonSet: machineCat.includes("BS") || machineCat.includes("BUTTON SET") ? rawProdRate : null,
+              chainstitch: machineCat.includes("CS") || machineCat.includes("CHAINSTITCH") ? rawProdRate : null,
+              bartack: machineCat.includes("BT") || machineCat.includes("BARTACK") ? rawProdRate : null,
+            };
+          });
+          onSyncOperators(normalizedOps);
         }
       } else {
         throw new Error(data.message || "Gagal memproses data dari spreadsheet.");

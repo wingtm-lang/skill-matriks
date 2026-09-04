@@ -22,6 +22,20 @@ import { Operator, GradeType, MachineCategory } from '../types';
 import { getOperatorMultiSkillCount, getOperatorAvgRate, setOperatorResigned } from '../utils/ieCalculations';
 import { getGradeFromRate, GRADE_BENCHMARKS } from '../data/mockData';
 
+const formatDate = (dateString: string | undefined) => {
+  if (!dateString) return '-';
+  // Ambil bagian depannya saja sebelum huruf 'T' (YYYY-MM-DD)
+  const cleanDate = dateString.split('T')[0];
+  const parts = cleanDate.split('-');
+  if (parts.length === 3) {
+    const [year, month, day] = parts;
+    const monthsName = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const monthStr = monthsName[parseInt(month, 10) - 1] || month;
+    return `${day} ${monthStr} ${year}`;
+  }
+  return cleanDate;
+};
+
 interface SkillMatrixTabProps {
   operators: Operator[];
   onAddOperator: (operator: Operator) => void;
@@ -110,75 +124,65 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
   const filteredOperators = useMemo(() => {
     return operators
       .filter((op) => {
-        // Jika statusnya RESIGNED, buang dari daftar operator aktif di line
-        const isResigned = op.status?.toUpperCase() === "RESIGNED";
-        if (isResigned) {
+        // 1. Cek status RESIGNED dari kolom Sheets (Kolom R)
+        const statusResigned = op.status?.toUpperCase() === "RESIGNED";
+        
+        // 2. Cek apakah tanggal resign sudah melewati periode aktif
+        let isResignedBeforeActivePeriod = false;
+        if (op.dateOfResign && op.dateOfResign.trim() !== '') {
+          const resignDate = new Date(op.dateOfResign);
+          const activePeriod = new Date(selectedYear, selectedMonth - 1, 1);
+          if (!isNaN(resignDate.getTime()) && resignDate <= activePeriod) {
+            isResignedBeforeActivePeriod = true;
+          }
+        }
+
+        // Jika sudah resign, buang dari daftar
+        if (statusResigned || isResignedBeforeActivePeriod) {
           return false;
         }
 
+        // 3. Pencarian berdasarkan nama atau NIK
         const matchesSearch =
           op.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           op.nik.includes(searchTerm);
         if (!matchesSearch) return false;
 
-        // Machine Category filter
-        if (machineFilter === 'LOCKSTITCH') {
-          if ((op.lockstitch ?? 0) <= 0) return false;
-        } else if (machineFilter === 'OVERLOCK') {
-          if ((op.overlock ?? 0) <= 0) return false;
-        } else if (machineFilter === 'FLATSEAM') {
-          if ((op.flatseam ?? 0) <= 0) return false;
-        } else if (machineFilter === 'SPECIAL') {
-          if ((op.special ?? 0) <= 0) return false;
-        } else if (machineFilter === 'BUTTON_HOLE') {
-          if ((op.buttonHole ?? 0) <= 0) return false;
-        } else if (machineFilter === 'BUTTON_SET') {
-          if ((op.buttonSet ?? 0) <= 0) return false;
-        }
+        // Filter Kategori Mesin
+        if (machineFilter === 'LOCKSTITCH' && (op.lockstitch ?? 0) <= 0) return false;
+        if (machineFilter === 'OVERLOCK' && (op.overlock ?? 0) <= 0) return false;
+        if (machineFilter === 'FLATSEAM' && (op.flatseam ?? 0) <= 0) return false;
+        if (machineFilter === 'SPECIAL' && (op.special ?? 0) <= 0) return false;
+        if (machineFilter === 'BUTTON_HOLE' && (op.buttonHole ?? 0) <= 0) return false;
+        if (machineFilter === 'BUTTON_SET' && (op.buttonSet ?? 0) <= 0) return false;
 
-        // Multiskill only filter
-        if (multiskillOnly && getOperatorMultiSkillCount(op) < 2) {
-          return false;
-        }
+        // Multiskill filter
+        if (multiskillOnly && getOperatorMultiSkillCount(op) < 2) return false;
 
-        // Logika penyaringan data tabel berdasarkan grade yang dipilih
+        // Filter Grade
         if (selectedGrade !== 'ALL') {
           const avg = getOperatorAvgRate(op);
           const g = getGradeFromRate(avg);
           const opGrade = (op as any).grade || g.grade;
-          if (opGrade !== selectedGrade) {
-            return false;
-          }
+          if (opGrade !== selectedGrade) return false;
         }
 
         return true;
       })
       .sort((a, b) => {
-        let valA: any;
-        let valB: any;
-
-        if (sortField === 'no') {
-          valA = a.no;
-          valB = b.no;
-        } else if (sortField === 'name') {
-          valA = a.name;
-          valB = b.name;
-        } else if (sortField === 'avgRate') {
-          valA = getOperatorAvgRate(a);
-          valB = getOperatorAvgRate(b);
-        } else if (sortField === 'workTime') {
-          valA = a.workTimeMonths;
-          valB = b.workTimeMonths;
-        } else if (sortField === 'multiskill') {
-          valA = getOperatorMultiSkillCount(a);
-          valB = getOperatorMultiSkillCount(b);
-        }
+        // Logika sorting tetap
+        let valA: any = a.no;
+        let valB: any = b.no;
+        if (sortField === 'name') { valA = a.name; valB = b.name; }
+        else if (sortField === 'avgRate') { valA = getOperatorAvgRate(a); valB = getOperatorAvgRate(b); }
+        else if (sortField === 'workTime') { valA = a.workTimeMonths; valB = b.workTimeMonths; }
+        else if (sortField === 'multiskill') { valA = getOperatorMultiSkillCount(a); valB = getOperatorMultiSkillCount(b); }
 
         if (valA < valB) return sortAsc ? -1 : 1;
         if (valA > valB) return sortAsc ? 1 : -1;
         return 0;
       });
-  }, [operators, searchTerm, machineFilter, multiskillOnly, selectedGrade, sortField, sortAsc]);
+  }, [operators, searchTerm, machineFilter, multiskillOnly, selectedGrade, sortField, sortAsc, selectedMonth, selectedYear]);
 
   const handleSort = (field: 'no' | 'name' | 'avgRate' | 'workTime' | 'multiskill') => {
     if (sortField === field) {
@@ -600,7 +604,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                               {op.name}
                             </span>
                             <span className="text-[10px] text-[#98A8A8]">
-                              DOJ: {op.doj}
+                              DOJ: {formatDate(op.doj)}
                             </span>
                           </div>
                         </div>

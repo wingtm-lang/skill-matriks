@@ -88,36 +88,38 @@ export default function App() {
 
         // Mapping baris spreadsheet ke objek Operator
         const normalizedOps: Operator[] = dataRows.map((row: any, index: number) => {
-          const rawCode = row[idxWorkerCode] !== undefined && row[idxWorkerCode] !== null ? String(row[idxWorkerCode]).trim() : `OP-${index + 1}`;
-          const rawName = row[idxWorker] !== undefined && row[idxWorker] !== null ? String(row[idxWorker]).trim() : `Operator ${index + 1}`;
-          const rawFactory = row[idxFactory] !== undefined && row[idxFactory] !== null ? String(row[idxFactory]) : "1";
-          const rawLine = row[idxLine] !== undefined && row[idxLine] !== null ? String(row[idxLine]) : "1";
-          const rawStatus = row[idxStatus] !== undefined && row[idxStatus] !== null ? String(row[idxStatus]).trim() : "ACTIVE";
-          const rawDoj = row[idxDoj] !== undefined && row[idxDoj] !== null ? String(row[idxDoj]).trim() : "-";
-          const rawDate = row[idxDate] !== undefined && row[idxDate] !== null ? String(row[idxDate]).trim() : undefined;
-          const rawRateVal = row[idxRate] !== undefined ? parseFloat(String(row[idxRate]).replace("%", "").replace(",", ".").trim()) : 75;
-          const rateVal = !isNaN(rawRateVal) ? rawRateVal : 75;
-          const machineCat = String(row[idxMachine] || "").toUpperCase();
+          const rawProdRate = Number(row[12] || 0);
+          const machineCat = String(row[16] || "").toUpperCase();
 
           return {
-            id: String(row[headers.indexOf("Worker Code")] || rawCode || index),
+            id: String(row[4] || index), // Kolom E: Worker Code
             no: index + 1,
-            factory: normalizeFactoryName(String(row[headers.indexOf("Factory")] || rawFactory || "1")),
-            line: normalizeLineName(String(row[headers.indexOf("Line")] || rawLine || "1")),
-            nik: String(row[headers.indexOf("Worker Code")] || rawCode || ""),
-            name: String(row[headers.indexOf("Worker")] || rawName || "Unknown"),
-            status: String(row[headers.indexOf("Status")] || rawStatus || "ACTIVE"),
-            doj: rawDoj || "-",
-            workTimeMonths: 12,
-            recordDate: rawDate,
-            lockstitch: machineCat.includes("SN") || machineCat.includes("LOCKSTITCH") || !machineCat ? rateVal : 75,
-            overlock: machineCat.includes("OL") || machineCat.includes("OVERLOCK") ? rateVal : null,
-            flatseam: machineCat.includes("FS") || machineCat.includes("FLATSEAM") ? rateVal : null,
-            special: machineCat.includes("SP") || machineCat.includes("SPECIAL") ? rateVal : null,
-            buttonHole: machineCat.includes("BH") || machineCat.includes("BUTTON HOLE") ? rateVal : null,
-            buttonSet: machineCat.includes("BS") || machineCat.includes("BUTTON SET") ? rateVal : null,
-            chainstitch: machineCat.includes("CS") || machineCat.includes("CHAINSTITCH") ? rateVal : null,
-            bartack: machineCat.includes("BT") || machineCat.includes("BARTACK") ? rateVal : null,
+            factory: normalizeFactoryName(String(row[0] || "1")), // Kolom A: Factory
+            line: normalizeLineName(String(row[1] || "1")), // Kolom B: Line
+            nik: String(row[4] || ""), // Kolom E: Worker Code
+            name: String(row[5] || "Unknown"), // Kolom F: Worker
+            machine: String(row[7] || ""), // Kolom H: Machine
+            styleNo: String(row[8] || ""), // Kolom I: Style No
+            process: String(row[9] || ""), // Kolom J: Process
+            productionRate: Number(row[12] || 0), // Kolom M: Production Rate (%)
+            points: Number(row[13] || 1), // Kolom N: POINT (langsung dari Sheets)
+            workMonth: Number(row[14] || 1), // Kolom O: Work Month (langsung dari Sheets)
+            dateOfResign: String(row[15] || ""), // Kolom P: Date of Resign
+            machineCategory: String(row[16] || ""), // Kolom Q: Machine Category
+            status: String(row[17] || "ACTIVE"), // Kolom R: Status
+
+            // Kompatibilitas dengan fitur Skill Matrix & Line Balancing
+            doj: String(row[6] || "-"),
+            workTimeMonths: Number(row[14] || 1),
+            resignDate: row[15] ? String(row[15]) : null,
+            lockstitch: machineCat.includes("SN") || machineCat.includes("LOCKSTITCH") || (!machineCat && rawProdRate > 0) ? rawProdRate : (rawProdRate > 0 ? null : 75),
+            overlock: machineCat.includes("OL") || machineCat.includes("OVERLOCK") ? rawProdRate : null,
+            flatseam: machineCat.includes("FS") || machineCat.includes("FLATSEAM") ? rawProdRate : null,
+            special: machineCat.includes("SP") || machineCat.includes("SPECIAL") ? rawProdRate : null,
+            buttonHole: machineCat.includes("BH") || machineCat.includes("BUTTON HOLE") ? rawProdRate : null,
+            buttonSet: machineCat.includes("BS") || machineCat.includes("BUTTON SET") ? rawProdRate : null,
+            chainstitch: machineCat.includes("CS") || machineCat.includes("CHAINSTITCH") ? rawProdRate : null,
+            bartack: machineCat.includes("BT") || machineCat.includes("BARTACK") ? rawProdRate : null,
           };
         });
 
@@ -326,24 +328,37 @@ export default function App() {
                 if (!Array.isArray(newOps)) return;
                 const normalizedOps = newOps.map((op: any, idx: number) => {
                   if (Array.isArray(op)) {
+                    const rawProdRate = Number(op[12] || 0);
+                    const machineCat = String(op[16] || "").toUpperCase();
                     return {
-                      id: `op-sync-${idx + 1}`,
+                      id: String(op[4] || idx), // Kolom E: Worker Code
                       no: idx + 1,
-                      nik: op[4] || `OP-${idx + 1}`,
-                      name: op[5] || `Operator ${idx + 1}`,
-                      factory: normalizeFactoryName(op[0]),
-                      line: normalizeLineName(op[1]),
-                      doj: op[6] || '-',
-                      workTimeMonths: 12,
-                      status: op[17] || 'ACTIVE',
-                      lockstitch: 75,
-                      overlock: null,
-                      flatseam: null,
-                      special: null,
-                      buttonHole: null,
-                      buttonSet: null,
-                      chainstitch: null,
-                      bartack: null,
+                      factory: normalizeFactoryName(String(op[0] || "1")), // Kolom A: Factory
+                      line: normalizeLineName(String(op[1] || "1")), // Kolom B: Line
+                      nik: String(op[4] || ""), // Kolom E: Worker Code
+                      name: String(op[5] || "Unknown"), // Kolom F: Worker
+                      machine: String(op[7] || ""), // Kolom H: Machine
+                      styleNo: String(op[8] || ""), // Kolom I: Style No
+                      process: String(op[9] || ""), // Kolom J: Process
+                      productionRate: Number(op[12] || 0), // Kolom M: Production Rate (%)
+                      points: Number(op[13] || 1), // Kolom N: POINT (langsung dari Sheets)
+                      workMonth: Number(op[14] || 1), // Kolom O: Work Month (langsung dari Sheets)
+                      dateOfResign: String(op[15] || ""), // Kolom P: Date of Resign
+                      machineCategory: String(op[16] || ""), // Kolom Q: Machine Category
+                      status: String(op[17] || "ACTIVE"), // Kolom R: Status
+
+                      // Kompatibilitas dengan fitur Skill Matrix & Line Balancing
+                      doj: String(op[6] || "-"),
+                      workTimeMonths: Number(op[14] || 1),
+                      resignDate: op[15] ? String(op[15]) : null,
+                      lockstitch: machineCat.includes("SN") || machineCat.includes("LOCKSTITCH") || (!machineCat && rawProdRate > 0) ? rawProdRate : (rawProdRate > 0 ? null : 75),
+                      overlock: machineCat.includes("OL") || machineCat.includes("OVERLOCK") ? rawProdRate : null,
+                      flatseam: machineCat.includes("FS") || machineCat.includes("FLATSEAM") ? rawProdRate : null,
+                      special: machineCat.includes("SP") || machineCat.includes("SPECIAL") ? rawProdRate : null,
+                      buttonHole: machineCat.includes("BH") || machineCat.includes("BUTTON HOLE") ? rawProdRate : null,
+                      buttonSet: machineCat.includes("BS") || machineCat.includes("BUTTON SET") ? rawProdRate : null,
+                      chainstitch: machineCat.includes("CS") || machineCat.includes("CHAINSTITCH") ? rawProdRate : null,
+                      bartack: machineCat.includes("BT") || machineCat.includes("BARTACK") ? rawProdRate : null,
                     };
                   }
                   return {

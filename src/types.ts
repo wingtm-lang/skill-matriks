@@ -32,6 +32,17 @@ export interface Operator {
   grade?: GradeType | string; // Calculated or assigned grade (S, A, B, C, HELPER)
   resignDate?: string | null; // Date of resignation if applicable
   transferDate?: string | null; // Date of transfer to another line/factory if applicable
+  
+  // Google Sheets by_worker direct columns
+  machine?: string; // Kolom H: Machine
+  styleNo?: string; // Kolom I: Style No
+  process?: string; // Kolom J: Process
+  productionRate?: number; // Kolom M: Production Rate (%)
+  points?: number; // Kolom N: POINT (langsung dari Sheets)
+  workMonth?: number; // Kolom O: Work Month (langsung dari Sheets)
+  dateOfResign?: string; // Kolom P: Date of Resign
+  machineCategory?: string; // Kolom Q: Machine Category
+
   // Efficiency rate in % for each machine type (null if not tested/no competency)
   lockstitch: number | null;
   overlock: number | null;
