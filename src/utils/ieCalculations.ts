@@ -1,5 +1,19 @@
-import { Operator, GarmentStyle, WorkstationAssignment, LineBalancingResult, MachineCategory } from '../types';
-import { getGradeFromRate } from '../data/mockData';
+import { Operator, GarmentStyle, WorkstationAssignment, LineBalancingResult, MachineCategory, RawSheetRow } from '../types';
+import { 
+  getGradeFromRate, 
+  getGradeFromPoints, 
+  getOperatorMaxPoints, 
+  getGradeFromTotalPoints, 
+  getOperatorTotalPoints 
+} from '../data/mockData';
+
+export { 
+  getGradeFromPoints, 
+  getOperatorMaxPoints, 
+  getGradeFromTotalPoints, 
+  getOperatorTotalPoints 
+};
+export type { RawSheetRow };
 
 export function getOperatorSkillForMachine(operator: Operator, machine: MachineCategory): number | null {
   switch (machine) {
@@ -321,6 +335,26 @@ const MONTH_MAP: Record<string, number> = {
 };
 
 /**
+ * Mem-parse tanggal lokal tanpa pergeseran timezone UTC,
+ * terutama untuk format YYYY-MM-DD.
+ */
+export function parseLocalDate(dateStr: string): Date | null {
+  if (!dateStr) return null;
+  // Jika formatnya YYYY-MM-DD
+  const parts = String(dateStr).split(' ')[0].split('-');
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // Bulan di JS dimulai dari 0
+    const day = parseInt(parts[2], 10);
+    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+      return new Date(year, month, day);
+    }
+  }
+  const parsed = new Date(dateStr);
+  return isNaN(parsed.getTime()) ? null : parsed;
+}
+
+/**
  * Mem-parse string tanggal dengan berbagai format (YYYY-MM-DD, DD-MMM-YY, DD-MM-YYYY, ISO)
  * secara aman dengan timezone-neutral date instantiations (jam 12 siang).
  */
@@ -392,6 +426,34 @@ export function extractMonthAndYear(input: string | Date | null | undefined): { 
   const str = String(input).trim();
   if (!str || str === '-') return null;
 
+  // 0. ISO string (misal dari Google Apps Script: "2026-09-01T17:00:00.000Z")
+  // Di Indonesia (Asia/Jakarta, GMT+7): 01-09-2026 17:00 UTC = 02-09-2026 00:00 WIB
+  // Tambahkan offset 7 jam agar tidak meleset tanggal/bulan
+  if (str.includes('T') && (str.endsWith('Z') || str.includes('+'))) {
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      const jakartaTime = new Date(d.getTime() + 7 * 60 * 60 * 1000);
+      return {
+        month: jakartaTime.getUTCMonth() + 1,
+        year: jakartaTime.getUTCFullYear(),
+      };
+    }
+  }
+
+  // 0b. Excel numeric serial date (misal 46268)
+  if (/^\d{5}$/.test(str)) {
+    const serial = parseInt(str, 10);
+    if (serial >= 30000 && serial <= 60000) {
+      const excelDate = new Date(Math.round((serial - 25569) * 86400 * 1000));
+      if (!isNaN(excelDate.getTime())) {
+        return {
+          month: excelDate.getUTCMonth() + 1,
+          year: excelDate.getUTCFullYear(),
+        };
+      }
+    }
+  }
+
   // 1. Direct parsing untuk format standard YYYY-MM-DD atau YYYY/MM/DD (contoh: "2026-09-01", "2026-9-1")
   // Karakter 0-4: Tahun, Karakter 5-7 (atau delimiter berikutnya): Bulan
   const ymd = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
@@ -443,13 +505,14 @@ function mergeMachineRates(existing: Operator, incoming: Operator): void {
     const hasNext = next !== null && next !== undefined && !isNaN(next) && next > 0;
 
     if (hasCurr && hasNext) {
-      return Math.max(curr as number, next as number);
+      // Ambil poin paling tinggi di Kolom N untuk riwayat mesin ini (maksimal 3 poin per mesin)
+      return Math.min(3, Math.max(curr as number, next as number));
     }
     if (hasNext) {
-      return next as number;
+      return Math.min(3, next as number);
     }
     if (hasCurr) {
-      return curr as number;
+      return Math.min(3, curr as number);
     }
     return null;
   };
@@ -496,157 +559,465 @@ export function filterOperatorsByPointInTime(
   if (typeof selectedMonth === 'number') {
     selMonthNum = selectedMonth;
   } else {
-    const parsedNum = parseInt(String(selectedMonth).trim(), 10);
-    if (!isNaN(parsedNum) && parsedNum >= 1 && parsedNum <= 12) {
-      selMonthNum = parsedNum;
+    const parsed = parseInt(String(selectedMonth).trim(), 10);
+    if (!isNaN(parsed) && parsed >= 1 && parsed <= 12) {
+      selMonthNum = parsed;
     } else {
       const monthStr = String(selectedMonth).trim().toLowerCase();
-      selMonthNum = MONTH_MAP[monthStr] !== undefined ? MONTH_MAP[monthStr] + 1 : 9;
+      selMonthNum = MONTH_MAP[monthStr] !== undefined ? MONTH_MAP[monthStr] + 1 : 6;
     }
   }
 
   const selYearNum = parseInt(String(selectedYear), 10) || 2026;
-  const cutoffPeriod = selYearNum * 100 + selMonthNum;
 
-  // STEP 1: CUMULATIVE POINT-IN-TIME FILTERING (<= Cut-off Month & Year)
-  const cumulativeRecords = rawOperators.filter((op: any) => {
-    const dateSource = op.date || op.recordDate || op.updatedAt;
-    const extracted = extractMonthAndYear(dateSource);
+  // 1. Filter baris data yang masuk ke dalam periode hingga bulan & tahun yang dipilih (Point-in-Time Cumulative Snapshot)
+  const filteredByMonth = rawOperators.filter((op: any) => {
+    // Ambil sumber tanggal evaluasi dari properti operator (bukan dari doj / tanggal masuk)
+    const dataSource = op.date || op.recordDate || op.updatedAt;
+    if (!dataSource || dataSource === '-') return true; // Loloskan jika data tanggal tidak diisi agar tidak hilang
+
+    const extracted = extractMonthAndYear(dataSource);
     if (extracted) {
-      const recPeriod = extracted.year * 100 + extracted.month;
-      return recPeriod <= cutoffPeriod;
+      // Rekor harus berada pada atau sebelum bulan & tahun yang dipilih
+      if (extracted.year < selYearNum) return true;
+      if (extracted.year === selYearNum && extracted.month <= selMonthNum) return true;
+      return false; // Rekor di masa depan (setelah bulan terpilih) diabaikan
     }
-    const parsed = parseFlexibleDate(dateSource);
+
+    const parsed = parseFlexibleDate(dataSource);
     if (parsed && !isNaN(parsed.getTime())) {
-      const recYear = parsed.getFullYear();
-      const recMonth = parsed.getMonth() + 1;
-      const recPeriod = recYear * 100 + recMonth;
-      return recPeriod <= cutoffPeriod;
+      const pYear = parsed.getFullYear();
+      const pMonth = parsed.getMonth() + 1;
+      if (pYear < selYearNum) return true;
+      if (pYear === selYearNum && pMonth <= selMonthNum) return true;
+      return false;
     }
-    return true;
+
+    return true; // Fallback aman agar baris tidak terbuang jika format tanggal tidak terbaca
   });
 
-  // STEP 2: CUMULATIVE MERGING & PERMANENT STATUS LOCKING
-  const uniqueNikMap = new Map<string, Operator>();
+  // 2. Agregasi per NIK: Ambil MAX PEAK PERFORMANCE untuk setiap kategori mesin & poin
+  const workerMap: { [nik: string]: Operator } = {};
+  const workerLatestDates: { [nik: string]: number } = {};
 
-  cumulativeRecords.forEach((record, idx) => {
-    const rawNik = (record.nik ? String(record.nik).trim() : "") || (record.id ? String(record.id).trim() : "");
-    const key = rawNik.toLowerCase() || `op-${idx}`;
+  filteredByMonth.forEach((op: any) => {
+    const rawNik = op.nik || op.id;
+    const nik = rawNik ? String(rawNik).trim() : '';
+    if (!nik) return;
 
-    const existing = uniqueNikMap.get(key);
-    const incomingStatus = record.status && String(record.status).trim() ? String(record.status).trim().toUpperCase() : "ACTIVE";
+    const dataSource = op.date || op.recordDate || op.updatedAt || op.doj;
+    const localD = parseLocalDate(dataSource);
+    let currentRowDate = localD ? localD.getTime() : new Date(dataSource || 0).getTime();
+    if (isNaN(currentRowDate)) {
+      const parsed = parseFlexibleDate(dataSource);
+      if (parsed) currentRowDate = parsed.getTime();
+    }
+    if (isNaN(currentRowDate)) currentRowDate = 0;
 
-    if (!existing) {
-      uniqueNikMap.set(key, {
-        ...record,
-        nik: record.nik ? String(record.nik).trim() : `NIK-${idx}`,
-        name: record.name ? String(record.name).trim() : `Operator ${idx + 1}`,
-        factory: record.factory ? String(record.factory).trim() : "Factory 1",
-        line: record.line ? String(record.line).trim() : "Line 1",
-        status: incomingStatus,
-        lockstitch: record.lockstitch ?? null,
-        overlock: record.overlock ?? null,
-        flatseam: record.flatseam ?? null,
-        special: record.special ?? null,
-        buttonHole: record.buttonHole ?? null,
-        buttonSet: record.buttonSet ?? null,
-        chainstitch: record.chainstitch ?? null,
-        bartack: record.bartack ?? null,
-      });
+    if (!workerMap[nik]) {
+      workerMap[nik] = { ...op };
+      workerLatestDates[nik] = currentRowDate;
     } else {
-      mergeMachineRates(existing, record);
+      const existing = workerMap[nik];
+      const existingDate = workerLatestDates[nik] || 0;
 
-      // KUNCI STATUS PERMANEN: Jika status sebelumnya sudah RESIGNED, jangan pernah timpa jadi ACTIVE lagi
-      const currentStatus = (existing.status || "ACTIVE").toUpperCase();
-      const isAlreadyResigned = currentStatus === "RESIGNED" || currentStatus === "INACTIVE" || currentStatus === "MUTASI" || currentStatus.includes("RESIGN");
+      // Ambil MAX PEAK PERFORMANCE per mesin (skor tertinggi, tidak terhapus oleh tanggal terbaru)
+      mergeMachineRates(existing, op);
 
-      if (!isAlreadyResigned) {
-        if (incomingStatus === "RESIGNED" || incomingStatus === "INACTIVE" || incomingStatus === "MUTASI" || incomingStatus.includes("RESIGN")) {
-          existing.status = incomingStatus;
-        } else if (record.status && String(record.status).trim() !== "") {
-          existing.status = incomingStatus;
-        }
+      // Ambil MAX PEAK PERFORMANCE untuk poin & production rate
+      if (op.points !== null && op.points !== undefined && !isNaN(op.points) && op.points > 0) {
+        existing.points = Math.max(existing.points || 0, op.points);
+      }
+      if (op.productionRate !== null && op.productionRate !== undefined && !isNaN(op.productionRate) && op.productionRate > 0) {
+        existing.productionRate = Math.max(existing.productionRate || 0, op.productionRate);
+      }
+      if (op.workTimeMonths !== null && op.workTimeMonths !== undefined && !isNaN(op.workTimeMonths) && op.workTimeMonths > 0) {
+        existing.workTimeMonths = Math.max(existing.workTimeMonths || 0, op.workTimeMonths);
       }
 
-      if (record.name && record.name.trim() !== "") existing.name = String(record.name).trim();
-      if (record.doj && record.doj !== "-") existing.doj = record.doj;
-      if (record.factory && record.factory.trim() !== "") existing.factory = record.factory.trim();
-      if (record.line && record.line.trim() !== "") existing.line = record.line.trim();
-      if (record.recordDate) existing.recordDate = record.recordDate;
-      if (record.date) existing.date = record.date;
-      if (record.no) existing.no = record.no;
+      // Update penugasan lokasi & status ke tanggal terbaru di bulan tersebut
+      if (currentRowDate >= existingDate) {
+        workerLatestDates[nik] = currentRowDate;
+        existing.factory = op.factory || existing.factory;
+        existing.line = op.line || existing.line;
+        existing.status = op.status || existing.status;
+        existing.recordDate = op.recordDate || existing.recordDate;
+        existing.date = op.date || existing.date;
+        if (op.doj && op.doj !== '-') existing.doj = op.doj;
+      }
+
+      // Preservasi tanggal resign dan status jika tercatat
+      if (op.dateOfResign && !existing.dateOfResign) existing.dateOfResign = op.dateOfResign;
+      if (op.resignDate && !existing.resignDate) existing.resignDate = op.resignDate;
+      if (op.status && !existing.status) existing.status = op.status;
     }
   });
 
-  const cumulativeSnapshotOperators = Array.from(uniqueNikMap.values());
+  // 3. Ubah kembali ke bentuk array dari daftar operator unik hasil penggabungan Peak Performance
+  // Hitung total grade sebagai PENJUMLAHAN seluruh poin yang didapat dari mesin-mesin yang dikuasai
+  let result = Object.values(workerMap).map((op) => {
+    const totalPts = getOperatorTotalPoints(op);
+    const isHelper = op.status?.toUpperCase() === 'HELPER' || (op as any).grade === 'HELPER';
+    const gradeObj = getGradeFromTotalPoints(totalPts, isHelper);
 
-  // STEP 3: FINAL STATUS & LOCATION FILTER
-  const targetFactoryNum = selectedFactory ? extractFactoryNumber(selectedFactory) : null;
-  const targetLineNum = selectedLine ? extractLineNumber(selectedLine) : null;
-  const targetFactoryNormalized = selectedFactory ? normalizeFactoryName(selectedFactory).toLowerCase().trim() : null;
-  const targetLineNormalized = selectedLine ? normalizeLineName(selectedLine).toLowerCase().trim() : null;
+    // Evaluasi status point-in-time untuk periode bulan & tahun yang dipilih
+    // Jika operator baru resign di bulan Maret, maka saat melihat bulan Januari statusnya tetap AKTIF
+    const isResigned = isOperatorResignedAtPeriod(op, selMonthNum, selYearNum);
+    const effectiveStatus = isResigned
+      ? 'RESIGNED'
+      : (op.status?.toUpperCase() === 'RESIGNED' ? 'ACTIVE' : (op.status || 'ACTIVE'));
 
-  const result = cumulativeSnapshotOperators.filter((op) => {
-    const rawStatus = (op.status ? String(op.status).trim() : "ACTIVE").toUpperCase();
-    const isInactive = 
-      rawStatus === "RESIGNED" ||
-      rawStatus === "INACTIVE" ||
-      rawStatus === "MUTASI" ||
-      rawStatus.includes("RESIGN") ||
-      rawStatus.includes("MUTASI");
-
-    if (isInactive) return false;
-
-    if (targetFactoryNormalized) {
-      const opFactoryNum = extractFactoryNumber(op.factory);
-      if (targetFactoryNum !== null && opFactoryNum !== null) {
-        if (opFactoryNum !== targetFactoryNum) return false;
-      } else {
-        const opFactory = normalizeFactoryName(op.factory).toLowerCase().trim();
-        if (opFactory !== targetFactoryNormalized) return false;
-      }
-    }
-
-    if (targetLineNormalized) {
-      const opLineNum = extractLineNumber(op.line);
-      if (targetLineNum !== null && opLineNum !== null) {
-        if (opLineNum !== targetLineNum) return false;
-      } else {
-        const opLine = normalizeLineName(op.line).toLowerCase().trim();
-        if (opLine !== targetLineNormalized) return false;
-      }
-    }
-
-    return true;
-  });
-
-  return result
-    .sort((a, b) => {
-      if (a.no && b.no) return a.no - b.no;
-      return (a.name || "").localeCompare(b.name || "");
-    })
-    .map((op, i) => ({
+    return {
       ...op,
-      no: i + 1,
-    }));
+      status: effectiveStatus,
+      points: totalPts,
+      grade: gradeObj.grade,
+      overallGrade: gradeObj.grade,
+    };
+  });
+
+  // Buang operator yang SUDAH RESIGN sebelum periode bulan yang dipilih
+  result = result.filter(op => !isOperatorResignedAtPeriod(op, selMonthNum, selYearNum));
+
+  // 4. Filter opsional berdasarkan Factory dan Line jika ada
+  if (selectedFactory && selectedFactory !== 'All') {
+    result = result.filter((op: any) => {
+      const fac = normalizeFactoryName(op.factory || '1');
+      return fac.toLowerCase() === normalizeFactoryName(selectedFactory).toLowerCase();
+    });
+  }
+
+  if (selectedLine && selectedLine !== 'All') {
+    result = result.filter((op: any) => {
+      const line = op.dominantLine || op.line || '1';
+      // Ekstrak angka line dari data (misal dari "Line 3" atau angka 3) menjadi string angka yang bersih
+      const lineNumMatch = String(line).match(/\d+/);
+      const selectedLineNumMatch = String(selectedLine).match(/\d+/);
+      
+      const lineNum = lineNumMatch ? lineNumMatch[0] : String(line).trim();
+      const selectedNum = selectedLineNumMatch ? selectedLineNumMatch[0] : String(selectedLine).trim();
+
+      return lineNum === selectedNum;
+    });
+  }
+
+  return result;
+}
+
+/**
+ * Memproses data mentah dari spreadsheet untuk:
+ * 1. Mengambil data pada bulan/tahun tertentu.
+ * 2. Mengatasi operator yang bekerja di >1 line dengan memilih line distribusi terbanyak.
+ * 
+ * Cara Kerja:
+ * - Penyaringan Periode & Pabrik: Menyaring data mentah agar hanya membaca bulan, tahun, dan pabrik yang sedang aktif.
+ * - Akumulasi Line Multi-Tasking: Menghitung frekuensi baris/kemunculan NIK di setiap line.
+ * - Penentuan Dominan: Membandingkan frekuensinya dan memilih line terbanyak, mengunci operator secara eksklusif ke line tersebut.
+ */
+export function processOperatorsByDominantLine<T extends RawSheetRow = RawSheetRow>(
+  rawRows: T[], 
+  selectedMonth: number, 
+  selectedYear: number,
+  targetFactory: string,
+  targetLine: string
+): T[] {
+  if (!rawRows || !Array.isArray(rawRows) || rawRows.length === 0) {
+    return [];
+  }
+
+  // 1. Filter baris data yang masuk ke dalam bulan & tahun yang dipilih
+  const filteredByMonth = rawRows.filter(row => {
+    let rowYear: number;
+    let rowMonth: number;
+
+    const extracted = extractMonthAndYear(row.date);
+    if (extracted) {
+      rowYear = extracted.year;
+      rowMonth = extracted.month;
+    } else {
+      const rowDate = new Date(row.date);
+      if (!isNaN(rowDate.getTime())) {
+        rowYear = rowDate.getFullYear();
+        rowMonth = rowDate.getMonth() + 1;
+      } else {
+        return true; // Fallback jika tidak ada tanggal yang valid
+      }
+    }
+
+    const matchesMonth = rowYear === selectedYear && rowMonth === selectedMonth;
+    const matchesFactory = !targetFactory ||
+      row.factory === targetFactory ||
+      normalizeFactoryName(row.factory || '').toLowerCase() === normalizeFactoryName(targetFactory).toLowerCase();
+
+    return matchesMonth && matchesFactory;
+  });
+
+  // 2. Petakan data per NIK untuk menghitung kemunculan di setiap Line
+  const operatorLineCounts: { [nik: string]: { [line: string]: number } } = {};
+  const operatorLatestData: { [nik: string]: T } = {};
+
+  filteredByMonth.forEach(row => {
+    const rawNik = row.nik || (row as any).id;
+    const nik = rawNik ? String(rawNik).trim() : '';
+    const line = row.line ? String(row.line).trim() : '';
+
+    if (!nik) return;
+
+    // Hitung frekuensi kemunculan NIK di line tersebut
+    if (!operatorLineCounts[nik]) {
+      operatorLineCounts[nik] = {};
+    }
+    operatorLineCounts[nik][line] = (operatorLineCounts[nik][line] || 0) + 1;
+
+    // Simpan referensi data terakhir operator untuk atribut namanya, dll.
+    operatorLatestData[nik] = row;
+  });
+
+  // 3. Tentukan line yang paling dominan (distribusi terbanyak) untuk setiap NIK
+  const dominantOperatorsMap: { [nik: string]: T } = {};
+
+  Object.keys(operatorLineCounts).forEach(nik => {
+    const linesCount = operatorLineCounts[nik];
+    
+    // Cari line dengan jumlah baris terbanyak
+    let dominantLine = '';
+    let maxCount = -1;
+
+    Object.entries(linesCount).forEach(([line, count]) => {
+      if (count > maxCount) {
+        maxCount = count;
+        dominantLine = line;
+      }
+    });
+
+    // Jika operator tersebut dominan di line yang sedang dipilih, masukkan ke daftar
+    const isLineMatch = dominantLine === targetLine ||
+      normalizeLineName(dominantLine).toLowerCase() === normalizeLineName(targetLine).toLowerCase();
+
+    if (isLineMatch) {
+      dominantOperatorsMap[nik] = {
+        ...operatorLatestData[nik],
+        line: dominantLine,
+      };
+    }
+  });
+
+  // Kembalikan daftar operator unik yang sudah difilter berdasarkan line dominannya
+  return Object.values(dominantOperatorsMap);
+}
+
+/**
+ * Memproses data mentah dari spreadsheet dengan aturan:
+ * 1. Filter berdasarkan bulan dan tahun yang dipilih.
+ * 2. Untuk setiap operator (berdasarkan NIK), ambil data pada TANGGAL TERBESAR (akhir bulan) di bulan tersebut.
+ * 3. Hitung jumlah operator unik (Count Unique Worker Code) per Factory.
+ */
+export function processActualMonthlyHeadcount(
+  rawRows: RawSheetRow[], 
+  selectedMonth: number, 
+  selectedYear: number
+) {
+  if (!rawRows || !Array.isArray(rawRows) || rawRows.length === 0) {
+    return {
+      operators: [],
+      factorySummary: {}
+    };
+  }
+
+  // 1. Filter baris data yang masuk ke dalam bulan & tahun yang dipilih
+  const filteredByMonth = rawRows.filter(row => {
+    if (!row.date) return false;
+    let rowDate = parseLocalDate(row.date) || new Date(row.date);
+    if (isNaN(rowDate.getTime())) {
+      const parsed = parseFlexibleDate(row.date);
+      if (parsed) rowDate = parsed;
+    }
+    return (
+      !isNaN(rowDate.getTime()) &&
+      rowDate.getFullYear() === selectedYear &&
+      (rowDate.getMonth() + 1) === selectedMonth
+    );
+  });
+
+  // 2. Kelompokkan seluruh baris valid per NIK di bulan tersebut untuk mencari tanggal maksimum
+  const workerRowsMap: { [nik: string]: { row: RawSheetRow; time: number }[] } = {};
+
+  filteredByMonth.forEach(row => {
+    const rawNik = row.nik || (row as any).id;
+    const nik = rawNik ? String(rawNik).trim() : '';
+    if (!nik) return;
+
+    const localD = parseLocalDate(row.date);
+    let currentRowDate = localD ? localD.getTime() : new Date(row.date).getTime();
+    if (isNaN(currentRowDate)) {
+      const parsed = parseFlexibleDate(row.date);
+      if (parsed) currentRowDate = parsed.getTime();
+    }
+
+    if (!workerRowsMap[nik]) {
+      workerRowsMap[nik] = [];
+    }
+    workerRowsMap[nik].push({ row, time: currentRowDate });
+  });
+
+  const latestRowPerWorker: { [nik: string]: RawSheetRow } = {};
+  const dominantLinePerWorker: { [nik: string]: string } = {};
+
+  // 3. Proses setiap NIK: Cari tanggal maksimum, lalu tentukan line dominan HANYA dari baris-baris di tanggal akhir tersebut
+  Object.keys(workerRowsMap).forEach(nik => {
+    const entries = workerRowsMap[nik];
+    
+    // Cari waktu (timestamp) terbesar untuk operator ini di bulan tersebut
+    let maxTime = -1;
+    entries.forEach(entry => {
+      if (entry.time > maxTime) {
+        maxTime = entry.time;
+      }
+    });
+
+    // Ambil semua baris yang jatuh pada tanggal terbesar (bisa jadi ada beberapa baris/mesin di hari yang sama atau akhir bulan)
+    const latestDateEntries = entries.filter(entry => entry.time === maxTime);
+    
+    // Simpan baris referensi utama (ambil yang pertama dari tanggal terbesar)
+    latestRowPerWorker[nik] = latestDateEntries[0].row;
+
+    // Hitung frekuensi line HANYA pada baris-baris di tanggal akhir tersebut
+    const lineCountsAtEnd: { [line: string]: number } = {};
+    latestDateEntries.forEach(entry => {
+      const line = entry.row.line ? String(entry.row.line).trim() : '';
+      if (line) {
+        lineCountsAtEnd[line] = (lineCountsAtEnd[line] || 0) + 1;
+      }
+    });
+
+    // Tentukan line dengan frekuensi terbanyak di tanggal akhir
+    let dominantLine = latestDateEntries[0].row.line ? String(latestDateEntries[0].row.line).trim() : '';
+    let maxCount = -1;
+    Object.entries(lineCountsAtEnd).forEach(([line, count]) => {
+      if (count > maxCount) {
+        maxCount = count;
+        dominantLine = line;
+      }
+    });
+
+    dominantLinePerWorker[nik] = dominantLine;
+  });
+
+  // 4. Susun daftar operator aktif akhir bulan beserta dominantLine-nya
+  const activeOperatorsList: (RawSheetRow & { dominantLine: string })[] = [];
+
+  Object.keys(latestRowPerWorker).forEach(nik => {
+    const row = latestRowPerWorker[nik];
+    activeOperatorsList.push({
+      ...row,
+      dominantLine: dominantLinePerWorker[nik] || row.line
+    });
+  });
+
+  // 5. Hitung Count Unique Worker Code per Factory
+  const factoryCounts: { [factory: string]: Set<string> } = {};
+
+  activeOperatorsList.forEach(op => {
+    const factory = op.factory || '1';
+    if (!factoryCounts[factory]) {
+      factoryCounts[factory] = new Set<string>();
+    }
+    factoryCounts[factory].add(op.nik);
+  });
+
+  const factorySummary: { [factory: string]: number } = {};
+  Object.keys(factoryCounts).forEach(factory => {
+    factorySummary[factory] = factoryCounts[factory].size;
+  });
+
+  return {
+    operators: activeOperatorsList,
+    factorySummary: factorySummary
+  };
 }
 
 export const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyfi3iPH2UPpA_SOIt8hUWLTybF30icj_X-IT0V4TyfZGQAmCTWPIrij1LZmmi4oUWDng/exec";
 
 /**
- * Filter operator aktif di dalam fungsi kalkulasi/tabel frontend.
- * Membuang operator dengan status RESIGNED dari daftar aktif di line.
+ * Memeriksa apakah operator sudah mengundurkan diri (RESIGNED) SEBELUM periode bulan dan tahun yang sedang dilihat.
+ * Jika operator resign pada bulan Maret 2026:
+ * - Pada bulan Januari 2026: isOperatorResignedAtPeriod = false (masih AKTIF bekerja)
+ * - Pada bulan Februari 2026: isOperatorResignedAtPeriod = false (masih AKTIF bekerja)
+ * - Pada bulan Maret 2026: isOperatorResignedAtPeriod = false (masih dievaluasi / bekerja di bulan Maret)
+ * - Pada bulan April 2026 dan seterusnya: isOperatorResignedAtPeriod = true (sudah RESIGNED, tidak aktif di line)
  */
-export function filterActiveOperators<T extends { status?: string | null }>(rawData: T[]): T[] {
-  if (!rawData || !Array.isArray(rawData)) return [];
-  return rawData.filter((row) => {
-    const isResigned = row.status?.toUpperCase() === "RESIGNED";
+export function isOperatorResignedAtPeriod(
+  op: { status?: string | null; dateOfResign?: string | null; resignDate?: string | null; date?: string; recordDate?: string },
+  selectedMonth?: number | string,
+  selectedYear?: number | string
+): boolean {
+  if (!op) return false;
 
-    // Jika statusnya RESIGNED, buang dari daftar operator aktif di line
-    if (isResigned) {
+  const selMonthNum = typeof selectedMonth === 'number'
+    ? selectedMonth
+    : (parseInt(String(selectedMonth || 1), 10) || 1);
+  const selYearNum = typeof selectedYear === 'number'
+    ? selectedYear
+    : (parseInt(String(selectedYear || 2026), 10) || 2026);
+
+  const resignStr = op.dateOfResign || op.resignDate;
+
+  if (resignStr && String(resignStr).trim() !== '' && String(resignStr).trim() !== '-') {
+    const extracted = extractMonthAndYear(String(resignStr).trim());
+    if (extracted) {
+      // Jika resign di tahun sebelum tahun terpilih -> sudah resign
+      if (extracted.year < selYearNum) return true;
+      // Jika di tahun yang sama: sudah resign jika bulan resign sebelum bulan terpilih
+      if (extracted.year === selYearNum) {
+        return extracted.month < selMonthNum;
+      }
       return false;
     }
+
+    const d = parseFlexibleDate(String(resignStr).trim()) || parseLocalDate(String(resignStr).trim());
+    if (d && !isNaN(d.getTime())) {
+      const rYear = d.getFullYear();
+      const rMonth = d.getMonth() + 1;
+      if (rYear < selYearNum) return true;
+      if (rYear === selYearNum) return rMonth < selMonthNum;
+      return false;
+    }
+  }
+
+  // Jika tidak memiliki dateOfResign, namun statusnya RESIGNED
+  if (op.status?.toUpperCase() === 'RESIGNED') {
+    const recStr = op.recordDate || op.date;
+    if (recStr && String(recStr).trim() !== '' && String(recStr).trim() !== '-') {
+      const recExtracted = extractMonthAndYear(String(recStr).trim());
+      if (recExtracted) {
+        // Jika rekor resign bertanggal di masa depan setelah bulan terpilih,
+        // maka pada bulan terpilih operator BELUM resign
+        if (recExtracted.year > selYearNum) return false;
+        if (recExtracted.year === selYearNum && recExtracted.month > selMonthNum) return false;
+      }
+    }
     return true;
+  }
+
+  return false;
+}
+
+/**
+ * Filter operator aktif di dalam fungsi kalkulasi/tabel frontend.
+ * Membuang operator yang sudah RESIGNED sebelum periode bulan & tahun yang sedang aktif.
+ */
+export function filterActiveOperators<T extends { status?: string | null; dateOfResign?: string | null; resignDate?: string | null; date?: string; recordDate?: string }>(
+  rawData: T[],
+  selectedMonth?: number | string,
+  selectedYear?: number | string
+): T[] {
+  if (!rawData || !Array.isArray(rawData)) return [];
+  return rawData.filter((row) => {
+    if (selectedMonth !== undefined && selectedYear !== undefined) {
+      return !isOperatorResignedAtPeriod(row, selectedMonth, selectedYear);
+    }
+    const isResigned = row.status?.toUpperCase() === "RESIGNED";
+    return !isResigned;
   });
 }
 

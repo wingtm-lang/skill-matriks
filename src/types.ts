@@ -16,6 +16,15 @@ export type MachineCategory =
   | 'CHAINSTITCH' 
   | 'BARTACK';
 
+export interface RawSheetRow {
+  factory: string;
+  line: string;
+  date: string;
+  nik: string;
+  name: string;
+  [key: string]: any;
+}
+
 export interface Operator {
   id: string;
   no: number;

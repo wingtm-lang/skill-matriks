@@ -19,7 +19,14 @@ import {
   Loader2
 } from 'lucide-react';
 import { Operator, GradeType, MachineCategory } from '../types';
-import { getOperatorMultiSkillCount, getOperatorAvgRate, setOperatorResigned } from '../utils/ieCalculations';
+import { 
+  getOperatorMultiSkillCount, 
+  getOperatorAvgRate, 
+  setOperatorResigned, 
+  getGradeFromTotalPoints, 
+  getOperatorTotalPoints,
+  isOperatorResignedAtPeriod
+} from '../utils/ieCalculations';
 import { getGradeFromRate, GRADE_BENCHMARKS } from '../data/mockData';
 
 const formatDate = (dateString: string | undefined) => {
@@ -124,21 +131,10 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
   const filteredOperators = useMemo(() => {
     return operators
       .filter((op) => {
-        // 1. Cek status RESIGNED dari kolom Sheets (Kolom R)
-        const statusResigned = op.status?.toUpperCase() === "RESIGNED";
-        
-        // 2. Cek apakah tanggal resign sudah melewati periode aktif
-        let isResignedBeforeActivePeriod = false;
-        if (op.dateOfResign && op.dateOfResign.trim() !== '') {
-          const resignDate = new Date(op.dateOfResign);
-          const activePeriod = new Date(selectedYear, selectedMonth - 1, 1);
-          if (!isNaN(resignDate.getTime()) && resignDate <= activePeriod) {
-            isResignedBeforeActivePeriod = true;
-          }
-        }
-
-        // Jika sudah resign, buang dari daftar
-        if (statusResigned || isResignedBeforeActivePeriod) {
+        // Cek apakah operator sudah resign sebelum periode bulan yang dipilih
+        // Jika operator baru resign di bulan Maret, maka di bulan Januari & Februari tetap tampil aktif
+        const isResigned = isOperatorResignedAtPeriod(op, selectedMonth, selectedYear);
+        if (isResigned) {
           return false;
         }
 
@@ -161,8 +157,9 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
 
         // Filter Grade
         if (selectedGrade !== 'ALL') {
-          const avg = getOperatorAvgRate(op);
-          const g = getGradeFromRate(avg);
+          const totalPts = getOperatorTotalPoints(op);
+          const isHelper = op.status?.toUpperCase() === 'HELPER' || (op as any).grade === 'HELPER';
+          const g = getGradeFromTotalPoints(totalPts, isHelper);
           const opGrade = (op as any).grade || g.grade;
           if (opGrade !== selectedGrade) return false;
         }
@@ -174,7 +171,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
         let valA: any = a.no;
         let valB: any = b.no;
         if (sortField === 'name') { valA = a.name; valB = b.name; }
-        else if (sortField === 'avgRate') { valA = getOperatorAvgRate(a); valB = getOperatorAvgRate(b); }
+        else if (sortField === 'avgRate') { valA = getOperatorTotalPoints(a); valB = getOperatorTotalPoints(b); }
         else if (sortField === 'workTime') { valA = a.workTimeMonths; valB = b.workTimeMonths; }
         else if (sortField === 'multiskill') { valA = getOperatorMultiSkillCount(a); valB = getOperatorMultiSkillCount(b); }
 
@@ -183,6 +180,25 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
         return 0;
       });
   }, [operators, searchTerm, machineFilter, multiskillOnly, selectedGrade, sortField, sortAsc, selectedMonth, selectedYear]);
+
+  // Hitung distribusi grade dari seluruh operator aktif di line
+  const gradeCounts = useMemo(() => {
+    const counts = { ALL: 0, S: 0, A: 0, B: 0, C: 0, HELPER: 0 };
+    operators.forEach((op) => {
+      const isResigned = isOperatorResignedAtPeriod(op, selectedMonth, selectedYear);
+      if (isResigned) return;
+
+      counts.ALL++;
+      const totalPts = getOperatorTotalPoints(op);
+      const isHelper = op.status?.toUpperCase() === 'HELPER' || (op as any).grade === 'HELPER';
+      const g = getGradeFromTotalPoints(totalPts, isHelper);
+      const opGrade = ((op as any).grade || g.grade) as keyof typeof counts;
+      if (counts[opGrade] !== undefined) {
+        counts[opGrade]++;
+      }
+    });
+    return counts;
+  }, [operators, selectedMonth, selectedYear]);
 
   const handleSort = (field: 'no' | 'name' | 'avgRate' | 'workTime' | 'multiskill') => {
     if (sortField === field) {
@@ -245,20 +261,21 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
       'NIK',
       'Nama Operator',
       'Masa Kerja (Bulan)',
-      'Lockstitch (%)',
-      'Overlock (%)',
-      'Flatseam (%)',
-      'Special (%)',
-      'Button Hole (%)',
-      'Button Set (%)',
+      'Lockstitch (Poin)',
+      'Overlock (Poin)',
+      'Flatseam (Poin)',
+      'Special (Poin)',
+      'Button Hole (Poin)',
+      'Button Set (Poin)',
       'Multiskill Count',
-      'Avg Rate (%)',
+      'Total Poin',
       'Grade'
     ];
 
     const rows = filteredOperators.map((op, idx) => {
-      const avg = getOperatorAvgRate(op);
-      const grade = getGradeFromRate(avg);
+      const totalPts = getOperatorTotalPoints(op);
+      const isHelper = op.status?.toUpperCase() === 'HELPER' || (op as any).grade === 'HELPER';
+      const grade = getGradeFromTotalPoints(totalPts, isHelper);
       return [
         idx + 1,
         `"${op.nik}"`,
@@ -271,7 +288,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
         op.buttonHole ?? '-',
         op.buttonSet ?? '-',
         getOperatorMultiSkillCount(op),
-        avg > 0 ? avg.toFixed(1) : '-',
+        totalPts,
         grade.label
       ].join(',');
     });
@@ -286,15 +303,15 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
     document.body.removeChild(link);
   };
 
-  // Render cell badge
-  const renderCellBadge = (val: number | null | undefined) => {
-    if (val === null || val === undefined || val === 0) {
+  // Render cell point badge (Maksimal 3 Poin per mesin sesuai standarisasi Kolom N)
+  const renderCellPointBadge = (val: number | null | undefined) => {
+    if (val === null || val === undefined || val <= 0) {
       return <span className="text-[#98A8A8] font-mono text-xs">-</span>;
     }
-    const info = getGradeFromRate(val);
+    const cappedPoint = Math.min(3, Math.max(1, Math.round(val)));
     return (
-      <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-bold ${info.cssBadge} shadow-2xs tracking-tight`}>
-        {val.toFixed(1)}%
+      <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#E0F0F0] text-[#2AAFA3] border border-[#C8D8D8] shadow-2xs tracking-tight font-mono">
+        {cappedPoint} Poin
       </span>
     );
   };
@@ -339,7 +356,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              Semua
+              Semua {gradeCounts.ALL > 0 && <span className="ml-1 opacity-80">({gradeCounts.ALL})</span>}
             </button>
             <button
               onClick={() => setSelectedGrade('S')}
@@ -349,7 +366,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                   : 'bg-emerald-50 text-[#059669] hover:bg-emerald-100'
               }`}
             >
-              Grade S
+              Grade S {gradeCounts.S > 0 && <span className="ml-1 opacity-90">({gradeCounts.S})</span>}
             </button>
             <button
               onClick={() => setSelectedGrade('A')}
@@ -359,7 +376,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                   : 'bg-teal-50 text-[#0d9488] hover:bg-teal-100'
               }`}
             >
-              Grade A
+              Grade A {gradeCounts.A > 0 && <span className="ml-1 opacity-90">({gradeCounts.A})</span>}
             </button>
             <button
               onClick={() => setSelectedGrade('B')}
@@ -369,7 +386,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                   : 'bg-sky-50 text-[#0284c7] hover:bg-sky-100'
               }`}
             >
-              Grade B
+              Grade B {gradeCounts.B > 0 && <span className="ml-1 opacity-90">({gradeCounts.B})</span>}
             </button>
             <button
               onClick={() => setSelectedGrade('C')}
@@ -379,7 +396,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                   : 'bg-amber-50 text-[#d97706] hover:bg-amber-100'
               }`}
             >
-              Grade C
+              Grade C {gradeCounts.C > 0 && <span className="ml-1 opacity-90">({gradeCounts.C})</span>}
             </button>
             <button
               onClick={() => setSelectedGrade('HELPER')}
@@ -389,7 +406,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              Helper
+              Helper {gradeCounts.HELPER > 0 && <span className="ml-1 opacity-90">({gradeCounts.HELPER})</span>}
             </button>
           </div>
         </div>
@@ -524,12 +541,12 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 </th>
                 
                 {/* Machine Columns */}
-                <th className="py-3 px-3 text-center text-[#2AAFA3] bg-[#F4F9F9] border-x border-[#E0E8E8]">Lockstitch</th>
-                <th className="py-3 px-3 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-[#E0E8E8]">Overlock</th>
-                <th className="py-3 px-3 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-[#E0E8E8]">Flatseam</th>
-                <th className="py-3 px-3 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-[#E0E8E8]">Special / Press</th>
-                <th className="py-3 px-3 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-[#E0E8E8]">Button Hole</th>
-                <th className="py-3 px-3 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-[#E0E8E8]">Button Set</th>
+                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-x border-[#E0E8E8] w-28">Lockstitch</th>
+                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-[#E0E8E8] w-28">Overlock</th>
+                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-[#E0E8E8] w-28">Flatseam</th>
+                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-[#E0E8E8] w-28">Special / Press</th>
+                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-[#E0E8E8] w-28">Button Hole</th>
+                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-[#E0E8E8] w-28">Button Set</th>
                 
                 {/* Aggregate Columns */}
                 <th 
@@ -546,7 +563,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                   className="py-3 px-3.5 text-center cursor-pointer hover:text-[#2AAFA3] w-28"
                 >
                   <div className="flex items-center justify-center gap-1">
-                    <span>Grade Rate</span>
+                    <span>Grade (Poin)</span>
                     <ArrowUpDown className="w-3 h-3 text-[#98A8A8]" />
                   </div>
                 </th>
@@ -574,8 +591,9 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 </tr>
               ) : (
                 filteredOperators.map((op, idx) => {
-                  const avgRate = getOperatorAvgRate(op);
-                  const gradeInfo = getGradeFromRate(avgRate);
+                  const totalPoints = getOperatorTotalPoints(op);
+                  const isHelper = op.status?.toUpperCase() === 'HELPER' || (op as any).grade === 'HELPER';
+                  const gradeInfo = getGradeFromTotalPoints(totalPoints, isHelper);
                   const multiCount = getOperatorMultiSkillCount(op);
 
                   return (
@@ -616,12 +634,12 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                       </td>
 
                       {/* Machine Rates */}
-                      <td className="py-2.5 px-3 text-center border-x border-[#E0E8E8]">{renderCellBadge(op.lockstitch)}</td>
-                      <td className="py-2.5 px-3 text-center border-r border-[#E0E8E8]">{renderCellBadge(op.overlock)}</td>
-                      <td className="py-2.5 px-3 text-center border-r border-[#E0E8E8]">{renderCellBadge(op.flatseam)}</td>
-                      <td className="py-2.5 px-3 text-center border-r border-[#E0E8E8]">{renderCellBadge(op.special)}</td>
-                      <td className="py-2.5 px-3 text-center border-r border-[#E0E8E8]">{renderCellBadge(op.buttonHole)}</td>
-                      <td className="py-2.5 px-3 text-center border-r border-[#E0E8E8]">{renderCellBadge(op.buttonSet)}</td>
+                      <td className="py-2.5 px-2 text-center border-x border-[#E0E8E8] w-28">{renderCellPointBadge(op.lockstitch)}</td>
+                      <td className="py-2.5 px-2 text-center border-r border-[#E0E8E8] w-28">{renderCellPointBadge(op.overlock)}</td>
+                      <td className="py-2.5 px-2 text-center border-r border-[#E0E8E8] w-28">{renderCellPointBadge(op.flatseam)}</td>
+                      <td className="py-2.5 px-2 text-center border-r border-[#E0E8E8] w-28">{renderCellPointBadge(op.special)}</td>
+                      <td className="py-2.5 px-2 text-center border-r border-[#E0E8E8] w-28">{renderCellPointBadge(op.buttonHole)}</td>
+                      <td className="py-2.5 px-2 text-center border-r border-[#E0E8E8] w-28">{renderCellPointBadge(op.buttonSet)}</td>
 
                       {/* Multiskill Count */}
                       <td className="py-3 px-3 text-center">
@@ -641,9 +659,13 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${gradeInfo.cssBadge} shadow-2xs whitespace-nowrap`}>
                             {gradeInfo.label}
                           </span>
-                          {avgRate > 0 && (
+                          {totalPoints > 0 ? (
                             <span className="text-[10px] text-[#788888] font-mono mt-0.5">
-                              {avgRate.toFixed(1)}%
+                              {totalPoints} Poin
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-[#98A8A8] font-mono mt-0.5">
+                              0 Poin
                             </span>
                           )}
                         </div>
@@ -680,15 +702,15 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
 
         {/* BOTTOM GRADE BENCHMARKS REFERENCE */}
         <div className="p-4 bg-[#F8F8F8] border-t border-[#E0E8E8]">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-[#405858] mb-2">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-[#405858] mb-2.5">
             <Award className="w-4 h-4 text-[#D0A018]" />
-            <span>Standarisasi Grade Penilaian Operator (PT. Winners International):</span>
+            <span>Standarisasi Grade / Penilaian Operator (PT. Winners International):</span>
           </div>
           <div className="flex flex-wrap gap-2 text-[11px]">
             {GRADE_BENCHMARKS.map((b) => (
               <span 
                 key={b.grade} 
-                className={`px-2.5 py-0.5 rounded-full font-semibold border ${b.cssBadge}`}
+                className={`px-3 py-1 rounded-full font-bold shadow-2xs ${b.cssBadge}`}
                 title={b.description}
               >
                 {b.label}
@@ -770,76 +792,93 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
 
               {/* Machine Competencies Header */}
               <div className="pt-2 border-t border-[#E0E8E8]">
-                <h4 className="text-xs font-bold text-[#405858] mb-2">Nilai Efisiensi Mesin (Skill Rate %):</h4>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-bold text-[#405858]">Nilai Poin Mesin (Kolom N Spreadsheet):</h4>
+                  <span className="text-[10px] text-[#788888] bg-[#F0F4F4] px-2 py-0.5 rounded-full font-medium">Maks. 3 Poin per mesin</span>
+                </div>
                 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-[11px] text-[#788888] mb-1">Lockstitch (%):</label>
+                    <label className="block text-[11px] text-[#788888] mb-1">Lockstitch (Poin):</label>
                     <input
                       type="number"
-                      step={0.1}
+                      step={1}
                       min={0}
-                      max={150}
+                      max={3}
                       value={formData.lockstitch ?? ''}
-                      onChange={(e) => setFormData({ ...formData, lockstitch: e.target.value ? parseFloat(e.target.value) : null })}
+                      onChange={(e) => setFormData({ ...formData, lockstitch: e.target.value ? Math.min(3, Math.max(0, parseInt(e.target.value, 10))) : null })}
                       className="w-full bg-[#F8F8F8] border border-[#E0E8E8] rounded-xl px-2.5 py-1.5 text-xs text-[#304848] focus:border-[#2AAFA3] focus:outline-none font-mono"
-                      placeholder="e.g. 85.5"
+                      placeholder="1 - 3"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-[#788888] mb-1">Overlock (%):</label>
+                    <label className="block text-[11px] text-[#788888] mb-1">Overlock (Poin):</label>
                     <input
                       type="number"
-                      step={0.1}
+                      step={1}
                       min={0}
-                      max={150}
+                      max={3}
                       value={formData.overlock ?? ''}
-                      onChange={(e) => setFormData({ ...formData, overlock: e.target.value ? parseFloat(e.target.value) : null })}
+                      onChange={(e) => setFormData({ ...formData, overlock: e.target.value ? Math.min(3, Math.max(0, parseInt(e.target.value, 10))) : null })}
                       className="w-full bg-[#F8F8F8] border border-[#E0E8E8] rounded-xl px-2.5 py-1.5 text-xs text-[#304848] focus:border-[#2AAFA3] focus:outline-none font-mono"
-                      placeholder="e.g. 92.4"
+                      placeholder="1 - 3"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-[#788888] mb-1">Flatseam (%):</label>
+                    <label className="block text-[11px] text-[#788888] mb-1">Flatseam (Poin):</label>
                     <input
                       type="number"
-                      step={0.1}
+                      step={1}
                       min={0}
-                      max={150}
+                      max={3}
                       value={formData.flatseam ?? ''}
-                      onChange={(e) => setFormData({ ...formData, flatseam: e.target.value ? parseFloat(e.target.value) : null })}
+                      onChange={(e) => setFormData({ ...formData, flatseam: e.target.value ? Math.min(3, Math.max(0, parseInt(e.target.value, 10))) : null })}
                       className="w-full bg-[#F8F8F8] border border-[#E0E8E8] rounded-xl px-2.5 py-1.5 text-xs text-[#304848] focus:border-[#2AAFA3] focus:outline-none font-mono"
-                      placeholder="e.g. 70.0"
+                      placeholder="1 - 3"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-[#788888] mb-1">Special / Press (%):</label>
+                    <label className="block text-[11px] text-[#788888] mb-1">Special / Press (Poin):</label>
                     <input
                       type="number"
-                      step={0.1}
+                      step={1}
                       min={0}
-                      max={150}
+                      max={3}
                       value={formData.special ?? ''}
-                      onChange={(e) => setFormData({ ...formData, special: e.target.value ? parseFloat(e.target.value) : null })}
+                      onChange={(e) => setFormData({ ...formData, special: e.target.value ? Math.min(3, Math.max(0, parseInt(e.target.value, 10))) : null })}
                       className="w-full bg-[#F8F8F8] border border-[#E0E8E8] rounded-xl px-2.5 py-1.5 text-xs text-[#304848] focus:border-[#2AAFA3] focus:outline-none font-mono"
-                      placeholder="e.g. 65.0"
+                      placeholder="1 - 3"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-[#788888] mb-1">Button Hole (%):</label>
+                    <label className="block text-[11px] text-[#788888] mb-1">Button Hole (Poin):</label>
                     <input
                       type="number"
-                      step={0.1}
+                      step={1}
                       min={0}
-                      max={150}
+                      max={3}
                       value={formData.buttonHole ?? ''}
-                      onChange={(e) => setFormData({ ...formData, buttonHole: e.target.value ? parseFloat(e.target.value) : null })}
+                      onChange={(e) => setFormData({ ...formData, buttonHole: e.target.value ? Math.min(3, Math.max(0, parseInt(e.target.value, 10))) : null })}
                       className="w-full bg-[#F8F8F8] border border-[#E0E8E8] rounded-xl px-2.5 py-1.5 text-xs text-[#304848] focus:border-[#2AAFA3] focus:outline-none font-mono"
-                      placeholder="e.g. 80.0"
+                      placeholder="1 - 3"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-[#788888] mb-1">Button Set (Poin):</label>
+                    <input
+                      type="number"
+                      step={1}
+                      min={0}
+                      max={3}
+                      value={formData.buttonSet ?? ''}
+                      onChange={(e) => setFormData({ ...formData, buttonSet: e.target.value ? Math.min(3, Math.max(0, parseInt(e.target.value, 10))) : null })}
+                      className="w-full bg-[#F8F8F8] border border-[#E0E8E8] rounded-xl px-2.5 py-1.5 text-xs text-[#304848] focus:border-[#2AAFA3] focus:outline-none font-mono"
+                      placeholder="1 - 3"
                     />
                   </div>
                 </div>

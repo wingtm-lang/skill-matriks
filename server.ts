@@ -129,7 +129,9 @@ app.get("/api/sheets/operators", async (req, res) => {
       factory: string;
       line: string;
       status: string;
+      dateOfResign?: string;
       recordDate?: string;
+      pointsRates: number[];
       lockstitchRates: number[];
       overlockRates: number[];
       flatseamRates: number[];
@@ -175,7 +177,11 @@ app.get("/api/sheets/operators", async (req, res) => {
       return `Line ${str}`;
     };
 
-    rows.forEach((row) => {
+    const dataRows = (Array.isArray(rows[0]) && typeof rows[0][0] === 'string' && isNaN(Number(rows[0][0])))
+      ? rows.slice(1)
+      : rows;
+
+    dataRows.forEach((row) => {
       // Normalisasi Kolom A (Factory) & Kolom B (Line)
       const rawFactory = (row[0] !== undefined && row[0] !== null) ? row[0].toString().trim() : "";
       const rawLine = (row[1] !== undefined && row[1] !== null) ? row[1].toString().trim() : "";
@@ -183,17 +189,21 @@ app.get("/api/sheets/operators", async (req, res) => {
       const name = (row[5] || "").toString().trim(); // Kolom F (Worker)
       const doj = (row[6] || "").toString().trim(); // Kolom G (DOJ / Date of Join)
       
-      // Deteksi Kolom Tanggal (misal '2026-09-01', '2026-08-28', '01/09/2026', '1-Sep-26')
-      let rowDate = "";
-      for (let c = 0; c < Math.min(row.length, 7); c++) {
-        const cellVal = (row[c] || "").toString().trim();
-        if (
-          /^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(cellVal) ||
-          /^\d{1,2}[-/]\d{1,2}[-/]\d{2,4}/.test(cellVal) ||
-          /^\d{1,2}[-\s/][A-Za-z]{3,10}[-\s/]\d{2,4}/.test(cellVal)
-        ) {
-          rowDate = cellVal;
-          break;
+      if (!nik || nik.toLowerCase() === "worker code" || nik.toLowerCase() === "nik") return;
+
+      // Ambil Kolom Tanggal dari Kolom D (row[3]) atau scan fallback
+      let rowDate = (row[3] || "").toString().trim();
+      if (!rowDate) {
+        for (let c = 0; c < Math.min(row.length, 7); c++) {
+          const cellVal = (row[c] || "").toString().trim();
+          if (
+            /^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(cellVal) ||
+            /^\d{1,2}[-/]\d{1,2}[-/]\d{2,4}/.test(cellVal) ||
+            /^\d{1,2}[-\s/][A-Za-z]{3,10}[-\s/]\d{2,4}/.test(cellVal)
+          ) {
+            rowDate = cellVal;
+            break;
+          }
         }
       }
 
@@ -201,10 +211,21 @@ app.get("/api/sheets/operators", async (req, res) => {
       const rawProdVal = (row[12] !== undefined && row[12] !== "") ? row[12] : (row[11] || "");
       const rawProdRate = rawProdVal.toString().replace('%', '').replace(',', '.').trim();
       const prodRate = parseFloat(rawProdRate) || 0;
+
+      // Parse Kolom N / Indeks 13 (POINT) - Standar PT. Winners International: Maksimal 3 Poin per mesin
+      const rawPointVal = (row[13] !== undefined && row[13] !== "") ? row[13] : "";
+      const parsedPoint = parseFloat(rawPointVal.toString().replace(',', '.').replace(/[^0-9.]/g, '').trim()) || 0;
+      // Nilai poin per mesin di kolom N murni berkisar 1 - 3 (maksimal 3 poin per mesin)
+      const pointVal = parsedPoint > 0 ? Math.min(3, Math.max(1, Math.round(parsedPoint))) : 0;
       
-      // Normalisasi Kolom Q / Indeks 16 (Machine Category) dengan fallback ke Indeks 15
-      const rawCatVal = (row[16] && row[16].toString().trim()) || (row[15] && row[15].toString().trim()) || "";
-      const machineCategory = rawCatVal.toString().trim().toUpperCase();
+      // Normalisasi Kolom Q / Indeks 16 (Machine Category) dengan fallback ke Kolom H / Indeks 7 (Machine)
+      const rawCatVal = (row[16] && row[16].toString().trim()) || "";
+      const rawMachineName = (row[7] && row[7].toString().trim()) || "";
+      const machineCategory = rawCatVal.toUpperCase();
+      const machineName = rawMachineName.toUpperCase();
+
+      // Parse Kolom P / Indeks 15 (Date of Resign)
+      const rawDateOfResign = (row[15] !== undefined && row[15] !== null) ? row[15].toString().trim() : "";
 
       // Parse Kolom R / Indeks 17 (Status: ACTIVE, INACTIVE, RESIGNED, TRANSFERRED, dll.)
       const rawStatusVal = (row[17] !== undefined && row[17] !== null) ? row[17].toString().trim() : "";
@@ -224,7 +245,9 @@ app.get("/api/sheets/operators", async (req, res) => {
           factory: formattedFactory,
           line: formattedLine,
           status,
+          dateOfResign: rawDateOfResign || undefined,
           recordDate: rowDate || undefined,
+          pointsRates: [],
           lockstitchRates: [],
           overlockRates: [],
           flatseamRates: [],
@@ -237,44 +260,74 @@ app.get("/api/sheets/operators", async (req, res) => {
       }
 
       const op = operatorMap.get(mapKey)!;
+      if (pointVal > 0) {
+        op.pointsRates.push(pointVal);
+      }
 
       // Update DOJ, Factory, Line, Status & Date jika ada record terbaru
       if (doj && op.doj === "-") op.doj = doj;
       if (formattedFactory) op.factory = formattedFactory;
       if (formattedLine) op.line = formattedLine;
       if (rawStatusVal) op.status = rawStatusVal;
+      if (rawDateOfResign && !op.dateOfResign) op.dateOfResign = rawDateOfResign;
       if (rowDate && !op.recordDate) op.recordDate = rowDate;
       if (name && !op.name) op.name = name;
 
-      // Kelompokkan nilai efisiensi per Machine Category
-      if (machineCategory.includes("LOCKSTITCH") || machineCategory === "SN" || machineCategory === "SINGLE NEEDLE") {
-        op.lockstitchRates.push(prodRate);
-      } else if (machineCategory.includes("OVERLOCK") || machineCategory === "OL" || machineCategory.includes("OBRAS")) {
-        op.overlockRates.push(prodRate);
-      } else if (machineCategory.includes("FLATSEAM") || machineCategory.includes("COVERSTITCH") || machineCategory === "FS") {
-        op.flatseamRates.push(prodRate);
-      } else if (machineCategory.includes("BUTTON_HOLE") || machineCategory.includes("BUTTON HOLE") || machineCategory.includes("LUBANG KANCING")) {
-        op.buttonHoleRates.push(prodRate);
-      } else if (machineCategory.includes("BUTTON_SET") || machineCategory.includes("BUTTON SET") || machineCategory.includes("PASANG KANCING")) {
-        op.buttonSetRates.push(prodRate);
-      } else if (machineCategory.includes("BARTACK") || machineCategory.includes("BAR TACK")) {
-        op.bartackRates.push(prodRate);
-      } else if (machineCategory.includes("CHAINSTITCH") || machineCategory.includes("CHAIN STITCH")) {
-        op.chainstitchRates.push(prodRate);
-      } else if (machineCategory.includes("SPECIAL") || machineCategory.includes("OTOMATIS")) {
-        op.specialRates.push(prodRate);
-      } else {
-        // Default ke special / lockstitch jika tidak ada spesifik
-        op.specialRates.push(prodRate);
+      // Kelompokkan nilai poin dari Kolom N per Machine Category (bukan nilai production rate)
+      if (pointVal > 0) {
+        if (
+          machineCategory.includes("LOCKSTITCH") || machineCategory === "SN" || machineCategory === "SINGLE NEEDLE" ||
+          (!machineCategory && (machineName.includes("LOCKSTITCH") || machineName.includes("1NEEDLE") || machineName.includes("SN")))
+        ) {
+          op.lockstitchRates.push(pointVal);
+        } else if (
+          machineCategory.includes("OVERLOCK") || machineCategory === "OL" || machineCategory.includes("OBRAS") ||
+          (!machineCategory && (machineName.includes("OVERLOCK") || machineName.includes("OBRAS") || machineName.includes("2NEEDLE OVERLOCK")))
+        ) {
+          op.overlockRates.push(pointVal);
+        } else if (
+          machineCategory.includes("FLATSEAM") || machineCategory.includes("COVERSTITCH") || machineCategory === "FS" || machineCategory.includes("KAM") ||
+          (!machineCategory && (machineName.includes("FLAT SEAM") || machineName.includes("COVERSTITCH") || machineName.includes("FLATSEAM")))
+        ) {
+          op.flatseamRates.push(pointVal);
+        } else if (
+          machineCategory.includes("BUTTON_HOLE") || machineCategory.includes("BUTTON HOLE") || machineCategory.includes("BH") || machineCategory.includes("LUBANG KANCING") ||
+          (!machineCategory && (machineName.includes("BUTTON HOLE") || machineName.includes("LUBANG KANCING")))
+        ) {
+          op.buttonHoleRates.push(pointVal);
+        } else if (
+          machineCategory.includes("BUTTON_SET") || machineCategory.includes("BUTTON SET") || machineCategory.includes("BS") || machineCategory.includes("PASANG KANCING") ||
+          (!machineCategory && (machineName.includes("BUTTON SET") || machineName.includes("PASANG KANCING")))
+        ) {
+          op.buttonSetRates.push(pointVal);
+        } else if (
+          machineCategory.includes("BARTACK") || machineCategory.includes("BAR TACK") || machineCategory.includes("BT") ||
+          (!machineCategory && (machineName.includes("BARTACK") || machineName.includes("BAR TACK")))
+        ) {
+          op.bartackRates.push(pointVal);
+        } else if (
+          machineCategory.includes("CHAINSTITCH") || machineCategory.includes("CHAIN STITCH") || machineCategory.includes("CS") || machineCategory.includes("KANSAI") ||
+          (!machineCategory && (machineName.includes("CHAINSTITCH") || machineName.includes("KANSAI") || machineName.includes("CHAIN STITCH")))
+        ) {
+          op.chainstitchRates.push(pointVal);
+        } else if (
+          machineCategory.includes("SPECIAL") || machineCategory.includes("OTOMATIS") || machineCategory.includes("SP") ||
+          (!machineCategory && (machineName.includes("PRESS") || machineName.includes("HEAT TRANSFER") || machineName.includes("SPECIAL")))
+        ) {
+          op.specialRates.push(pointVal);
+        } else {
+          op.specialRates.push(pointVal);
+        }
       }
     });
 
     // Format hasil agregasi per Operator
     const formattedOperators = Array.from(operatorMap.values()).map((op, idx) => {
+      // Ambil poin paling tinggi di Kolom N untuk setiap mesin history (maksimal 3 poin per mesin)
       const calcMax = (rates: number[]): number | null => {
         if (rates.length === 0) return null;
         const max = Math.max(...rates);
-        return max > 0 ? Math.round(max * 10) / 10 : null;
+        return max > 0 ? Math.min(3, max) : null;
       };
 
       const lockstitch = calcMax(op.lockstitchRates);
@@ -286,15 +339,26 @@ app.get("/api/sheets/operators", async (req, res) => {
       const bartack = calcMax(op.bartackRates);
       const chainstitch = calcMax(op.chainstitchRates);
 
-      // Hitung rata-rata rate untuk grade keseluruhan
-      const activeRates = [lockstitch, overlock, flatseam, special, buttonHole, buttonSet, bartack, chainstitch]
+      // Hitung penjumlahan seluruh poin yang didapat dari mesin-mesin yang dikuasai
+      const activePoints = [lockstitch, overlock, flatseam, special, buttonHole, buttonSet, bartack, chainstitch]
         .filter((r): r is number => r !== null && r > 0);
       
-      const avgRate = activeRates.length > 0 
-        ? Math.round((activeRates.reduce((a, b) => a + b, 0) / activeRates.length) * 10) / 10 
-        : 0;
+      const totalPoints = activePoints.reduce((a, b) => a + b, 0);
 
-      const overallGrade = getGradeFromEfficiency(avgRate);
+      // Standarisasi Grade Operator PT. Winners International:
+      // Grade S: > 13 Poin
+      // Grade A: 8 – 13 Poin
+      // Grade B: 4 – 7 Poin
+      // Grade C: 1 – 3 Poin
+      // Helper: 0 Poin (Input Manual)
+      const isHelper = op.status?.toUpperCase() === 'HELPER';
+      let overallGrade: "S" | "A" | "B" | "C" | "HELPER" = "HELPER";
+      if (!isHelper && totalPoints > 0) {
+        if (totalPoints > 13) overallGrade = "S";
+        else if (totalPoints >= 8) overallGrade = "A";
+        else if (totalPoints >= 4) overallGrade = "B";
+        else overallGrade = "C";
+      }
 
       return {
         no: idx + 1,
@@ -306,6 +370,8 @@ app.get("/api/sheets/operators", async (req, res) => {
         factory: op.factory,
         line: op.line,
         status: (op.status && op.status.trim()) ? op.status.trim() : 'ACTIVE',
+        dateOfResign: op.dateOfResign || undefined,
+        resignDate: op.dateOfResign || undefined,
         recordDate: op.recordDate || undefined,
         date: op.recordDate || undefined,
         lockstitch,
@@ -316,9 +382,10 @@ app.get("/api/sheets/operators", async (req, res) => {
         buttonSet,
         bartack,
         chainstitch,
-        avgRate,
+        avgRate: totalPoints,
+        points: totalPoints,
         overallGrade,
-        notes: `Tersinkronisasi dari Google Sheets 'by_worker' (${activeRates.length} skill teruji)`
+        notes: `Tersinkronisasi dari Google Sheets 'by_worker' (${activePoints.length} jenis mesin dikuasai, total ${totalPoints} poin)`
       };
     });
 

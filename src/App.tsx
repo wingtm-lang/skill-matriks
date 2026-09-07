@@ -15,7 +15,8 @@ import {
   filterOperatorsByPointInTime,
   normalizeFactoryName,
   normalizeLineName,
-  MONTH_NAMES_ID 
+  MONTH_NAMES_ID,
+  isOperatorResignedAtPeriod 
 } from './utils/ieCalculations';
 import { AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 
@@ -62,64 +63,109 @@ export default function App() {
         const headers: any[] = rows[0] || []; // Baris pertama adalah header spreadsheet
         const dataRows = rows.slice(1); // Baris data operator setelah header
 
-        const findColIdx = (name: string, fallbackIdx: number) => {
+        const findColIdx = (candidates: string[], fallbackIdx: number) => {
           if (!Array.isArray(headers)) return fallbackIdx;
-          const directIdx = headers.indexOf(name);
-          if (directIdx !== -1) return directIdx;
-          const fuzzyIdx = headers.findIndex(
-            (h) => typeof h === "string" && h.trim().toLowerCase() === name.trim().toLowerCase()
-          );
-          if (fuzzyIdx !== -1) return fuzzyIdx;
-          const partialIdx = headers.findIndex(
-            (h) => typeof h === "string" && h.toLowerCase().includes(name.toLowerCase())
-          );
-          return partialIdx !== -1 ? partialIdx : fallbackIdx;
+          // 1. Exact match (case-insensitive)
+          for (const cand of candidates) {
+            const idx = headers.findIndex(
+              (h) => typeof h === "string" && h.trim().toUpperCase() === cand.toUpperCase()
+            );
+            if (idx !== -1) return idx;
+          }
+          // 2. Starts with / includes match
+          for (const cand of candidates) {
+            const idx = headers.findIndex(
+              (h) => typeof h === "string" && h.toUpperCase().includes(cand.toUpperCase())
+            );
+            if (idx !== -1) return idx;
+          }
+          return fallbackIdx;
         };
 
-        const idxWorkerCode = findColIdx("Worker Code", 4);
-        const idxWorker = findColIdx("Worker", 5);
-        const idxFactory = findColIdx("Factory", 0);
-        const idxLine = findColIdx("Line", 1);
-        const idxStatus = findColIdx("Status", 17);
-        const idxDoj = findColIdx("D.O.J", 6);
-        const idxDate = findColIdx("Date", 3);
-        const idxRate = findColIdx("Actual Rate", 12);
-        const idxMachine = findColIdx("Cat", 16);
+        const idxWorkerCode = findColIdx(["Worker Code", "NIK", "ID"], 4);
+        const idxWorker = findColIdx(["Worker", "Nama", "Operator"], 5);
+        const idxFactory = findColIdx(["Factory", "Pabrik"], 0);
+        const idxLine = findColIdx(["Line", "Jalur"], 1);
+        const idxStatus = findColIdx(["Status"], 17);
+        const idxDoj = findColIdx(["Date of Join", "D.O.J", "DOJ"], 6);
+        const idxDate = findColIdx(["Date", "Tanggal", "Tgl"], 3);
+        const idxRate = findColIdx(["Production Rate (%)", "Actual Rate", "Rate", "Efisiensi"], 12);
+        // Prioritaskan "POIN" (Kolom N di index 13) sebelum "point" umum agar tidak salah mendeteksi kolom kalkulasi lain di index 22
+        const idxPoints = findColIdx(["POIN", "POINT (KOLOM N)", "POIN MESIN"], 13);
+        const idxWorkMonth = findColIdx(["Work Month", "Masa Kerja"], 14);
+        const idxDateOfResign = findColIdx(["Date of Resign", "Resign"], 15);
+        const idxMachine = findColIdx(["Machine Category", "Kategori Mesin", "Category", "Kategori"], 16);
+        const idxMachineName = findColIdx(["Machine", "Mesin", "Nama Mesin"], 7);
+        const idxStyleNo = findColIdx(["Style No", "Style"], 8);
+        const idxProcess = findColIdx(["Process", "Proses", "Operasi"], 9);
 
         // Mapping baris spreadsheet ke objek Operator
         const normalizedOps: Operator[] = dataRows.map((row: any, index: number) => {
-          const rawProdRate = Number(row[12] || 0);
-          const machineCat = String(row[16] || "").toUpperCase();
+          const rawProdRate = Number(row[idxRate] ?? row[12] ?? 0);
+          // Parse Kolom N / Indeks 13 (POINT) - Standar PT. Winners International: Maksimal 3 Poin per mesin
+          const rawPoints = parseFloat(String(row[idxPoints] ?? row[13] ?? "").replace(',', '.').replace(/[^0-9.]/g, '').trim()) || 0;
+          const pointVal = rawPoints > 0 ? Math.min(3, Math.max(1, Math.round(rawPoints))) : 0;
+          const rawCat = String(row[idxMachine] ?? row[16] ?? "").toUpperCase();
+          const rawMachineName = String(row[idxMachineName] ?? row[7] ?? "").toUpperCase();
+
+          const isLockstitch = rawCat.includes("LOCKSTITCH") || rawCat.includes("SN") || rawCat.includes("SINGLE NEEDLE") ||
+            (!rawCat && (rawMachineName.includes("LOCKSTITCH") || rawMachineName.includes("1NEEDLE") || rawMachineName.includes("SN")));
+
+          const isOverlock = rawCat.includes("OVERLOCK") || rawCat.includes("OL") || rawCat.includes("OBRAS") ||
+            (!rawCat && (rawMachineName.includes("OVERLOCK") || rawMachineName.includes("OBRAS") || rawMachineName.includes("2NEEDLE OVERLOCK")));
+
+          const isFlatseam = rawCat.includes("FLATSEAM") || rawCat.includes("COVERSTITCH") || rawCat.includes("FS") || rawCat.includes("KAM") ||
+            (!rawCat && (rawMachineName.includes("FLAT SEAM") || rawMachineName.includes("COVERSTITCH") || rawMachineName.includes("FLATSEAM")));
+
+          const isSpecial = rawCat.includes("SPECIAL") || rawCat.includes("SP") || rawCat.includes("PRESS") || rawCat.includes("OTOMATIS") ||
+            (!rawCat && (rawMachineName.includes("PRESS") || rawMachineName.includes("HEAT TRANSFER") || rawMachineName.includes("SPECIAL")));
+
+          const isButtonHole = rawCat.includes("BUTTON HOLE") || rawCat.includes("BUTTON_HOLE") || rawCat.includes("BH") || rawCat.includes("LUBANG KANCING") ||
+            (!rawCat && (rawMachineName.includes("BUTTON HOLE") || rawMachineName.includes("LUBANG KANCING")));
+
+          const isButtonSet = rawCat.includes("BUTTON SET") || rawCat.includes("BUTTON_SET") || rawCat.includes("BS") || rawCat.includes("PASANG KANCING") ||
+            (!rawCat && (rawMachineName.includes("BUTTON SET") || rawMachineName.includes("PASANG KANCING")));
+
+          const isChainstitch = rawCat.includes("CHAINSTITCH") || rawCat.includes("CS") || rawCat.includes("KANSAI") ||
+            (!rawCat && (rawMachineName.includes("CHAINSTITCH") || rawMachineName.includes("KANSAI") || rawMachineName.includes("CHAIN STITCH")));
+
+          const isBartack = rawCat.includes("BARTACK") || rawCat.includes("BT") || rawCat.includes("BAR TACK") ||
+            (!rawCat && (rawMachineName.includes("BARTACK") || rawMachineName.includes("BAR TACK")));
+
+          const rawDate = row[idxDate] ?? row[3] ?? "";
+          const rowDateStr = rawDate ? String(rawDate).trim() : "";
 
           return {
-            id: String(row[4] || index), // Kolom E: Worker Code
+            id: String(row[idxWorkerCode] ?? row[4] ?? index), // Kolom E: Worker Code
             no: index + 1,
-            factory: normalizeFactoryName(String(row[0] || "1")), // Kolom A: Factory
-            line: normalizeLineName(String(row[1] || "1")), // Kolom B: Line
-            nik: String(row[4] || ""), // Kolom E: Worker Code
-            name: String(row[5] || "Unknown"), // Kolom F: Worker
-            machine: String(row[7] || ""), // Kolom H: Machine
-            styleNo: String(row[8] || ""), // Kolom I: Style No
-            process: String(row[9] || ""), // Kolom J: Process
-            productionRate: Number(row[12] || 0), // Kolom M: Production Rate (%)
-            points: Number(row[13] || 1), // Kolom N: POINT (langsung dari Sheets)
-            workMonth: Number(row[14] || 1), // Kolom O: Work Month (langsung dari Sheets)
-            dateOfResign: String(row[15] || ""), // Kolom P: Date of Resign
-            machineCategory: String(row[16] || ""), // Kolom Q: Machine Category
-            status: String(row[17] || "ACTIVE"), // Kolom R: Status
+            factory: normalizeFactoryName(String(row[idxFactory] ?? row[0] ?? "1")), // Kolom A: Factory
+            line: normalizeLineName(String(row[idxLine] ?? row[1] ?? "1")), // Kolom B: Line
+            nik: String(row[idxWorkerCode] ?? row[4] ?? ""), // Kolom E: Worker Code
+            name: String(row[idxWorker] ?? row[5] ?? "Unknown"), // Kolom F: Worker
+            date: rowDateStr, // Kolom D: Date
+            recordDate: rowDateStr,
+            machine: String(row[idxMachineName] ?? row[7] ?? ""), // Kolom H: Machine
+            styleNo: String(row[idxStyleNo] ?? row[8] ?? ""), // Kolom I: Style No
+            process: String(row[idxProcess] ?? row[9] ?? ""), // Kolom J: Process
+            productionRate: Number(row[idxRate] ?? row[12] ?? 0), // Kolom M: Production Rate (%)
+            points: pointVal, // Kolom N: POINT (maksimal 3 per mesin)
+            workMonth: Number(row[idxWorkMonth] ?? row[14] ?? 1), // Kolom O: Work Month (langsung dari Sheets)
+            dateOfResign: String(row[idxDateOfResign] ?? row[15] ?? ""), // Kolom P: Date of Resign
+            machineCategory: rawCat, // Kolom Q: Machine Category
+            status: String(row[idxStatus] ?? row[17] ?? "ACTIVE"), // Kolom R: Status
 
             // Kompatibilitas dengan fitur Skill Matrix & Line Balancing
-            doj: String(row[6] || "-"),
-            workTimeMonths: Number(row[14] || 1),
-            resignDate: row[15] ? String(row[15]) : null,
-            lockstitch: machineCat.includes("SN") || machineCat.includes("LOCKSTITCH") || (!machineCat && rawProdRate > 0) ? rawProdRate : (rawProdRate > 0 ? null : 75),
-            overlock: machineCat.includes("OL") || machineCat.includes("OVERLOCK") ? rawProdRate : null,
-            flatseam: machineCat.includes("FS") || machineCat.includes("FLATSEAM") ? rawProdRate : null,
-            special: machineCat.includes("SP") || machineCat.includes("SPECIAL") ? rawProdRate : null,
-            buttonHole: machineCat.includes("BH") || machineCat.includes("BUTTON HOLE") ? rawProdRate : null,
-            buttonSet: machineCat.includes("BS") || machineCat.includes("BUTTON SET") ? rawProdRate : null,
-            chainstitch: machineCat.includes("CS") || machineCat.includes("CHAINSTITCH") ? rawProdRate : null,
-            bartack: machineCat.includes("BT") || machineCat.includes("BARTACK") ? rawProdRate : null,
+            doj: String(row[idxDoj] ?? row[6] ?? "-"),
+            workTimeMonths: Number(row[idxWorkMonth] ?? row[14] ?? 1),
+            resignDate: (row[idxDateOfResign] ?? row[15]) ? String(row[idxDateOfResign] ?? row[15]) : null,
+            lockstitch: isLockstitch ? (pointVal > 0 ? pointVal : null) : (!rawCat && !rawMachineName && pointVal > 0 ? pointVal : null),
+            overlock: isOverlock ? (pointVal > 0 ? pointVal : null) : null,
+            flatseam: isFlatseam ? (pointVal > 0 ? pointVal : null) : null,
+            special: isSpecial ? (pointVal > 0 ? pointVal : null) : null,
+            buttonHole: isButtonHole ? (pointVal > 0 ? pointVal : null) : null,
+            buttonSet: isButtonSet ? (pointVal > 0 ? pointVal : null) : null,
+            chainstitch: isChainstitch ? (pointVal > 0 ? pointVal : null) : null,
+            bartack: isBartack ? (pointVal > 0 ? pointVal : null) : null,
           };
         });
 
@@ -175,13 +221,18 @@ export default function App() {
     return filterOperatorsByPointInTime(operators, selectedMonth, selectedYear);
   }, [operators, selectedMonth, selectedYear]);
 
-  // Total database operator aktif di seluruh line (tidak berstatus RESIGNED)
+  // Total unique active operators count based on unique NIK for the selected month/year
   const totalActiveOperatorsCount = useMemo(() => {
-    return pointInTimeAllOperators.filter((op) => {
-      const isResigned = op.status?.toUpperCase() === 'RESIGNED';
-      return !isResigned;
-    }).length;
-  }, [pointInTimeAllOperators]);
+    const uniqueNikSet = new Set<string>();
+    pointInTimeAllOperators.forEach((op: any) => {
+      const nik = op.nik || op.id;
+      const isResigned = isOperatorResignedAtPeriod(op, selectedMonth, selectedYear);
+      if (nik && !isResigned) {
+        uniqueNikSet.add(String(nik).trim());
+      }
+    });
+    return uniqueNikSet.size;
+  }, [pointInTimeAllOperators, selectedMonth, selectedYear]);
 
   // 2. Point-in-Time Filtered Operators untuk Factory & Line terpilih
   const displayedOperators = useMemo(() => {
@@ -272,7 +323,9 @@ export default function App() {
           operators={displayedOperators}
           selectedLine={selectedLine}
           selectedFactory={selectedFactory}
-          targetRate={75}
+          targetGrade="Grade A"
+          selectedMonth={selectedMonth}
+          selectedYear={selectedYear}
         />
 
         {/* TAB CONTENTS */}
@@ -329,7 +382,37 @@ export default function App() {
                 const normalizedOps = newOps.map((op: any, idx: number) => {
                   if (Array.isArray(op)) {
                     const rawProdRate = Number(op[12] || 0);
-                    const machineCat = String(op[16] || "").toUpperCase();
+                    const rawPoints = parseFloat(String(op[13] || "").replace(',', '.').replace(/[^0-9.]/g, '').trim()) || 0;
+                    const pointVal = rawPoints > 0 ? Math.min(3, Math.max(1, Math.round(rawPoints))) : 0;
+                    const rawCat = String(op[16] || "").toUpperCase();
+                    const rawMachineName = String(op[7] || "").toUpperCase();
+
+                    const isLockstitch = rawCat.includes("LOCKSTITCH") || rawCat.includes("SN") || rawCat.includes("SINGLE NEEDLE") ||
+                      (!rawCat && (rawMachineName.includes("LOCKSTITCH") || rawMachineName.includes("1NEEDLE") || rawMachineName.includes("SN")));
+
+                    const isOverlock = rawCat.includes("OVERLOCK") || rawCat.includes("OL") || rawCat.includes("OBRAS") ||
+                      (!rawCat && (rawMachineName.includes("OVERLOCK") || rawMachineName.includes("OBRAS") || rawMachineName.includes("2NEEDLE OVERLOCK")));
+
+                    const isFlatseam = rawCat.includes("FLATSEAM") || rawCat.includes("COVERSTITCH") || rawCat.includes("FS") || rawCat.includes("KAM") ||
+                      (!rawCat && (rawMachineName.includes("FLAT SEAM") || rawMachineName.includes("COVERSTITCH") || rawMachineName.includes("FLATSEAM")));
+
+                    const isSpecial = rawCat.includes("SPECIAL") || rawCat.includes("SP") || rawCat.includes("PRESS") || rawCat.includes("OTOMATIS") ||
+                      (!rawCat && (rawMachineName.includes("PRESS") || rawMachineName.includes("HEAT TRANSFER") || rawMachineName.includes("SPECIAL")));
+
+                    const isButtonHole = rawCat.includes("BUTTON HOLE") || rawCat.includes("BUTTON_HOLE") || rawCat.includes("BH") || rawCat.includes("LUBANG KANCING") ||
+                      (!rawCat && (rawMachineName.includes("BUTTON HOLE") || rawMachineName.includes("LUBANG KANCING")));
+
+                    const isButtonSet = rawCat.includes("BUTTON SET") || rawCat.includes("BUTTON_SET") || rawCat.includes("BS") || rawCat.includes("PASANG KANCING") ||
+                      (!rawCat && (rawMachineName.includes("BUTTON SET") || rawMachineName.includes("PASANG KANCING")));
+
+                    const isChainstitch = rawCat.includes("CHAINSTITCH") || rawCat.includes("CS") || rawCat.includes("KANSAI") ||
+                      (!rawCat && (rawMachineName.includes("CHAINSTITCH") || rawMachineName.includes("KANSAI") || rawMachineName.includes("CHAIN STITCH")));
+
+                    const isBartack = rawCat.includes("BARTACK") || rawCat.includes("BT") || rawCat.includes("BAR TACK") ||
+                      (!rawCat && (rawMachineName.includes("BARTACK") || rawMachineName.includes("BAR TACK")));
+
+                    const rawDate = op[3] || "";
+                    const rowDateStr = rawDate ? String(rawDate).trim() : "";
                     return {
                       id: String(op[4] || idx), // Kolom E: Worker Code
                       no: idx + 1,
@@ -337,28 +420,30 @@ export default function App() {
                       line: normalizeLineName(String(op[1] || "1")), // Kolom B: Line
                       nik: String(op[4] || ""), // Kolom E: Worker Code
                       name: String(op[5] || "Unknown"), // Kolom F: Worker
+                      date: rowDateStr,
+                      recordDate: rowDateStr,
                       machine: String(op[7] || ""), // Kolom H: Machine
                       styleNo: String(op[8] || ""), // Kolom I: Style No
                       process: String(op[9] || ""), // Kolom J: Process
                       productionRate: Number(op[12] || 0), // Kolom M: Production Rate (%)
-                      points: Number(op[13] || 1), // Kolom N: POINT (langsung dari Sheets)
+                      points: pointVal, // Kolom N: POINT (maksimal 3 per mesin)
                       workMonth: Number(op[14] || 1), // Kolom O: Work Month (langsung dari Sheets)
                       dateOfResign: String(op[15] || ""), // Kolom P: Date of Resign
-                      machineCategory: String(op[16] || ""), // Kolom Q: Machine Category
+                      machineCategory: rawCat, // Kolom Q: Machine Category
                       status: String(op[17] || "ACTIVE"), // Kolom R: Status
 
                       // Kompatibilitas dengan fitur Skill Matrix & Line Balancing
                       doj: String(op[6] || "-"),
                       workTimeMonths: Number(op[14] || 1),
                       resignDate: op[15] ? String(op[15]) : null,
-                      lockstitch: machineCat.includes("SN") || machineCat.includes("LOCKSTITCH") || (!machineCat && rawProdRate > 0) ? rawProdRate : (rawProdRate > 0 ? null : 75),
-                      overlock: machineCat.includes("OL") || machineCat.includes("OVERLOCK") ? rawProdRate : null,
-                      flatseam: machineCat.includes("FS") || machineCat.includes("FLATSEAM") ? rawProdRate : null,
-                      special: machineCat.includes("SP") || machineCat.includes("SPECIAL") ? rawProdRate : null,
-                      buttonHole: machineCat.includes("BH") || machineCat.includes("BUTTON HOLE") ? rawProdRate : null,
-                      buttonSet: machineCat.includes("BS") || machineCat.includes("BUTTON SET") ? rawProdRate : null,
-                      chainstitch: machineCat.includes("CS") || machineCat.includes("CHAINSTITCH") ? rawProdRate : null,
-                      bartack: machineCat.includes("BT") || machineCat.includes("BARTACK") ? rawProdRate : null,
+                      lockstitch: isLockstitch ? (pointVal > 0 ? pointVal : null) : (!rawCat && !rawMachineName && pointVal > 0 ? pointVal : null),
+                      overlock: isOverlock ? (pointVal > 0 ? pointVal : null) : null,
+                      flatseam: isFlatseam ? (pointVal > 0 ? pointVal : null) : null,
+                      special: isSpecial ? (pointVal > 0 ? pointVal : null) : null,
+                      buttonHole: isButtonHole ? (pointVal > 0 ? pointVal : null) : null,
+                      buttonSet: isButtonSet ? (pointVal > 0 ? pointVal : null) : null,
+                      chainstitch: isChainstitch ? (pointVal > 0 ? pointVal : null) : null,
+                      bartack: isBartack ? (pointVal > 0 ? pointVal : null) : null,
                     };
                   }
                   return {

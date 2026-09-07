@@ -1,24 +1,31 @@
 import React from 'react';
 import { Users, TrendingUp, Cpu, CheckCircle2 } from 'lucide-react';
 import { Operator } from '../types';
-import { getOperatorMultiSkillCount, getOperatorAvgRate } from '../utils/ieCalculations';
-import { getGradeFromRate } from '../data/mockData';
+import { getOperatorMultiSkillCount, getOperatorTotalPoints, isOperatorResignedAtPeriod } from '../utils/ieCalculations';
+import { getGradeFromTotalPoints } from '../data/mockData';
 
 interface MetricsOverviewProps {
   operators: Operator[];
   selectedLine: string;
   selectedFactory: string;
-  targetRate?: number;
+  targetGrade?: string;
+  selectedMonth?: number | string;
+  selectedYear?: number | string;
 }
 
 export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
   operators,
   selectedLine,
   selectedFactory,
-  targetRate = 75,
+  targetGrade = "Grade A",
+  selectedMonth,
+  selectedYear,
 }) => {
   // Filter operator aktif di dalam fungsi kalkulasi/tabel frontend
   const activeOperators = operators.filter(row => {
+    if (selectedMonth !== undefined && selectedYear !== undefined) {
+      return !isOperatorResignedAtPeriod(row, selectedMonth, selectedYear);
+    }
     const isResigned = row.status?.toUpperCase() === "RESIGNED";
     
     // Jika statusnya RESIGNED, buang dari daftar operator aktif di line
@@ -30,12 +37,12 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
 
   const totalCount = activeOperators.length;
   
-  // Calculate average line efficiency
-  const allAvgRates = activeOperators.map(op => getOperatorAvgRate(op)).filter(r => r > 0);
-  const lineAvgRate = allAvgRates.length > 0
-    ? (allAvgRates.reduce((a, b) => a + b, 0) / allAvgRates.length)
+  // Hitung rata-rata grade operator line dalam satuan poin (berdasarkan akumulasi poin tiap mesin)
+  const allPoints = activeOperators.map(op => getOperatorTotalPoints(op));
+  const lineAvgPoints = allPoints.length > 0
+    ? (allPoints.reduce((a, b) => a + b, 0) / allPoints.length)
     : 0;
-  const gradeInfo = getGradeFromRate(lineAvgRate);
+  const gradeInfo = getGradeFromTotalPoints(lineAvgPoints);
 
   // Multiskill count (operators mastering 2 or more machine types)
   const multiskillOps = activeOperators.filter(op => getOperatorMultiSkillCount(op) >= 2);
@@ -69,15 +76,15 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
         </div>
       </div>
 
-      {/* 2. Rata-Rata Line Efficiency Card */}
+      {/* 2. Rata-Rata Grade Operator Line Card */}
       <div className="bg-white border border-[#E0E8E8] rounded-[20px] p-5 shadow-[0_8px_30px_rgba(48,72,72,0.06)] hover:shadow-[0_12px_36px_rgba(48,72,72,0.10)] transition-all duration-200">
         <div className="flex justify-between items-start">
           <div>
             <p className="text-xs font-semibold text-[#788888] uppercase tracking-wider">
-              Rata-Rata Efisiensi Line
+              RATA-RATA GRADE OPERATOR LINE
             </p>
             <h3 className="text-2xl sm:text-3xl font-bold text-[#304848] mt-1.5 font-sans">
-              {lineAvgRate > 0 ? `${lineAvgRate.toFixed(1)}%` : '0%'}
+              {lineAvgPoints > 0 ? `${lineAvgPoints.toFixed(1)} Poin` : '0 Poin'}
             </h3>
           </div>
           <div className="p-3 bg-[#F5EAC5] text-[#8A6A08] rounded-2xl border border-[#E8D499]">
@@ -86,11 +93,11 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
         </div>
         <div className="mt-4 pt-3 border-t border-[#E0E8E8] flex items-center justify-between text-xs">
           <div className="flex items-center gap-1.5">
-            <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${gradeInfo.cssBadge}`}>
-              {gradeInfo.label}
+            <span className={`w-5 h-5 flex items-center justify-center text-[11px] font-bold rounded-full ${gradeInfo.cssBadge}`}>
+              {gradeInfo.letter || gradeInfo.grade.charAt(0)}
             </span>
           </div>
-          <span className="text-[#788888] font-medium">Target IE: {targetRate}%</span>
+          <span className="text-[#788888] font-medium">Target IE: {targetGrade}</span>
         </div>
       </div>
 

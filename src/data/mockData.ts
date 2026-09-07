@@ -13,66 +13,126 @@ export const GRADE_BENCHMARKS: Array<{
   description: string;
 }> = [
   { 
-    minRate: 100, 
+    minRate: 14, 
     maxRate: 9999, 
     grade: 'S', 
-    label: 'S (≥100%)', 
+    label: 'Grade S: > 13 Poin', 
     color: '#059669', // Emerald Hijau Zamrud
     bgClass: 'bg-[#059669]', 
     textColor: 'text-white font-bold',
-    cssBadge: 'bg-[#059669] text-white font-bold border border-[#059669]', 
+    cssBadge: 'bg-[#059669] text-white font-bold border border-[#047857]', 
     bgColor: '#059669', 
-    description: 'Expert / Star Operator (Efficiency ≥ 100%)' 
+    description: 'Star Operator (> 13 Poin)' 
   },
   { 
-    minRate: 80, 
-    maxRate: 99.99, 
+    minRate: 8, 
+    maxRate: 13, 
     grade: 'A', 
-    label: 'A (80-99%)', 
+    label: 'Grade A: 8 – 13 Poin', 
     color: '#0d9488', // Teal Toska
     bgClass: 'bg-[#0d9488]', 
     textColor: 'text-white font-bold',
-    cssBadge: 'bg-[#0d9488] text-white font-bold border border-[#0d9488]', 
+    cssBadge: 'bg-[#0d9488] text-white font-bold border border-[#0f766e]', 
     bgColor: '#0d9488', 
-    description: 'Skilled / Target Operator (Efficiency 80% - 99.99%)' 
+    description: 'Skilled Operator (8 – 13 Poin)' 
   },
   { 
-    minRate: 60, 
-    maxRate: 79.99, 
+    minRate: 4, 
+    maxRate: 7, 
     grade: 'B', 
-    label: 'B (60-79%)', 
+    label: 'Grade B: 4 – 7 Poin', 
     color: '#0284c7', // Blue Langit
     bgClass: 'bg-[#0284c7]', 
     textColor: 'text-white font-bold',
-    cssBadge: 'bg-[#0284c7] text-white font-bold border border-[#0284c7]', 
+    cssBadge: 'bg-[#0284c7] text-white font-bold border border-[#0369a1]', 
     bgColor: '#0284c7', 
-    description: 'Competent / Developing Operator (Efficiency 60% - 79.99%)' 
+    description: 'Competent Operator (4 – 7 Poin)' 
   },
   { 
-    minRate: 0.01, 
-    maxRate: 59.99, 
+    minRate: 1, 
+    maxRate: 3, 
     grade: 'C', 
-    label: 'C (<60%)', 
+    label: 'Grade C: 1 – 3 Poin', 
     color: '#d97706', // Amber Keemasan
     bgClass: 'bg-[#d97706]', 
     textColor: 'text-white font-bold',
-    cssBadge: 'bg-[#d97706] text-white font-bold border border-[#d97706]', 
+    cssBadge: 'bg-[#d97706] text-white font-bold border border-[#b45309]', 
     bgColor: '#d97706', 
-    description: 'Novice / Retraining Required (Efficiency < 60%)' 
+    description: 'Novice Operator (1 – 3 Poin)' 
   },
   { 
     minRate: 0, 
     maxRate: 0, 
     grade: 'HELPER', 
-    label: 'Helper', 
+    label: 'Helper: 0 Poin (Input Manual)', 
     color: '#475569', // Slate Profesional
     bgClass: 'bg-[#475569]', 
     textColor: 'text-white font-bold',
-    cssBadge: 'bg-[#475569] text-white font-bold border border-[#475569]', 
+    cssBadge: 'bg-[#475569] text-white font-bold border border-[#334155]', 
     bgColor: '#475569', 
-    description: 'Helper / Non-Machine Support / Manual Trimmer' 
+    description: 'Helper / Non-Machine Support (0 Poin)' 
   }
 ];
+
+// Menghitung total grade: penjumlahan seluruh poin yang didapat dari mesin-mesin yang dikuasai
+// Setiap mesin maksimal 3 poin dari Kolom N
+export const getOperatorTotalPoints = (op: Operator): number => {
+  const machinePoints = [
+    op.lockstitch ?? 0,
+    op.overlock ?? 0,
+    op.flatseam ?? 0,
+    op.special ?? 0,
+    op.buttonHole ?? 0,
+    op.buttonSet ?? 0,
+    op.chainstitch ?? 0,
+    op.bartack ?? 0,
+  ];
+  // Poin valid tiap mesin adalah maksimal 3
+  const validMachinePoints = machinePoints.map(p => (p > 0 ? Math.min(3, p) : 0));
+  const sum = validMachinePoints.reduce((acc, current) => acc + current, 0);
+
+  if (sum > 0) return sum;
+  if (op.points !== undefined && op.points !== null && !isNaN(op.points) && op.points > 0) {
+    return Math.round(op.points);
+  }
+  return 0;
+};
+
+// Menentukan grade berdasarkan total poin sesuai standarisasi PT. Winners International
+export const getGradeFromTotalPoints = (totalPoints: number, isHelper: boolean = false) => {
+  if (isHelper || totalPoints <= 0) {
+    return { grade: 'HELPER' as GradeType, label: 'Helper', letter: 'H', cssBadge: 'bg-[#475569] text-white border border-[#334155]' };
+  }
+  if (totalPoints > 13) {
+    return { grade: 'S' as GradeType, label: 'Grade S', letter: 'S', cssBadge: 'bg-[#059669] text-white border border-[#047857]' };
+  }
+  if (totalPoints >= 8) {
+    return { grade: 'A' as GradeType, label: 'Grade A', letter: 'A', cssBadge: 'bg-[#0d9488] text-white border border-[#0f766e]' };
+  }
+  if (totalPoints >= 4) {
+    return { grade: 'B' as GradeType, label: 'Grade B', letter: 'B', cssBadge: 'bg-[#0284c7] text-white border border-[#0369a1]' };
+  }
+  return { grade: 'C' as GradeType, label: 'Grade C', letter: 'C', cssBadge: 'bg-[#d97706] text-white border border-[#b45309]' };
+};
+
+// Backward-compatible aliases
+export const getGradeFromPoints = getGradeFromTotalPoints;
+
+// Mengambil nilai poin tertinggi tunggal (Max Peak Single Machine/Point)
+export const getOperatorMaxPoints = (op: Operator): number => {
+  const machinePoints = [
+    op.lockstitch ?? 0,
+    op.overlock ?? 0,
+    op.flatseam ?? 0,
+    op.special ?? 0,
+    op.buttonHole ?? 0,
+    op.buttonSet ?? 0,
+    op.chainstitch ?? 0,
+    op.bartack ?? 0,
+    op.points ?? 0,
+  ];
+  return Math.max(0, ...machinePoints);
+};
 
 export interface GradeBadgeResult {
   label: string;
