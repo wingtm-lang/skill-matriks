@@ -15,6 +15,7 @@ import {
   Flame
 } from 'lucide-react';
 import { Operator, GarmentStyle } from '../types';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface Message {
   id: string;
@@ -36,32 +37,43 @@ export const IEChatAssistantTab: React.FC<IEChatAssistantTabProps> = ({
   selectedLine,
   selectedFactory,
 }) => {
+  const { t, language } = useLanguage();
+
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: 'msg-1',
+      id: 'msg-init',
       sender: 'AI',
-      text: `Halo! Saya adalah **AI Asisten Industrial Engineering (IE) Garment** spesialis PT. Winners International.
-      
-Saya siap membantu Anda dengan:
-- **Analisis Bottleneck & Line Balancing** untuk Line ${selectedLine} di ${selectedFactory}
-- **Perhitungan SMV, SAM, Pitch Time, dan Line Efficiency** (GSD / MOST Standard)
-- **Rekomendasi Mutasi & Rebalancing Operator** berdasarkan keahlian Skill Matrix
-- **Metode Kaizen Gerakan Kerja (Motion Economy)** dan setting layout sewing.
-
-Silakan pilih pertanyaan rekomendasi di bawah atau ketik pertanyaan teknis Anda!`,
+      text: t.ieChat.defaultWelcome,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
+
+  // Update initial message if language changes and chat hasn't been engaged yet
+  useEffect(() => {
+    setMessages((prev) => {
+      if (prev.length === 1 && prev[0].id === 'msg-init') {
+        return [
+          {
+            id: 'msg-init',
+            sender: 'AI',
+            text: t.ieChat.defaultWelcome,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          },
+        ];
+      }
+      return prev;
+    });
+  }, [language, t.ieChat.defaultWelcome]);
 
   const [inputPrompt, setInputPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const quickPrompts = [
-    `Analisis bottleneck terbesar pada line ${selectedLine} dan rekomendasi solusinya`,
-    `Bagaimana cara menaikkan Line Efficiency dari 68% menjadi di atas 80%?`,
-    `Siapa operator yang paling siap untuk di-cross-train ke mesin Flatseam?`,
-    `Jelaskan rumus Pitch Time dan Balance Delay menurut standar GSD IE`,
+    t.ieChat.quick1,
+    t.ieChat.quick2,
+    t.ieChat.quick3,
+    t.ieChat.quick4,
   ];
 
   const scrollToBottom = () => {
@@ -87,36 +99,62 @@ Silakan pilih pertanyaan rekomendasi di bawah atau ketik pertanyaan teknis Anda!
     setInputPrompt('');
     setIsLoading(true);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+
     try {
       const response = await fetch('/api/gemini/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
+          message: text,
           prompt: text,
+          language,
           context: {
             selectedLine,
             selectedFactory,
             totalOperators: operators.length,
             activeStyle: styles[0]?.styleName,
+            operators: operators.slice(0, 30).map((o) => ({
+              nik: o.nik,
+              name: o.name,
+              grade: o.grade,
+              points: o.points,
+              lockstitch: o.lockstitch,
+              overlock: o.overlock,
+              flatseam: o.flatseam,
+              special: o.special,
+            })),
           },
         }),
       });
 
-      const data = await response.json();
+      clearTimeout(timeoutId);
+
+      let data: any = {};
+      try {
+        data = await response.json();
+      } catch (parseErr) {
+        console.warn('Failed to parse json response:', parseErr);
+      }
+
       const aiReply: Message = {
         id: `ai-${Date.now()}`,
         sender: 'AI',
-        text: data.reply || 'Maaf, terjadi kendala komunikasi dengan AI server. Silakan coba lagi.',
+        text: data.reply || t.ieChat.serverError,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
 
       setMessages((prev) => [...prev, aiReply]);
-    } catch (err) {
+    } catch (err: any) {
+      clearTimeout(timeoutId);
       console.error('Error sending chat message:', err);
+      const isAbort = err?.name === 'AbortError';
       const errorReply: Message = {
         id: `ai-${Date.now()}`,
         sender: 'AI',
-        text: 'Terjadi kesalahan saat memproses jawaban. Pastikan koneksi internet stabil.',
+        text: isAbort ? t.ieChat.abortError : t.ieChat.serverError,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, errorReply]);
@@ -130,7 +168,7 @@ Silakan pilih pertanyaan rekomendasi di bawah atau ketik pertanyaan teknis Anda!
       {
         id: `msg-${Date.now()}`,
         sender: 'AI',
-        text: `Riwayat chat telah dibersihkan. Ada yang ingin Anda konsultasikan terkait Industrial Engineering garment di ${selectedFactory} • ${selectedLine}?`,
+        text: t.ieChat.clearedMessage,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       },
     ]);
@@ -147,13 +185,13 @@ Silakan pilih pertanyaan rekomendasi di bawah atau ketik pertanyaan teknis Anda!
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-[#304848]">IE Garment Specialist AI</h3>
+              <h3 className="text-sm font-bold text-[#304848]">{t.ieChat.specialistTitle}</h3>
               <span className="badge-gold text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#E8D499]">
-                PT. Winners Expert
+                {t.ieChat.expertBadge}
               </span>
             </div>
             <p className="text-xs text-[#788888]">
-              Konsultan Cerdas Line Balancing, SAM & Kaizen Sewing Floor
+              {t.ieChat.specialistSubtitle}
             </p>
           </div>
         </div>
@@ -161,7 +199,7 @@ Silakan pilih pertanyaan rekomendasi di bawah atau ketik pertanyaan teknis Anda!
         <button
           onClick={handleClearChat}
           className="p-2 rounded-xl text-[#788888] hover:text-[#C96B6B] hover:bg-[#FDECEC] transition-colors cursor-pointer"
-          title="Bersihkan Percakapan"
+          title={t.ieChat.clearChatTooltip}
         >
           <Trash2 className="w-4 h-4" />
         </button>
@@ -215,7 +253,7 @@ Silakan pilih pertanyaan rekomendasi di bawah atau ketik pertanyaan teknis Anda!
             </div>
             <div className="bg-white border border-[#E0E8E8] rounded-2xl rounded-tl-xs p-4 shadow-2xs flex items-center gap-2 text-xs text-[#788888]">
               <RefreshCw className="w-4 h-4 animate-spin text-[#D0A018]" />
-              <span>IE Assistant sedang menganalisis data lantai produksi...</span>
+              <span>{t.ieChat.analyzingProduction}</span>
             </div>
           </div>
         )}
@@ -227,7 +265,7 @@ Silakan pilih pertanyaan rekomendasi di bawah atau ketik pertanyaan teknis Anda!
       <div className="px-4 py-2.5 bg-white border-t border-[#E0E8E8] flex items-center gap-2 overflow-x-auto no-scrollbar">
         <span className="text-[11px] font-semibold text-[#788888] flex items-center gap-1 shrink-0">
           <Lightbulb className="w-3.5 h-3.5 text-[#D0A018]" />
-          Saran:
+          {t.ieChat.suggestionsLabel}
         </span>
         {quickPrompts.map((q, idx) => (
           <button
@@ -253,13 +291,14 @@ Silakan pilih pertanyaan rekomendasi di bawah atau ketik pertanyaan teknis Anda!
             type="text"
             value={inputPrompt}
             onChange={(e) => setInputPrompt(e.target.value)}
-            placeholder="Tanyakan analisis line balancing, rumus SMV, atau kendala sewing..."
+            placeholder={t.ieChat.inputPlaceholder}
             className="flex-1 bg-[#F8F8F8] border border-[#E0E8E8] text-[#304848] text-xs sm:text-sm rounded-xl px-4 py-3 focus:border-[#2AAFA3] focus:ring-2 focus:ring-[#2AAFA3]/20 focus:outline-none placeholder:text-[#98A8A8]"
           />
           <button
             type="submit"
             disabled={!inputPrompt.trim() || isLoading}
             className="bg-[#D0A018] hover:bg-[#B88C10] text-white p-3 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-40"
+            title={t.ieChat.sendBtn}
           >
             <Send className="w-4 h-4" />
           </button>

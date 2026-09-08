@@ -15,6 +15,69 @@ export {
 };
 export type { RawSheetRow };
 
+// Standar Konversi Sistem Poin IE (Industrial Engineering)
+// 0 Poin: Eff 0% (Belum Menguasai / Non-Aktif)
+// 1 Poin: Eff 1% - 60% (Tahap Belajar / Novice)
+// 2 Poin: Eff 61% - 89% (Standar Produksi / Competent)
+// 3 Poin: Eff > 90% (Mahir / Expert / Star)
+export const POINT_SYSTEM_RULES = [
+  {
+    points: 0,
+    effLabel: 'Eff 0%',
+    effRange: '0%',
+    minEff: 0,
+    maxEff: 0,
+    level: 'Belum Menguasai / Non-Aktif',
+    description: 'Belum mencapai standar target waktu siklus (SMV) atau belum terlatih di jenis mesin ini.',
+    badgeClass: 'bg-slate-100 text-slate-700 border-slate-300',
+    barColor: 'bg-slate-400',
+    percentage: '0%',
+  },
+  {
+    points: 1,
+    effLabel: 'Eff 1 – 60%',
+    effRange: '1% – 60%',
+    minEff: 1,
+    maxEff: 60,
+    level: 'Tahap Belajar (Learning / Novice)',
+    description: 'Mampu menjahit jahitan dasar dengan supervisi, cycle time masih di atas SMV standar.',
+    badgeClass: 'bg-amber-100 text-amber-800 border-amber-300',
+    barColor: 'bg-amber-500',
+    percentage: '50%',
+  },
+  {
+    points: 2,
+    effLabel: 'Eff 61 – 89%',
+    effRange: '61% – 89%',
+    minEff: 61,
+    maxEff: 89,
+    level: 'Standar Produksi (Competent)',
+    description: 'Memenuhi target ritme output harian mandiri dengan tingkat defect (DHU) rendah.',
+    badgeClass: 'bg-sky-100 text-sky-800 border-sky-300',
+    barColor: 'bg-sky-500',
+    percentage: '75%',
+  },
+  {
+    points: 3,
+    effLabel: 'Eff > 90%',
+    effRange: '> 90%',
+    minEff: 90,
+    maxEff: 999,
+    level: 'Mahir / Ahli (Expert / Star)',
+    description: 'Kecepatan tinggi melampaui standar target SMV, konsisten presisi, kandidat utama floater & trainer.',
+    badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+    barColor: 'bg-emerald-600',
+    percentage: '100%',
+  },
+];
+
+export function getPointsFromEfficiency(eff: number): number {
+  if (eff <= 0) return 0;
+  if (eff <= 60) return 1;
+  if (eff <= 89) return 2;
+  return 3;
+}
+
 export function getOperatorSkillForMachine(operator: Operator, machine: MachineCategory): number | null {
   switch (machine) {
     case 'LOCKSTITCH':
@@ -937,6 +1000,49 @@ export function processActualMonthlyHeadcount(
 }
 
 export const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyfi3iPH2UPpA_SOIt8hUWLTybF30icj_X-IT0V4TyfZGQAmCTWPIrij1LZmmi4oUWDng/exec";
+
+/**
+ * Kalkulasi selisih bulan (masa kerja) dari string Date of Join (DOJ).
+ * Mendukung format DD-MM-YYYY, YYYY-MM-DD, D-MMM-YY, dsb.
+ */
+export function calculateWorkTimeMonths(dojStr: string | null | undefined): number {
+  if (!dojStr || dojStr === "-" || String(dojStr).trim() === "") return 0;
+
+  const str = String(dojStr).trim();
+  let dojDate: Date | null = null;
+
+  // Format DD-MM-YYYY atau DD/MM/YYYY
+  if (/^\d{1,2}[-/]\d{1,2}[-/]\d{2,4}$/.test(str)) {
+    const parts = str.split(/[-/]/);
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    let year = parseInt(parts[2], 10);
+    if (year < 100) year += 2000;
+    dojDate = new Date(year, month, day);
+  } else if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(str)) {
+    // Format YYYY-MM-DD
+    const parts = str.split(/[-/]/);
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    dojDate = new Date(year, month, day);
+  } else {
+    const parsed = new Date(str);
+    if (!isNaN(parsed.getTime())) {
+      dojDate = parsed;
+    }
+  }
+
+  if (!dojDate || isNaN(dojDate.getTime())) return 0;
+
+  const now = new Date();
+  let months = (now.getFullYear() - dojDate.getFullYear()) * 12 + (now.getMonth() - dojDate.getMonth());
+  if (now.getDate() < dojDate.getDate()) {
+    months--;
+  }
+
+  return Math.max(0, months);
+}
 
 /**
  * Memeriksa apakah operator sudah mengundurkan diri (RESIGNED) SEBELUM periode bulan dan tahun yang sedang dilihat.

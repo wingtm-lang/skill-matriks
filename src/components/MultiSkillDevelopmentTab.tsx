@@ -18,6 +18,7 @@ import {
 import { Operator, MachineCategory } from '../types';
 import { getOperatorMultiSkillCount, getOperatorAvgRate } from '../utils/ieCalculations';
 import { getGradeFromRate } from '../data/mockData';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface MultiSkillDevelopmentTabProps {
   operators: Operator[];
@@ -30,6 +31,7 @@ export const MultiSkillDevelopmentTab: React.FC<MultiSkillDevelopmentTabProps> =
   selectedLine,
   selectedFactory,
 }) => {
+  const { t } = useLanguage();
   // Filter operator aktif di dalam fungsi kalkulasi/tabel frontend
   const activeOperators = operators.filter(row => {
     const isResigned = row.status?.toUpperCase() === "RESIGNED";
@@ -104,27 +106,27 @@ export const MultiSkillDevelopmentTab: React.FC<MultiSkillDevelopmentTabProps> =
         <div className="mb-4">
           <h3 className="text-sm font-bold text-[#304848] flex items-center gap-2">
             <Cpu className="w-5 h-5 text-[#2AAFA3]" />
-            <span>Kesiapan Populasi Operator per Kategori Mesin ({selectedFactory} • {selectedLine})</span>
+            <span>{t.multiSkill.machineCoverageTitle} ({selectedFactory} • {selectedLine})</span>
           </h3>
           <p className="text-xs text-[#788888]">
-            Analisis fleksibilitas line saat ada absensi atau rebalancing cepat.
+            {t.multiSkill.machineCoverageSubtitle}
           </p>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {[
-            { name: 'Lockstitch', count: machineCoverage.lockstitch, color: 'text-[#2AAFA3]', bg: 'bg-[#D9F1EF]', border: 'border-[#BDE5E2]', status: 'Aman' },
-            { name: 'Overlock', count: machineCoverage.overlock, color: 'text-[#2AAFA3]', bg: 'bg-[#D9F1EF]', border: 'border-[#BDE5E2]', status: 'Aman' },
-            { name: 'Flatseam', count: machineCoverage.flatseam, color: 'text-[#92600C]', bg: 'bg-[#FEF3D6]', border: 'border-[#FDE5A5]', status: 'Kritis (Perlu Training)' },
-            { name: 'Special / Press', count: machineCoverage.special, color: 'text-[#92600C]', bg: 'bg-[#FEF3D6]', border: 'border-[#FDE5A5]', status: 'Kritis (Perlu Training)' },
-            { name: 'Button Hole', count: machineCoverage.buttonHole, color: 'text-[#405858]', bg: 'bg-[#E8EEEE]', border: 'border-[#D5E1E1]', status: 'Cukup' },
-            { name: 'Button Set', count: machineCoverage.buttonSet, color: 'text-[#405858]', bg: 'bg-[#E8EEEE]', border: 'border-[#D5E1E1]', status: 'Cukup' },
+            { name: 'Lockstitch', count: machineCoverage.lockstitch, color: 'text-[#2AAFA3]', bg: 'bg-[#D9F1EF]', border: 'border-[#BDE5E2]', status: t.multiSkill.coverageStatusSafe },
+            { name: 'Overlock', count: machineCoverage.overlock, color: 'text-[#2AAFA3]', bg: 'bg-[#D9F1EF]', border: 'border-[#BDE5E2]', status: t.multiSkill.coverageStatusSafe },
+            { name: 'Flatseam', count: machineCoverage.flatseam, color: 'text-[#92600C]', bg: 'bg-[#FEF3D6]', border: 'border-[#FDE5A5]', status: t.multiSkill.coverageStatusCritical },
+            { name: 'Special / Press', count: machineCoverage.special, color: 'text-[#92600C]', bg: 'bg-[#FEF3D6]', border: 'border-[#FDE5A5]', status: t.multiSkill.coverageStatusCritical },
+            { name: 'Button Hole', count: machineCoverage.buttonHole, color: 'text-[#405858]', bg: 'bg-[#E8EEEE]', border: 'border-[#D5E1E1]', status: t.multiSkill.coverageStatusModerate },
+            { name: 'Button Set', count: machineCoverage.buttonSet, color: 'text-[#405858]', bg: 'bg-[#E8EEEE]', border: 'border-[#D5E1E1]', status: t.multiSkill.coverageStatusModerate },
           ].map((item, idx) => (
             <div key={idx} className="bg-[#F8F8F8] border border-[#E0E8E8] rounded-2xl p-3.5 flex flex-col justify-between">
               <div>
                 <span className="text-[11px] font-semibold text-[#788888] block truncate">{item.name}</span>
                 <h4 className="text-xl font-bold text-[#304848] mt-1 font-mono">
-                  {item.count} <span className="text-xs font-normal text-[#788888]">Op</span>
+                  {item.count} <span className="text-xs font-normal text-[#788888]">{t.multiSkill.operatorUnit}</span>
                 </h4>
               </div>
               <div className="mt-2.5 pt-2 border-t border-[#E0E8E8]">
@@ -145,17 +147,17 @@ export const MultiSkillDevelopmentTab: React.FC<MultiSkillDevelopmentTabProps> =
           <div>
             <h3 className="text-sm font-bold text-[#304848] flex items-center gap-2">
               <GraduationCap className="w-5 h-5 text-[#D0A018]" />
-              <span>AI Multi-Skill Development Planner</span>
+              <span>{t.multiSkill.plannerTitle}</span>
             </h3>
             <p className="text-xs text-[#788888] mt-0.5">
-              Pilih operator untuk dibuatkan roadmap pelatihan mesin baru secara terstruktur.
+              {t.multiSkill.plannerSubtitle}
             </p>
           </div>
 
           {/* Select Operator */}
           <div>
             <label className="block text-xs font-semibold text-[#506868] mb-1">
-              Pilih Operator:
+              {t.multiSkill.selectOperator}
             </label>
             <select
               value={selectedOpId}
@@ -164,7 +166,7 @@ export const MultiSkillDevelopmentTab: React.FC<MultiSkillDevelopmentTabProps> =
               className="w-full bg-[#F8F8F8] border border-[#E0E8E8] text-[#304848] text-xs font-semibold rounded-xl p-2.5 focus:border-[#2AAFA3] outline-none cursor-pointer disabled:opacity-60"
             >
               {operators.length === 0 ? (
-                <option value="">Tidak ada operator di line ini</option>
+                <option value="">{t.multiSkill.noOperatorsInLine}</option>
               ) : (
                 operators.map((op) => (
                   <option key={op.id} value={op.id}>
@@ -181,12 +183,12 @@ export const MultiSkillDevelopmentTab: React.FC<MultiSkillDevelopmentTabProps> =
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-[#304848]">{selectedOp.name}</span>
                 <span className="text-[10px] bg-[#E0F0F0] text-[#405858] font-bold px-2 py-0.5 rounded-full border border-[#C8D8D8]">
-                  Masa: {selectedOp.workTimeMonths} Bln
+                  {t.multiSkill.operatorTenure}: {selectedOp.workTimeMonths} {t.common.months}
                 </span>
               </div>
               
               <div className="text-[11px] text-[#788888] space-y-1">
-                <div>Keahlian Saat Ini:</div>
+                <div>{t.multiSkill.currentSkillsLabel}:</div>
                 <div className="flex flex-wrap gap-1.5 pt-0.5">
                   {selectedOp.lockstitch && <span className="badge-teal text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#BDE5E2]">Lockstitch ({selectedOp.lockstitch}%)</span>}
                   {selectedOp.overlock && <span className="badge-teal text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#BDE5E2]">Overlock ({selectedOp.overlock}%)</span>}
@@ -201,7 +203,7 @@ export const MultiSkillDevelopmentTab: React.FC<MultiSkillDevelopmentTabProps> =
           {/* Target Machine to Learn */}
           <div>
             <label className="block text-xs font-semibold text-[#506868] mb-1">
-              Target Mesin Baru yang Hendak Dipelajari:
+              {t.multiSkill.targetMachine}
             </label>
             <select
               value={targetMachine}
@@ -226,12 +228,12 @@ export const MultiSkillDevelopmentTab: React.FC<MultiSkillDevelopmentTabProps> =
             {isAiGenerating ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                <span>Merancang Kurikulum IE...</span>
+                <span>{t.multiSkill.generatingPlan}</span>
               </>
             ) : (
               <>
                 <Sparkles className="w-4 h-4 text-white" />
-                <span>Buat Roadmap Pelatihan AI</span>
+                <span>{t.multiSkill.generatePlanBtn}</span>
               </>
             )}
           </button>
@@ -244,11 +246,11 @@ export const MultiSkillDevelopmentTab: React.FC<MultiSkillDevelopmentTabProps> =
           <div className="pb-3 border-b border-[#E0E8E8] flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-[#304848] flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-[#2AAFA3]" />
-              <span>Rencana Kurikulum Pelatihan & Target Milestone</span>
+              <span>{t.multiSkill.curriculumTitle}</span>
             </h3>
             {generatedPlan && (
               <span className="badge-teal text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-[#BDE5E2]">
-                Kurikulum Aktif
+                {t.multiSkill.curriculumActive}
               </span>
             )}
           </div>
@@ -256,8 +258,8 @@ export const MultiSkillDevelopmentTab: React.FC<MultiSkillDevelopmentTabProps> =
           {isAiGenerating ? (
             <div className="flex-1 flex flex-col items-center justify-center py-16 text-center">
               <RefreshCw className="w-8 h-8 text-[#D0A018] animate-spin mb-3" />
-              <p className="font-bold text-sm text-[#304848]">Sedang Merancang Modul IE Training...</p>
-              <p className="text-xs text-[#788888] mt-1">Menyesuaikan kurikulum dengan background skill operator dan standar MOST/GSD.</p>
+              <p className="font-bold text-sm text-[#304848]">{t.multiSkill.designingModule}</p>
+              <p className="text-xs text-[#788888] mt-1">{t.multiSkill.designingModuleSub}</p>
             </div>
           ) : generatedPlan ? (
             <div className="space-y-4 text-xs text-[#506868] leading-relaxed whitespace-pre-line overflow-y-auto max-h-[500px] pr-2">
@@ -266,9 +268,9 @@ export const MultiSkillDevelopmentTab: React.FC<MultiSkillDevelopmentTabProps> =
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center py-16 text-center text-[#788888]">
               <GraduationCap className="w-12 h-12 text-[#C8D8D8] mb-3" />
-              <p className="font-bold text-sm text-[#304848]">Belum Ada Roadmap Pelatihan Terpilih</p>
+              <p className="font-bold text-sm text-[#304848]">{t.multiSkill.noRoadmapTitle}</p>
               <p className="text-xs text-[#788888] mt-1 max-w-sm">
-                Pilih operator dan mesin target di panel sebelah kiri, lalu klik <strong>"Buat Roadmap Pelatihan AI"</strong> untuk menyusun modul pelatihan bertahap.
+                {t.multiSkill.noRoadmapDesc}
               </p>
             </div>
           )}

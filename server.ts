@@ -7,6 +7,25 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+// Process-level safety guards to prevent unhandled rejections from crashing Cloud Run
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught Exception thrown:", error);
+});
+
+process.on("SIGTERM", () => {
+  console.log("SIGTERM received, exiting gracefully");
+  process.exit(0);
+});
+
+process.on("SIGINT", () => {
+  console.log("SIGINT received, exiting gracefully");
+  process.exit(0);
+});
+
 const app = express();
 const PORT = 3000;
 
@@ -431,6 +450,138 @@ app.get("/api/sheets/operators", async (req, res) => {
   }
 });
 
+// Endpoint untuk lookup operator di sheet "date_of_join" berdasarkan NIK
+app.get("/api/sheets/date-of-join", async (req, res) => {
+  try {
+    const requestedNik = String(req.query.nik || "").trim();
+    const apiKey = process.env.GOOGLE_SHEETS_API_KEY;
+    const spreadsheetId = process.env.SPREADSHEET_ID || "1tA8YyHxFr1xwGWvdwHLOXaF9q8SjgbDuxDinzuH6kag";
+
+    if (!requestedNik) {
+      return res.status(400).json({
+        success: false,
+        error: "Parameter NIK diperlukan (?nik=...)",
+      });
+    }
+
+    // 1. Coba baca via Google Sheets API jika apiKey tersedia
+    if (apiKey) {
+      try {
+        const sheets = google.sheets({ version: "v4", auth: apiKey });
+        const response = await sheets.spreadsheets.values.get({
+          spreadsheetId,
+          range: "date_of_join!A1:Z5000",
+        });
+
+        const rows = response.data.values;
+        if (rows && rows.length > 0) {
+          const headers: any[] = rows[0] || [];
+          const dataRows = rows.slice(1);
+
+          const findColIdx = (candidates: string[], fallbackIdx: number) => {
+            for (const cand of candidates) {
+              const idx = headers.findIndex(
+                (h) => typeof h === "string" && h.trim().toUpperCase() === cand.toUpperCase()
+              );
+              if (idx !== -1) return idx;
+            }
+            for (const cand of candidates) {
+              const idx = headers.findIndex(
+                (h) => typeof h === "string" && h.toUpperCase().includes(cand.toUpperCase())
+              );
+              if (idx !== -1) return idx;
+            }
+            return fallbackIdx;
+          };
+
+          const idxNik = findColIdx(["Worker Code", "NIK", "ID", "No. Induk", "Karyawan ID"], 0);
+          const idxName = findColIdx(["Nama Lengkap", "Nama", "Worker", "Worker Name", "Employee Name", "Name"], 1);
+          const idxDoj = findColIdx(["Date of Join", "DOJ", "Tanggal Masuk", "Tgl Masuk", "Join Date", "D.O.J"], 2);
+          const idxFactory = findColIdx(["Factory", "Pabrik"], 3);
+          const idxLine = findColIdx(["Line", "Jalur", "Section"], 4);
+          const idxStatus = findColIdx(["Status"], 5);
+
+          const matchRow = dataRows.find((row) => {
+            const rowNik = (row[idxNik] || "").toString().trim();
+            return rowNik.toUpperCase() === requestedNik.toUpperCase();
+          });
+
+          if (matchRow) {
+            const nik = (matchRow[idxNik] || "").toString().trim();
+            const name = (matchRow[idxName] || "").toString().trim().toUpperCase();
+            const doj = (matchRow[idxDoj] || "").toString().trim();
+            const factory = (matchRow[idxFactory] || "").toString().trim();
+            const line = (matchRow[idxLine] || "").toString().trim();
+            const status = (matchRow[idxStatus] || "").toString().trim();
+            const workTimeMonths = calculateWorkTimeMonths(doj);
+
+            return res.json({
+              success: true,
+              found: true,
+              data: {
+                nik,
+                name,
+                doj,
+                workTimeMonths,
+                factory,
+                line,
+                status: status || "ACTIVE",
+              },
+            });
+          }
+        }
+      } catch (sheetsErr: any) {
+        console.warn("Google Sheets API fetch error on date_of_join:", sheetsErr.message);
+      }
+    }
+
+    // 2. Fallback: Coba panggil Google Apps Script Web App
+    const gasUrls = [
+      "https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Zj5fnKejoelvuKkHQ1fQV-8UA_lRhtuTPMcmUFBH-xqN-kCVr3Dw/exec",
+      "https://script.google.com/macros/s/AKfycbyfi3iPH2UPpA_SOIt8hUWLTybF30icj_X-IT0V4TyfZGQAmCTWPIrij1LZmmi4oUWDng/exec",
+    ];
+
+    for (const gasUrl of gasUrls) {
+      try {
+        const gasRes = await fetch(`${gasUrl}?action=lookupDateOfJoin&nik=${encodeURIComponent(requestedNik)}`);
+        if (gasRes.ok) {
+          const gasData: any = await gasRes.json();
+          if (gasData.status === "success" && gasData.data) {
+            const doj = gasData.data.doj || "";
+            return res.json({
+              success: true,
+              found: true,
+              data: {
+                nik: gasData.data.nik || requestedNik,
+                name: (gasData.data.name || "").toUpperCase(),
+                doj,
+                workTimeMonths: calculateWorkTimeMonths(doj),
+                factory: gasData.data.factory || "",
+                line: gasData.data.line || "",
+                status: gasData.data.status || "ACTIVE",
+              },
+            });
+          }
+        }
+      } catch (gasErr: any) {
+        console.warn("GAS fetch error:", gasErr.message);
+      }
+    }
+
+    return res.json({
+      success: true,
+      found: false,
+      message: `NIK ${requestedNik} tidak ditemukan pada sheet 'date_of_join'`,
+    });
+  } catch (error: any) {
+    console.error("Error in /api/sheets/date-of-join:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message || "Gagal mencari data di sheet date_of_join",
+    });
+  }
+});
+
 // Google Sheets live fetch API endpoint using GOOGLE_SHEETS_API_KEY & SPREADSHEET_ID
 app.get("/api/sheets/fetch", async (req, res) => {
   try {
@@ -484,55 +635,238 @@ app.get("/api/sheets/fetch", async (req, res) => {
   }
 });
 
+// Helper to check if a real Gemini API Key is configured
+function isRealGeminiKey(): boolean {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) return false;
+  const trimmed = key.trim();
+  if (trimmed === "" || trimmed === "placeholder-key" || trimmed.startsWith("your-") || trimmed.length < 20) {
+    return false;
+  }
+  return true;
+}
+
 // Helper function for calling Gemini models with automatic fallback across models when high demand (503/429) occurs
 async function generateGeminiWithFallback(
   prompt: string,
   systemInstruction: string = IE_SYSTEM_INSTRUCTION,
   temperature: number = 0.7
 ): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not configured");
+  if (!isRealGeminiKey()) {
+    throw new Error("GEMINI_API_KEY is not configured or is a placeholder");
   }
 
   const ai = getGeminiClient();
-  // Valid, modern models without deprecated gemini-2.5-flash
-  const candidateModels = ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"];
+  const candidateModels = ["gemini-3.1-flash-lite", "gemini-3.7-flash", "gemini-flash-latest"];
   let lastError: any = null;
 
   for (const model of candidateModels) {
-    // Try up to 2 attempts per model if 503 / high demand occurs
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        const response = await ai.models.generateContent({
-          model,
-          contents: prompt,
-          config: {
-            systemInstruction,
-            temperature,
-          },
-        });
+    try {
+      const timeoutMs = 6000;
+      const apiCall = ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+          systemInstruction,
+          temperature,
+        },
+      });
 
-        if (response && response.text) {
-          return response.text;
-        }
-      } catch (err: any) {
-        lastError = err;
-        const isTransient = err?.status === 503 || err?.code === 503 || String(err?.message || "").includes("high demand") || String(err?.message || "").includes("503");
-        
-        if (isTransient && attempt === 0) {
-          // Wait 800ms before retrying same model once
-          await new Promise((resolve) => setTimeout(resolve, 800));
-          continue;
-        }
-        // If not transient or second attempt failed, break to next model
-        console.warn(`[Gemini API] Model ${model} unavailable (${err?.message || err}). Trying next model...`);
+      const timer = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error(`Timeout calling Gemini model ${model}`)), timeoutMs)
+      );
+
+      const response = await Promise.race([apiCall, timer]);
+
+      if (response && response.text) {
+        return response.text;
+      }
+    } catch (err: any) {
+      lastError = err;
+      const errMsg = String(err?.message || err);
+      console.warn(`[Gemini API] Model ${model} unavailable (${errMsg}). Trying next candidate...`);
+      if (errMsg.includes("API_KEY_INVALID") || errMsg.includes("401") || errMsg.includes("403") || errMsg.includes("Quota") || errMsg.includes("RESOURCE_EXHAUSTED")) {
         break;
       }
     }
   }
 
   throw lastError || new Error("All Gemini models are temporarily unavailable");
+}
+
+// Heuristic Garment IE Knowledge Engine for instant fallback if offline/API unreachable
+function generateIEExpertFallback(query: string, context?: any, lang: string = 'id'): string {
+  const q = query.toLowerCase();
+  const line = context?.selectedLine || "Line Sewing";
+  const factory = context?.selectedFactory || "Factory 1";
+  const ops: any[] = Array.isArray(context?.operators) ? context.operators : [];
+  const isEn = lang === 'en';
+
+  if (q.includes("flatseam") || q.includes("cross-train") || q.includes("cross train") || q.includes("retraining")) {
+    const overlockOps = ops.filter(o => (o.overlock && o.overlock >= 60) || o.grade === 'A' || o.grade === 'S');
+    let candidateList = "";
+    if (overlockOps.length > 0) {
+      if (isEn) {
+        candidateList = `\n\n**Top Recommended Operator Candidates from ${line}:**\n` +
+          overlockOps.slice(0, 4).map((o, idx) => 
+            `${idx + 1}. **${o.name}** (NIK: ${o.nik}) — Grade: ${o.grade || 'A'} | Overlock: ${o.overlock || 0}% | Points: ${o.points || 0}`
+          ).join("\n") + "\n";
+      } else {
+        candidateList = `\n\n**Rekomendasi Kandidat Operator Terbaik dari ${line}:**\n` +
+          overlockOps.slice(0, 4).map((o, idx) => 
+            `${idx + 1}. **${o.name}** (NIK: ${o.nik}) — Grade: ${o.grade || 'A'} | Overlock: ${o.overlock || 0}% | Poin: ${o.points || 0}`
+          ).join("\n") + "\n";
+      }
+    }
+
+    if (isEn) {
+      return `### IE Consultation: Operator Cross-Training to Flatseam Machine
+Location Evaluated: **${factory} • ${line}**
+
+The **Flatseam (Feed-off-the-Arm 4-Needle 6-Thread)** machine possesses the highest technical complexity in garment production (*sportswear & knitwear*) because it requires synchronized differential knife trimming, precise tension control across 6 thread cones, and handling of fabric elasticity.
+${candidateList}
+**IE Operator Selection Criteria for Flatseam Readiness:**
+1. **Priority 1 — Overlock Operators (Grade A/B+)**: Already possess muscle memory in knife-edge fabric trimming and differential feed control on stretch fabrics.
+2. **Priority 2 — Coverstitch / Kam Operators**: Familiar with multi-needle threading and looper timing, cutting training time by 40%.
+3. **Performance Prerequisite**: Efficiency $\\ge 80\\%$, DHU defect rate $< 1.5\\%$, and attendance discipline $> 95\\%$.
+
+**5-Day Rapid Training Roadmap:**
+- **Day 1**: Machine anatomy, 6-thread path threading, needle and trimmer replacement.
+- **Day 2**: Straight and curved seam sewing on scrap fabric (Target: zero fabric puckering).
+- **Day 3**: Handling cross-seam intersections and multi-layer bulk (T-joints).
+- **Day 4**: Real component run targeting 70% SMV.
+- **Day 5**: Full line integration with a target of 85% SMV.`;
+    }
+
+    return `### Konsultasi IE: Pemilihan Operator Cross-Training ke Mesin Flatseam
+Lokasi Evaluasi: **${factory} • ${line}**
+
+Mesin **Flatseam (Feed-off-the-Arm 4-Needle 6-Thread)** memiliki tingkat kompleksitas tertinggi di lini garmen (*sportswear / knitwear*) karena memerlukan sinkronisasi pisau potong (*knife trimmer*), tensi 6 benang, dan kontrol elastisitas bahan.
+${candidateList}
+**Kriteria Seleksi Operator Siap Flatseam (Standar IE):**
+1. **Prioritas 1 — Operator Overlock (Grade A/B+)**: Sudah memiliki *muscle memory* dalam kontrol pisau pemotong dan *differential feed* kain melar (*stretch*).
+2. **Prioritas 2 — Operator Coverstitch/Kam**: Sudah terbiasa dengan multi-needle dan *looper threading*, memangkas adaptasi *threading*.
+3. **Syarat Kinerja**: Efisiensi $\\ge 80\\%$, tingkat defect (DHU) $< 1.5\\%$, serta kedisiplinan kehadiran $> 95\\%$.
+
+**Roadmap Training Cepat 5 Hari:**
+- **Hari 1**: Anatomi mesin, jalur 6 benang, penggantian jarum & pisau.
+- **Hari 2**: Jahit lurus & melengkung di bahan *scrap/perca* (target tidak ada *fabric puckering*).
+- **Hari 3**: Melewati jahitan silang (*cross-seam / T-joint*).
+- **Hari 4**: Produksi komponen riil dengan target 70% SMV.
+- **Hari 5**: Integrasi penuh ke line dengan target 85% SMV.`;
+  }
+
+  if (q.includes("bottleneck") || q.includes("hambatan") || q.includes("penumpukan")) {
+    if (isEn) {
+      return `### Garment IE Bottleneck Analysis & Mitigation — ${factory} • ${line}
+
+**4 Tactical Steps for Sewing Line Bottleneck Resolution:**
+1. **Motion Study & Workplace Ergonomic Layout (Motion Economy)**:
+   - Ensure the fabric bundle sits inside the *Primary Working Zone* (radius < 35 cm from the needle).
+   - Install auto-slide discharge troughs so operators do not waste cycle seconds manually putting aside finished pieces.
+2. **Sub-Motion Splitting**:
+   - If a workstation cycle time exceeds Pitch Time, split sub-motions (e.g., notch marking, label fusing, or preparatory basting handled by an off-line helper).
+3. **Deploy Multi-Skilled Floater**:
+   - Assign Grade S/A operators as active floaters to assist bottleneck stations whenever WIP exceeds 5 bundles.
+4. **Pitch Time Control**: Keep maximum workstation cycle time strictly $\\le 105\\%$ of the target line pitch time.`;
+    }
+
+    return `### Analisis & Mitigasi Bottleneck IE — ${factory} • ${line}
+
+**4 Langkah Taktis Penanganan Bottleneck di Line Jahit Garmen:**
+1. **Motion Study & Workplace Layout (Kaizen Gerakan)**:
+   - Pastikan bundle kain diletakkan di *Primary Working Zone* (radius < 35 cm dari jarum).
+   - Pasang *slide board* atau *trough* pembuangan otomatis agar operator tidak membuang waktu meletakkan baju selesai.
+2. **Sub-Motion Splitting**:
+   - Jika proses melebihi Pitch Time, pisahkan sub-gerak (misal: *marking* atau penempelan *interlining/label* dikerjakan oleh helper/stasiun persiapan).
+3. **Deploy Multi-Skilled Floater**:
+   - Tugaskan operator Grade S/A sebagai *floater* untuk membantu proses stasiun bottleneck saat WIP (*Work-in-Process*) menumpuk > 5 bundle.
+4. **Target Pitch Time**: Pertahankan *Cycle Time* stasiun maksimum tidak lebih dari $105\\%$ dari Pitch Time line.`;
+  }
+
+  if (q.includes("efficiency") || q.includes("efisiensi") || q.includes("naikkan") || q.includes("meningkatkan") || q.includes("increase")) {
+    if (isEn) {
+      return `### IE Production Strategy: Increasing Sewing Line Efficiency to > 80%
+Target Line: **${factory} • ${line}**
+
+**1. Core Apparel IE Formula:**
+$$\\text{Line Efficiency (\\%)} = \\frac{\\text{Total Output (pcs)} \\times \\text{Total SMV/SAM (minutes)}}{\\text{Total Sewing Manpower} \\times \\text{Available Working Minutes}} \\times 100\\%$$
+
+**2. 3-Week Action Plan:**
+- **Week 1 (Eliminate Micro-Stops)**: Eliminate thread breakages (check needle size vs thread tex), and prepare pre-wound bobbins at every single-needle workstation.
+- **Week 2 (Yamazumi Line Balancing)**: Reduce *Balance Delay* from 25% down to < 12% by redistributing sewing elements across adjacent stations.
+- **Week 3 (Hourly Production Pacing)**: Implement visible *Hourly Production Boards* at the line end to keep operators focused on pacing and prevent end-of-shift dropoffs.`;
+    }
+
+    return `### Strategi IE: Menaikkan Line Efficiency dari 68% Menjadi > 80%
+Target Lini: **${factory} • ${line}**
+
+**1. Rumus Dasar IE Garment:**
+$$\\text{Line Efficiency (\\%)} = \\frac{\\text{Total Output (pcs)} \\times \\text{Total SMV/SAM (menit)}}{\\text{Jumlah Manpower} \\times \\text{Jam Kerja (menit)}} \\times 100\\%$$
+
+**2. Langkah Aksi 3 Minggu:**
+- **Minggu 1 (Eliminasi Micro-Stops)**: Atasi *thread breakage* (periksa nomor jarum vs ketebalan benang) dan siapkan *bobbin* cadangan di setiap meja Single Needle.
+- **Minggu 2 (Yamazumi Re-balancing)**: Turunkan *Balance Delay* dari 25% ke < 12% dengan menyeimbangkan beban kerja antar stasiun kerja.
+- **Minggu 3 (Hourly Target Management)**: Pasang papan *Hourly Production Board* di ujung line dengan target per jam yang jelas agar operator termotivasi menjaga *pace*.`;
+  }
+
+  if (q.includes("pitch time") || q.includes("balance delay") || q.includes("rumus") || q.includes("formula") || q.includes("sam") || q.includes("smv")) {
+    if (isEn) {
+      return `### Garment Industrial Engineering Standard Formulas (GSD & MOST)
+
+1. **Pitch Time (Ideal Station Cycle Time)**:
+   $$\\text{Pitch Time (seconds)} = \\frac{\\text{Total Style SMV (seconds)}}{\\text{Number of Sewing Operators}}$$
+
+2. **Takt Time (Pace Required by Customer Demand)**:
+   $$\\text{Takt Time (seconds)} = \\frac{\\text{Net Available Operating Time (seconds)}}{\\text{Target Output Requirement (pcs)}}$$
+
+3. **Balance Delay (%)**:
+   $$\\text{Balance Delay} = \\left(1 - \\frac{\\text{Total SMV}}{\\text{Total Workstations} \\times \\text{Bottleneck Cycle Time}}\\right) \\times 100\\%$$
+
+4. **Smoothness Index (SI)**:
+   $$SI = \\sqrt{\\sum (\\text{Maximum Cycle Time} - \\text{Cycle Time Station } i)^2}$$
+   *Rule: Closer to 0 indicates perfect line balance.*`;
+    }
+
+    return `### Standar Rumus IE Garment (GSD & MOST)
+
+1. **Pitch Time (Waktu Siklus Ideal)**:
+   $$\\text{Pitch Time (detik)} = \\frac{\\text{Total SMV Style (detik)}}{\\text{Jumlah Operator Sewing}}$$
+
+2. **Takt Time (Kecepatan Permintaan Buyer)**:
+   $$\\text{Takt Time (detik)} = \\frac{\\text{Waktu Kerja Bersih Tersedia (detik)}}{\\text{Target Permintaan Output (pcs)}}$$
+
+3. **Balance Delay (%)**:
+   $$\\text{Balance Delay} = \\left(1 - \\frac{\\text{Total SMV}}{\\text{Jumlah Stasiun} \\times \\text{Cycle Time Tertinggi}}\\right) \\times 100\\%$$
+
+4. **Smoothness Index (SI)**:
+   $$SI = \\sqrt{\\sum (\\text{Cycle Time Maksimum} - \\text{Cycle Time Stasiun } i)^2}$$
+   *Indikator: Semakin mendekati 0, lini semakin seimbang sempurna.*`;
+  }
+
+  if (isEn) {
+    return `### Industrial Engineering Technical Consultation — PT. Winners International
+Evaluation Context: **${factory} • ${line}**
+
+Regarding your query: *"${query}"*
+
+1. **Core Apparel IE Principles**: Ensure all Standard Allowed Minutes (SAM/SMV) have undergone proper standard allowance validation (Personal 5%, Fatigue 4%, Machine/Unavoidable Delay 2%).
+2. **Workplace Motion Study**: Eliminate non-value added motion such as excessive fabric twisting or reaching outside the 40 cm ergonomic zone.
+3. **Line Balancing Stability**: Maintain Bottleneck Ratio = (Max Cycle Time / Pitch Time) $\\times 100\\% \\le 105\\%$.
+
+*Would you like a specific calculation for a particular garment style, sewing machine type, or operator skill matrix?*`;
+  }
+
+  return `### Konsultasi Industrial Engineering PT. Winners International
+Lokasi: **${factory} • ${line}**
+
+Untuk pertanyaan Anda: *"${query}"*
+
+1. **Prinsip Utama IE Garmen**: Pastikan standard time (SAM/SMV) telah divalidasi dengan allowance standar (Personal 5%, Fatigue 4%, Delay 2%).
+2. **Studi Gerakan (Method Study)**: Eliminasi gerakan non-value added seperti memutar kain berlebih atau penjangkauan bundle melebihi zona ergonomis (radius 40 cm).
+3. **Keseimbangan Lini**: Selalu pantau Bottleneck Ratio = (Cycle Time Maksimum / Pitch Time) × 100% agar tidak melebihi 105%.
+
+*Ada analisis spesifik terkait operator, mesin jahit, atau style tertentu yang ingin kita hitung bersama?*`;
 }
 
 // AI Line Balancing Analysis & Optimization Endpoint
@@ -613,32 +947,70 @@ Format respon dengan Markdown yang rapi dan mudah dibaca oleh IE Manager dan Sup
 // Interactive Industrial Engineer Garment Chat Endpoint
 app.post("/api/gemini/chat", async (req, res) => {
   try {
-    const { message, history } = req.body;
+    const { message, prompt, history, context, language } = req.body;
+    const userMessage = (message || prompt || "").trim();
+    const lang = language === 'en' ? 'en' : 'id';
 
-    if (!message) {
-      return res.status(400).json({ error: "Pesan tidak boleh kosong" });
+    if (!userMessage) {
+      return res.status(400).json({ error: lang === 'en' ? "Message cannot be empty" : "Pesan tidak boleh kosong" });
     }
 
-    if (!process.env.GEMINI_API_KEY) {
+    // Build enriched prompt with context if available
+    let enrichedPrompt = userMessage;
+    if (context) {
+      const parts: string[] = [];
+      if (context.selectedFactory || context.selectedLine) {
+        parts.push(`Lokasi / Location: ${context.selectedFactory || 'Factory 1'} • ${context.selectedLine || 'Line 1'}`);
+      }
+      if (context.activeStyle) {
+        parts.push(`Style Aktif / Active Style: ${context.activeStyle}`);
+      }
+      if (context.totalOperators) {
+        parts.push(`Total Operator: ${context.totalOperators} people`);
+      }
+      if (Array.isArray(context.operators) && context.operators.length > 0) {
+        parts.push(`Data Operator Terkait (${context.operators.length} ops):\n` + 
+          JSON.stringify(context.operators.slice(0, 25).map((o: any) => ({
+            nik: o.nik,
+            name: o.name,
+            grade: o.grade,
+            points: o.points,
+            skills: {
+              lockstitch: o.lockstitch,
+              overlock: o.overlock,
+              flatseam: o.flatseam,
+              special: o.special
+            }
+          })), null, 1));
+      }
+      if (parts.length > 0) {
+        enrichedPrompt = `${userMessage}\n\n[Garment Manufacturing Context]:\n${parts.join("\n")}\n\nPlease respond in ${lang === 'en' ? 'English' : 'Bahasa Indonesia'}.`;
+      }
+    }
+
+    if (!isRealGeminiKey()) {
       return res.json({
-        reply: `[Mode Offline IE Assistant]: Sebagai AI Industrial Engineer spesialis garmen PT. Winners International, saya siap membantu menjawab pertanyaan Anda seputar perhitungan SMV/SAM, Line Balancing, Yamazumi chart, Poka-yoke, dan matriks kompetensi operator.`
+        reply: generateIEExpertFallback(userMessage, context, lang)
       });
     }
 
     try {
-      const reply = await generateGeminiWithFallback(message, IE_SYSTEM_INSTRUCTION, 0.7);
+      const systemInstruction = lang === 'en'
+        ? `${IE_SYSTEM_INSTRUCTION}\nAlways respond in fluent, professional English with apparel industrial engineering precision.`
+        : IE_SYSTEM_INSTRUCTION;
+      const reply = await generateGeminiWithFallback(enrichedPrompt, systemInstruction, 0.7);
       return res.json({ reply });
     } catch (chatErr: any) {
       console.warn("Gemini chat fallback triggered:", chatErr?.message);
       return res.json({
-        reply: `**Konsultasi Industrial Engineering PT. Winners International**\n\nUntuk pertanyaan: *"${message}"*\n\n1. **Prinsip Utama IE Garmen**: Pastikan standard time (SAM/SMV) telah divalidasi dengan allowance standar (Personal 5%, Fatigue 4%, Delay 2%).\n2. **Studi Gerakan (Method Study)**: Eliminasi gerakan non-value added seperti memutar kain berlebih atau penjangkauan bundle melebihi zona ergonomis (radius 40 cm).\n3. **Keseimbangan Lini**: Selalu pantau Bottleneck Ratio = (Cycle Time Maksimum / Pitch Time) × 100% agar tidak melebihi 105%.\n\n*(Catatan: Server AI sedang dalam kondisi beban tinggi, respon disajikan melalui Heuristic Knowledge Base IE)*`
+        reply: generateIEExpertFallback(userMessage, context, lang)
       });
     }
   } catch (error: any) {
     console.error("Error in /api/gemini/chat:", error);
-    res.status(500).json({
-      error: error.message || "Gagal menghubungi AI IE Specialist",
-      reply: "Maaf, terjadi kendala saat memproses jawaban IE. Silakan coba kembali."
+    const lang = req.body?.language === 'en' ? 'en' : 'id';
+    return res.json({
+      reply: generateIEExpertFallback(req.body?.message || "", req.body?.context, lang)
     });
   }
 });
@@ -714,16 +1086,20 @@ Berikan kurikulum mingguan (Week 1-4), KPI target efisiensi, aspek K3 & ergonomi
 async function startServer() {
   const isProduction =
     process.env.NODE_ENV === "production" ||
-    process.env.npm_lifecycle_event === "start" ||
     (typeof process.argv[1] === "string" && !process.argv[1].endsWith(".ts"));
 
   if (isProduction) {
-    const distPath = path.resolve(process.cwd(), "dist");
+    const distPath = fs.existsSync(path.resolve(process.cwd(), "dist", "index.html"))
+      ? path.resolve(process.cwd(), "dist")
+      : (fs.existsSync(path.resolve(__dirname, "index.html")) ? __dirname : path.resolve(process.cwd(), "dist"));
+
+    console.log(`[Production] Serving static files from: ${distPath}`);
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });
   } else {
+    console.log(`[Development] Initializing Vite middleware...`);
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },

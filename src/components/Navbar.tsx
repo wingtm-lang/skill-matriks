@@ -15,9 +15,9 @@ import { FACTORIES, LINES } from '../data/mockData';
 import { 
   sortLinesNumerically, 
   sortFactoriesNumerically, 
-  MONTH_NAMES_ID, 
   AVAILABLE_YEARS 
 } from '../utils/ieCalculations';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface NavbarProps {
   selectedFactory: string;
@@ -48,6 +48,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   userRole,
   onRoleChange,
 }) => {
+  const { t, getMonthName } = useLanguage();
+
   return (
     <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-md">
       {/* Top Banner */}
@@ -62,14 +64,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-base sm:text-lg font-bold text-white tracking-wide">
-                  PT. WINNERS INTERNATIONAL
+                  {t.header.companyName}
                 </h1>
                 <span className="bg-blue-900/60 text-blue-300 text-[11px] font-semibold px-2 py-0.5 rounded border border-blue-700/50">
                   LEAN & IE DEPT
                 </span>
               </div>
               <p className="text-xs text-blue-400 font-medium flex items-center gap-1.5">
-                <span>Multi Skill Operator Development & AI Line Balancing System</span>
+                <span>{t.header.systemSubtitle}</span>
               </p>
             </div>
           </div>
@@ -80,7 +82,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="flex items-center bg-slate-800/90 rounded-lg p-1 border border-slate-700">
               <span className="text-xs font-semibold px-2 text-slate-400 flex items-center gap-1">
                 <Building2 className="w-3.5 h-3.5 text-blue-400" />
-                Factory:
+                {t.header.factory}:
               </span>
               <select
                 value={selectedFactory}
@@ -99,7 +101,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="flex items-center bg-slate-800/90 rounded-lg p-1 border border-slate-700">
               <span className="text-xs font-semibold px-2 text-slate-400 flex items-center gap-1">
                 <GitFork className="w-3.5 h-3.5 text-indigo-400" />
-                Line:
+                {t.header.line}:
               </span>
               <select
                 value={selectedLine}
@@ -118,16 +120,16 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="flex items-center bg-slate-800/90 rounded-lg p-1 border border-slate-700">
               <span className="text-xs font-semibold px-2 text-slate-400 flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-cyan-400" />
-                Periode:
+                {t.header.period}:
               </span>
               <select
                 value={selectedMonth}
                 onChange={(e) => onMonthChange && onMonthChange(parseInt(e.target.value, 10))}
                 className="bg-slate-900 text-xs font-semibold text-white px-2 py-1.5 rounded-md border-none focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer pr-1"
               >
-                {MONTH_NAMES_ID.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.label}
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
+                  <option key={m} value={m}>
+                    {getMonthName(m)}
                   </option>
                 ))}
               </select>
@@ -148,16 +150,16 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="flex items-center bg-slate-800/90 rounded-lg p-1 border border-slate-700">
               <span className="text-xs font-semibold px-2 text-slate-400 flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                Role:
+                {t.header.role}:
               </span>
               <select
                 value={userRole}
                 onChange={(e) => onRoleChange(e.target.value as any)}
                 className="bg-slate-900 text-xs font-semibold text-emerald-400 px-2.5 py-1.5 rounded-md border-none focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer"
               >
-                <option value="VIEWER">Manager (Viewer)</option>
-                <option value="EDITOR">IE Staff (Editor)</option>
-                <option value="ADMIN">Production Admin</option>
+                <option value="VIEWER">{t.header.roleViewer}</option>
+                <option value="EDITOR">{t.header.roleEditor}</option>
+                <option value="ADMIN">{t.header.roleAdmin}</option>
               </select>
             </div>
           </div>
@@ -177,7 +179,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <TableProperties className="w-4 h-4" />
-            <span>Skill Matrix Dashboard</span>
+            <span>{t.sidebar.navMatrix}</span>
           </button>
 
           <button
@@ -189,7 +191,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <Sparkles className="w-4 h-4 text-purple-400" />
-            <span>AI Line Balancing & Layout</span>
+            <span>{t.sidebar.navBalancing}</span>
           </button>
 
           <button
@@ -201,7 +203,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <Target className="w-4 h-4 text-emerald-400" />
-            <span>Multi-Skill Development</span>
+            <span>{t.sidebar.navTraining}</span>
           </button>
 
           <button
@@ -213,7 +215,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <BotMessageSquare className="w-4 h-4 text-amber-400" />
-            <span>AI Garment IE Specialist</span>
+            <span>{t.sidebar.navChat}</span>
           </button>
 
           <button
@@ -225,7 +227,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <FileSpreadsheet className="w-4 h-4 text-cyan-400" />
-            <span>Google Sheets Live Sync</span>
+            <span>{t.sidebar.navSheets}</span>
           </button>
 
         </div>

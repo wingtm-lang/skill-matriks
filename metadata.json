@@ -1,6 +1,6 @@
 {
-  "name": "PT Winners Skill Matrix & AI Line Balancing",
-  "description": "Skill Matrix Dashboard & AI Line Balancing Assistant for Garment Industrial Engineering at PT. Winners International",
+  "name": "Multi Skill Operator Development & AI Line Balancing System",
+  "description": "Multi-skill operator development and AI line balancing system for garment manufacturing at PT. Winners International",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

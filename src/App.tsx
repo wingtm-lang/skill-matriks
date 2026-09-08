@@ -16,7 +16,8 @@ import {
   normalizeFactoryName,
   normalizeLineName,
   MONTH_NAMES_ID,
-  isOperatorResignedAtPeriod 
+  isOperatorResignedAtPeriod,
+  getPointsFromEfficiency 
 } from './utils/ieCalculations';
 import { AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 
@@ -104,7 +105,11 @@ export default function App() {
           const rawProdRate = Number(row[idxRate] ?? row[12] ?? 0);
           // Parse Kolom N / Indeks 13 (POINT) - Standar PT. Winners International: Maksimal 3 Poin per mesin
           const rawPoints = parseFloat(String(row[idxPoints] ?? row[13] ?? "").replace(',', '.').replace(/[^0-9.]/g, '').trim()) || 0;
-          const pointVal = rawPoints > 0 ? Math.min(3, Math.max(1, Math.round(rawPoints))) : 0;
+          let pointVal = rawPoints > 0 ? Math.min(3, Math.max(1, Math.round(rawPoints))) : 0;
+          // Standar Sistem Poin IE: 0 Poin (0%), 1 Poin (1-60%), 2 Poin (61-89%), 3 Poin (>90%)
+          if (pointVal === 0 && rawProdRate > 0) {
+            pointVal = getPointsFromEfficiency(rawProdRate);
+          }
           const rawCat = String(row[idxMachine] ?? row[16] ?? "").toUpperCase();
           const rawMachineName = String(row[idxMachineName] ?? row[7] ?? "").toUpperCase();
 

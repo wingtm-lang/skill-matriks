@@ -10,8 +10,10 @@ import {
   Layers,
   ChevronRight,
   TrendingUp,
-  Award
+  Award,
+  Languages
 } from 'lucide-react';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface SidebarProps {
   activeTab: string;
@@ -34,36 +36,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
   totalOperatorsCount,
   totalActiveOperatorsCount = 0,
 }) => {
+  const { language, setLanguage, t } = useLanguage();
+
   const navItems = [
     {
       id: 'matrix',
-      label: 'Skill Matrix',
-      sublabel: 'Operator & Competencies',
+      label: t.sidebar.navMatrix,
+      sublabel: t.sidebar.navMatrixSub,
       icon: TableProperties,
     },
     {
       id: 'balancing',
-      label: 'AI Line Balancing',
-      sublabel: 'Yamazumi & Cycle Time',
+      label: t.sidebar.navBalancing,
+      sublabel: t.sidebar.navBalancingSub,
       icon: Sparkles,
       badge: 'Gemini AI',
     },
     {
       id: 'training',
-      label: 'Multi-Skill Matrix',
-      sublabel: 'Retraining & Cross-Skill',
+      label: t.sidebar.navTraining,
+      sublabel: t.sidebar.navTrainingSub,
       icon: Target,
     },
     {
       id: 'chat',
-      label: 'IE Specialist AI',
-      sublabel: 'Garment Consultant',
+      label: t.sidebar.navChat,
+      sublabel: t.sidebar.navChatSub,
       icon: BotMessageSquare,
     },
     {
       id: 'sheets',
-      label: 'Google Sheets Live',
-      sublabel: '2-Way Cloud Sync',
+      label: t.sidebar.navSheets,
+      sublabel: t.sidebar.navSheetsSub,
       icon: FileSpreadsheet,
     },
   ];
@@ -93,10 +97,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
               <div>
                 <h1 className="text-sm font-bold tracking-wider text-white uppercase font-sans">
-                  PT. Winners
+                  {t.sidebar.brandTitle}
                 </h1>
                 <p className="text-[11px] text-[#C8D8D8] font-medium">
-                  IE & Lean System
+                  {t.sidebar.brandSubtitle}
                 </p>
               </div>
             </div>
@@ -114,7 +118,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="mt-5 p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
             <div>
               <span className="text-[10px] uppercase font-semibold tracking-wider text-[#C8D8D8] block">
-                Active Line
+                {t.sidebar.activeLine}
               </span>
               <div className="text-xs font-bold text-white mt-0.5">
                 {selectedFactory} • {selectedLine}
@@ -128,11 +132,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Bagian bawah Sidebar / di atas menu navigasi */}
         <div className="p-4 mx-4 my-2 bg-slate-800/50 rounded-xl border border-slate-700/50">
-          <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">Total Operator Aktif</p>
+          <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">{t.sidebar.activeOpsLabel}</p>
           <p className="text-2xl font-bold text-emerald-400 mt-1">
-            {totalActiveOperatorsCount} <span className="text-xs font-normal text-slate-300">Orang</span>
+            {totalActiveOperatorsCount} <span className="text-xs font-normal text-slate-300">{t.common.personnel}</span>
           </p>
-          <p className="text-[10px] text-slate-400 mt-0.5">Semua Line Terintegrasi</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">{t.sidebar.totalPopLabel}</p>
         </div>
 
         {/* Navigation Items */}
@@ -199,17 +203,53 @@ export const Sidebar: React.FC<SidebarProps> = ({
           })}
         </div>
 
-        {/* Sidebar Footer */}
-        <div className="p-4 m-4 rounded-2xl bg-white/5 border border-white/10 text-xs">
-          <div className="flex items-center space-x-2 text-[#C8D8D8]">
-            <Award className="w-4 h-4 text-[#D0A018]" />
-            <span className="font-semibold text-white">GSD / MOST Standard</span>
+        {/* Sidebar Footer with Language Switcher */}
+        <div className="p-4 m-4 rounded-2xl bg-white/5 border border-white/10 text-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2 text-[#C8D8D8]">
+              <Languages className="w-3.5 h-3.5 text-[#D0A018]" />
+              <span className="font-semibold text-white text-[11px]">{t.header.language}</span>
+            </div>
+            <div className="flex items-center bg-black/25 rounded-lg p-0.5 border border-white/10">
+              <button
+                type="button"
+                onClick={() => setLanguage('id')}
+                className={`px-2.5 py-1 text-[11px] font-bold rounded-md cursor-pointer transition-all ${
+                  language === 'id' ? 'bg-[#2AAFA3] text-white shadow-xs' : 'text-[#C8D8D8] hover:text-white'
+                }`}
+                title="Bahasa Indonesia"
+              >
+                ID
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage('en')}
+                className={`px-2.5 py-1 text-[11px] font-bold rounded-md cursor-pointer transition-all ${
+                  language === 'en' ? 'bg-[#2AAFA3] text-white shadow-xs' : 'text-[#C8D8D8] hover:text-white'
+                }`}
+                title="English"
+              >
+                EN
+              </button>
+            </div>
           </div>
-          <p className="text-[10px] text-[#C8D8D8] mt-1">
-            Standardization for Garment Lean Line Balancing & Kaizen.
-          </p>
+
+          <div className="border-t border-white/10 pt-2">
+            <div className="flex items-start space-x-2 text-[#C8D8D8]">
+              <Award className="w-3.5 h-3.5 text-[#D0A018] shrink-0 mt-0.5" />
+              <div>
+                <span className="font-semibold text-white text-[11px] block leading-tight">
+                  Manufacturing Excellence Team
+                </span>
+                <span className="text-[10px] text-[#C8D8D8] block mt-0.5 font-medium">
+                  PT. Winners International
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </aside>
     </>
   );
 };
+

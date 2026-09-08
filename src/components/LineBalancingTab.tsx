@@ -24,6 +24,7 @@ import {
 import { GarmentStyle, Operator, LineBalancingResult, WorkstationAssignment, OperationProcess } from '../types';
 import { calculateLineBalancing } from '../utils/ieCalculations';
 import { getGradeFromRate } from '../data/mockData';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface LineBalancingTabProps {
   styles: GarmentStyle[];
@@ -39,6 +40,7 @@ export const LineBalancingTab: React.FC<LineBalancingTabProps> = ({
   selectedLine,
   selectedFactory,
 }) => {
+  const { t } = useLanguage();
   const [selectedStyleId, setSelectedStyleId] = useState<string>(styles[0]?.id || '');
   const [targetPerHour, setTargetPerHour] = useState<number>(styles[0]?.targetPcsPerHour || 110);
   const [workingHours, setWorkingHours] = useState<number>(8);
@@ -119,7 +121,7 @@ export const LineBalancingTab: React.FC<LineBalancingTabProps> = ({
           <div className="md:col-span-2">
             <label className="block text-xs font-semibold text-[#506868] mb-1.5 flex items-center gap-1.5">
               <Layers className="w-4 h-4 text-[#2AAFA3]" />
-              <span>Pilih Style Garment (Standard Production):</span>
+              <span>{t.lineBalancing.selectStyle}</span>
             </label>
             <select
               value={selectedStyleId}
@@ -128,7 +130,7 @@ export const LineBalancingTab: React.FC<LineBalancingTabProps> = ({
             >
               {styles.map((style) => (
                 <option key={style.id} value={style.id}>
-                  {style.styleCode} — {style.styleName} ({style.processes.length} Posisi)
+                  {style.styleCode} — {style.styleName} ({style.processes.length} {t.lineBalancing.positionsCount})
                 </option>
               ))}
             </select>
@@ -138,7 +140,7 @@ export const LineBalancingTab: React.FC<LineBalancingTabProps> = ({
           <div>
             <label className="block text-xs font-semibold text-[#506868] mb-1.5 flex items-center gap-1.5">
               <Zap className="w-4 h-4 text-[#D0A018]" />
-              <span>Target Output (Pcs/Jam):</span>
+              <span>{t.lineBalancing.targetPcsHour}</span>
             </label>
             <input
               type="number"
@@ -160,12 +162,12 @@ export const LineBalancingTab: React.FC<LineBalancingTabProps> = ({
               {isAiLoading ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                  <span>Gemini Menganalisis...</span>
+                  <span>{t.lineBalancing.aiAnalyzing}</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 text-white" />
-                  <span>AI Auto-Balancing</span>
+                  <span>{t.lineBalancing.aiAutoBalanceBtn}</span>
                 </>
               )}
             </button>
@@ -178,53 +180,53 @@ export const LineBalancingTab: React.FC<LineBalancingTabProps> = ({
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
         
         <div className="bg-white border border-[#E0E8E8] rounded-[20px] p-4 shadow-[0_8px_30px_rgba(48,72,72,0.06)]">
-          <p className="text-[11px] text-[#788888] font-semibold uppercase tracking-wider">Pitch Time</p>
+          <p className="text-[11px] text-[#788888] font-semibold uppercase tracking-wider">{t.lineBalancing.pitchTime}</p>
           <h4 className="text-xl font-bold text-[#405858] mt-1 font-mono">
-            {balancingResult.pitchTime} <span className="text-xs text-[#788888] font-sans">detik</span>
+            {balancingResult.pitchTime} <span className="text-xs text-[#788888] font-sans">{t.lineBalancing.seconds}</span>
           </h4>
-          <p className="text-[10px] text-[#98A8A8] mt-1">3600s / {targetPerHour} pcs</p>
+          <p className="text-[10px] text-[#98A8A8] mt-1">{t.lineBalancing.pitchFormula}</p>
         </div>
 
         <div className="bg-white border border-[#E0E8E8] rounded-[20px] p-4 shadow-[0_8px_30px_rgba(48,72,72,0.06)]">
-          <p className="text-[11px] text-[#788888] font-semibold uppercase tracking-wider">Line Efficiency</p>
+          <p className="text-[11px] text-[#788888] font-semibold uppercase tracking-wider">{t.lineBalancing.lineEfficiency}</p>
           <h4 className={`text-xl font-bold mt-1 font-mono ${
             balancingResult.lineEfficiency >= 75 ? 'text-[#2AAFA3]' : 'text-[#D0A018]'
           }`}>
             {balancingResult.lineEfficiency}%
           </h4>
-          <p className="text-[10px] text-[#98A8A8] mt-1">Target LEAN ≥ 75%</p>
+          <p className="text-[10px] text-[#98A8A8] mt-1">{t.lineBalancing.leanTarget}</p>
         </div>
 
         <div className="bg-white border border-[#E0E8E8] rounded-[20px] p-4 shadow-[0_8px_30px_rgba(48,72,72,0.06)]">
-          <p className="text-[11px] text-[#788888] font-semibold uppercase tracking-wider">Balance Delay</p>
+          <p className="text-[11px] text-[#788888] font-semibold uppercase tracking-wider">{t.lineBalancing.balanceDelay}</p>
           <h4 className="text-xl font-bold text-[#C96B6B] mt-1 font-mono">
             {balancingResult.balanceDelay}%
           </h4>
-          <p className="text-[10px] text-[#98A8A8] mt-1">100% - Efficiency</p>
+          <p className="text-[10px] text-[#98A8A8] mt-1">{t.lineBalancing.balanceDelayFormula}</p>
         </div>
 
         <div className="bg-white border border-[#E0E8E8] rounded-[20px] p-4 shadow-[0_8px_30px_rgba(48,72,72,0.06)]">
-          <p className="text-[11px] text-[#788888] font-semibold uppercase tracking-wider">Bottleneck Cycle</p>
+          <p className="text-[11px] text-[#788888] font-semibold uppercase tracking-wider">{t.lineBalancing.bottleneckCycle}</p>
           <h4 className="text-xl font-bold text-[#C96B6B] mt-1 font-mono">
-            {balancingResult.bottleneckCycleTime} <span className="text-xs text-[#788888] font-sans">detik</span>
+            {balancingResult.bottleneckCycleTime} <span className="text-xs text-[#788888] font-sans">{t.lineBalancing.seconds}</span>
           </h4>
-          <p className="text-[10px] text-[#98A8A8] mt-1">Stasiun Kritis</p>
+          <p className="text-[10px] text-[#98A8A8] mt-1">{t.lineBalancing.criticalStation}</p>
         </div>
 
         <div className="bg-white border border-[#E0E8E8] rounded-[20px] p-4 shadow-[0_8px_30px_rgba(48,72,72,0.06)]">
-          <p className="text-[11px] text-[#788888] font-semibold uppercase tracking-wider">Smoothness Index</p>
+          <p className="text-[11px] text-[#788888] font-semibold uppercase tracking-wider">{t.lineBalancing.smoothnessIndex}</p>
           <h4 className="text-xl font-bold text-[#405858] mt-1 font-mono">
             {balancingResult.smoothnessIndex}
           </h4>
-          <p className="text-[10px] text-[#98A8A8] mt-1">Makin rendah makin rata</p>
+          <p className="text-[10px] text-[#98A8A8] mt-1">{t.lineBalancing.lowerIsSmoother}</p>
         </div>
 
         <div className="bg-white border border-[#E0E8E8] rounded-[20px] p-4 shadow-[0_8px_30px_rgba(48,72,72,0.06)]">
-          <p className="text-[11px] text-[#788888] font-semibold uppercase tracking-wider">Proyeksi Output</p>
+          <p className="text-[11px] text-[#788888] font-semibold uppercase tracking-wider">{t.lineBalancing.projectedOutput}</p>
           <h4 className="text-xl font-bold text-[#2AAFA3] mt-1 font-mono">
-            {balancingResult.projectedDailyOutput} <span className="text-xs text-[#788888] font-sans">pcs/hari</span>
+            {balancingResult.projectedDailyOutput} <span className="text-xs text-[#788888] font-sans">{t.lineBalancing.pcsPerDay}</span>
           </h4>
-          <p className="text-[10px] text-[#98A8A8] mt-1">{balancingResult.projectedOutputPerHour} pcs/jam</p>
+          <p className="text-[10px] text-[#98A8A8] mt-1">{balancingResult.projectedOutputPerHour} {t.lineBalancing.pcsPerHour}</p>
         </div>
 
       </div>
@@ -235,10 +237,10 @@ export const LineBalancingTab: React.FC<LineBalancingTabProps> = ({
           <div className="flex items-center justify-between pb-3 border-b border-[#E0E8E8] mb-3">
             <h3 className="text-sm font-bold text-[#405858] flex items-center gap-2">
               <Brain className="w-5 h-5 text-[#2AAFA3]" />
-              <span>Analisis & Rekomendasi Alokasi Industrial Engineer (Gemini 3.7 Flash)</span>
+              <span>{t.lineBalancing.aiKaizenTitle}</span>
             </h3>
             <span className="text-[11px] bg-[#F5EAC5] text-[#8A6A08] px-2.5 py-0.5 rounded-full border border-[#E8D499] font-bold">
-              AI Powered Kaizen
+              {t.lineBalancing.aiKaizenBadge}
             </span>
           </div>
           <div className="text-xs text-[#506868] leading-relaxed whitespace-pre-line font-sans space-y-2">
@@ -254,8 +256,8 @@ export const LineBalancingTab: React.FC<LineBalancingTabProps> = ({
         <div className="p-4 sm:p-5 bg-white border-b border-[#E0E8E8] flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-sm font-bold text-[#304848] flex items-center gap-2">
-              <span>Alokasi Stasiun Kerja & Operator {selectedLine}</span>
-              <span className="text-xs font-normal text-[#788888]">({balancingResult.assignments.length} Stasiun)</span>
+              <span>{t.lineBalancing.workstationTitle} ({selectedLine})</span>
+              <span className="text-xs font-normal text-[#788888]">({balancingResult.assignments.length} {t.lineBalancing.stationsCountLabel})</span>
             </h3>
           </div>
 
@@ -269,7 +271,7 @@ export const LineBalancingTab: React.FC<LineBalancingTabProps> = ({
               }`}
             >
               <ListTree className="w-3.5 h-3.5" />
-              <span>Daftar Stasiun</span>
+              <span>{t.lineBalancing.tabList}</span>
             </button>
             <button
               onClick={() => setViewMode('YAMAZUMI')}
@@ -280,7 +282,7 @@ export const LineBalancingTab: React.FC<LineBalancingTabProps> = ({
               }`}
             >
               <TrendingUp className="w-3.5 h-3.5" />
-              <span>Yamazumi Chart</span>
+              <span>{t.lineBalancing.tabYamazumi}</span>
             </button>
             <button
               onClick={() => setViewMode('LAYOUT')}
@@ -291,7 +293,7 @@ export const LineBalancingTab: React.FC<LineBalancingTabProps> = ({
               }`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
-              <span>Visual Layout</span>
+              <span>{t.lineBalancing.tabLayout}</span>
             </button>
           </div>
         </div>
@@ -377,12 +379,12 @@ export const LineBalancingTab: React.FC<LineBalancingTabProps> = ({
                               {assignment.operatorEfficiency.toFixed(1)}% ({grade.label})
                             </span>
                           </div>
-                          <p className="text-[10px] text-[#788888] font-mono">NIK: {op.nik} • Masa: {op.workTimeMonths} bln</p>
+                          <p className="text-[10px] text-[#788888] font-mono">NIK: {op.nik} • {t.multiSkill.operatorTenure}: {op.workTimeMonths} {t.common.months}</p>
                         </div>
                       </div>
                     ) : (
                       <div className="text-xs text-[#C96B6B] font-medium py-1">
-                        Belum ada operator teralokasi
+                        {t.lineBalancing.unassignedOperator}
                       </div>
                     )}
 
@@ -393,10 +395,10 @@ export const LineBalancingTab: React.FC<LineBalancingTabProps> = ({
                     <div className="mt-3 pt-2.5 border-t border-[#F8C8C8] flex items-start gap-2 text-[11px] text-[#C96B6B]">
                       <AlertTriangle className="w-3.5 h-3.5 text-[#C96B6B] shrink-0 mt-0.5" />
                       <div>
-                        <span>Bottleneck (+{(assignment.actualCycleTime - assignment.pitchTime).toFixed(1)}s). </span>
+                        <span>{t.lineBalancing.bottleneckNotice} (+{(assignment.actualCycleTime - assignment.pitchTime).toFixed(1)}s). </span>
                         {assignment.backupOperator && (
                           <span className="text-[#506868]">
-                            Rekomendasi Helper/Backup: <strong>{assignment.backupOperator.name}</strong>.
+                            {t.lineBalancing.backupRecommendation} <strong>{assignment.backupOperator.name}</strong>.
                           </span>
                         )}
                       </div>
@@ -415,10 +417,10 @@ export const LineBalancingTab: React.FC<LineBalancingTabProps> = ({
             <div>
               <h4 className="text-xs font-bold text-[#405858] mb-1 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-[#2AAFA3]" />
-                <span>Yamazumi Cycle Time Balancing Graph (Detik / Stasiun)</span>
+                <span>{t.lineBalancing.yamazumiTitle}</span>
               </h4>
               <p className="text-xs text-[#788888]">
-                Garis penanda vertikal tebal menunjukkan <strong>Pitch Time ({balancingResult.pitchTime} detik)</strong>. Balok yang melampaui garis merupakan stasiun bottleneck.
+                {t.lineBalancing.yamazumiSubtitle}
               </p>
             </div>
 
@@ -432,7 +434,7 @@ export const LineBalancingTab: React.FC<LineBalancingTabProps> = ({
                   <div key={assignment.stationNumber} className="space-y-1">
                     <div className="flex items-center justify-between text-xs font-mono">
                       <span className="text-[#304848] font-semibold truncate max-w-xs">
-                        Pos {assignment.stationNumber}: {assignment.process.name} ({assignment.assignedOperator?.name || 'Unassigned'})
+                        Pos {assignment.stationNumber}: {assignment.process.name} ({assignment.assignedOperator?.name || t.lineBalancing.unassignedOperator})
                       </span>
                       <span className={`font-bold ${isOver ? 'text-[#C96B6B]' : 'text-[#2AAFA3]'}`}>
                         {assignment.actualCycleTime}s
@@ -464,18 +466,18 @@ export const LineBalancingTab: React.FC<LineBalancingTabProps> = ({
               <div className="flex items-center gap-4">
                 <span className="flex items-center gap-1.5">
                   <span className="w-3 h-3 rounded bg-[#2AAFA3] inline-block"></span>
-                  Balanced (Cycle ≤ Pitch)
+                  {t.lineBalancing.balancedLegend}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="w-3 h-3 rounded bg-[#C96B6B] inline-block"></span>
-                  Bottleneck (Cycle &gt; Pitch)
+                  {t.lineBalancing.bottleneckLegend}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="w-3 h-0.5 bg-[#405858] inline-block"></span>
-                  Target Pitch Time ({balancingResult.pitchTime}s)
+                  {t.lineBalancing.targetPitchLegend} ({balancingResult.pitchTime}s)
                 </span>
               </div>
-              <span className="font-mono text-[#304848] font-semibold">Total SAM: {balancingResult.totalSmv} detik</span>
+              <span className="font-mono text-[#304848] font-semibold">{t.lineBalancing.totalSamLabel} {balancingResult.totalSmv} {t.lineBalancing.seconds}</span>
             </div>
           </div>
         )}
@@ -485,10 +487,10 @@ export const LineBalancingTab: React.FC<LineBalancingTabProps> = ({
           <div className="p-6">
             <div className="mb-4">
               <h4 className="text-xs font-bold text-[#405858] mb-1">
-                Visual Sewing Floor Layout (U-Shape Modular Assembly)
+                {t.lineBalancing.visualLayoutTitle}
               </h4>
               <p className="text-xs text-[#788888]">
-                Arah pergerakan bundle material dari Posisi 1 hingga Finishing Posisi {balancingResult.assignments.length}.
+                {t.lineBalancing.visualLayoutSubtitle}
               </p>
             </div>
 
@@ -517,7 +519,7 @@ export const LineBalancingTab: React.FC<LineBalancingTabProps> = ({
 
                     <div className="w-full pt-2 border-t border-[#E0E8E8] text-[10px] font-mono">
                       <span className="text-[#506868] font-semibold block truncate">
-                        {assignment.assignedOperator?.name || 'Unassigned'}
+                        {assignment.assignedOperator?.name || t.lineBalancing.unassignedOperator}
                       </span>
                       <span className={isBottleneck ? 'text-[#C96B6B] font-bold' : 'text-[#2AAFA3] font-bold'}>
                         {assignment.actualCycleTime}s
@@ -526,7 +528,7 @@ export const LineBalancingTab: React.FC<LineBalancingTabProps> = ({
 
                     {isBottleneck && (
                       <span className="absolute -top-2 -right-2 bg-[#C96B6B] text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full shadow-xs">
-                        Bottleneck
+                        {t.lineBalancing.bottleneckNotice}
                       </span>
                     )}
                   </div>

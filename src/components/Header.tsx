@@ -15,9 +15,9 @@ import { FACTORIES, LINES } from '../data/mockData';
 import { 
   sortLinesNumerically, 
   sortFactoriesNumerically, 
-  MONTH_NAMES_ID, 
   AVAILABLE_YEARS 
 } from '../utils/ieCalculations';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -56,12 +56,19 @@ export const Header: React.FC<HeaderProps> = ({
   isLoading = false,
   onRefresh,
 }) => {
+  const { t, getMonthName } = useLanguage();
+
   const factoryList = sortFactoriesNumerically(
     availableFactories && availableFactories.length > 0 ? availableFactories : FACTORIES
   );
   const lineList = sortLinesNumerically(
     availableLines && availableLines.length > 0 ? availableLines : LINES
   );
+
+  const monthOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => ({
+    value: num,
+    label: getMonthName(num),
+  }));
 
   return (
     <header className="bg-white border border-[#E0E8E8] rounded-[20px] shadow-[0_8px_30px_rgba(48,72,72,0.06)] p-3 sm:p-4 mb-6">
@@ -80,24 +87,24 @@ export const Header: React.FC<HeaderProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-sm sm:text-base font-bold text-[#304848] tracking-tight">
-                PT. Winners International
+                {t.header.companyName}
               </h2>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                 isLive 
                   ? 'bg-[#D9F1EF] text-[#247F77] border-[#BDE5E2]' 
                   : 'bg-amber-50 text-amber-800 border-amber-200'
               }`}>
-                {isLive ? 'Google Sheets Live' : 'Mock Dataset'}
+                {isLive ? t.header.liveBadge : t.header.mockBadge}
               </span>
             </div>
             <p className="text-[11px] sm:text-xs text-[#788888] font-normal">
-              Sewing Skill Matrix & Automated Line Balancing
+              {t.header.systemSubtitle}
             </p>
           </div>
         </div>
 
         {/* Right Section: Factory, Line, Point-in-Time Date, Role Switcher & Refresh */}
-        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 ml-auto">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 ml-auto">
           
           {/* Factory Selector */}
           <div className="flex items-center space-x-1.5 bg-[#F8F8F8] border border-[#E0E8E8] rounded-xl px-2.5 py-1.5 shadow-2xs">
@@ -132,9 +139,9 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Point-in-Time Reporting Filter (Month & Year) */}
-          <div className="flex items-center space-x-1.5 bg-[#F8F8F8] border border-[#E0E8E8] rounded-xl px-2.5 py-1.5 shadow-2xs" title="Point-in-Time Reporting Filter: Melihat snapshot lini produksi pada akhir bulan terpilih">
+          <div className="flex items-center space-x-1.5 bg-[#F8F8F8] border border-[#E0E8E8] rounded-xl px-2.5 py-1.5 shadow-2xs" title="Point-in-Time Reporting Filter">
             <Calendar className="w-3.5 h-3.5 text-[#2AAFA3]" />
-            <span className="text-[11px] text-[#788888] hidden sm:inline">Periode:</span>
+            <span className="text-[11px] text-[#788888] hidden sm:inline">{t.header.period}</span>
             
             {/* Month Select */}
             <select
@@ -142,7 +149,7 @@ export const Header: React.FC<HeaderProps> = ({
               onChange={(e) => onMonthChange && onMonthChange(parseInt(e.target.value, 10))}
               className="bg-transparent text-xs font-semibold text-[#304848] outline-none cursor-pointer pr-1"
             >
-              {MONTH_NAMES_ID.map((m) => (
+              {monthOptions.map((m) => (
                 <option key={m.value} value={m.value}>
                   {m.label}
                 </option>
@@ -166,15 +173,15 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Authority / Role Selector */}
           <div className="flex items-center space-x-1.5 bg-[#F8F8F8] border border-[#E0E8E8] rounded-xl px-2.5 py-1.5 shadow-2xs">
             <UserCheck className="w-3.5 h-3.5 text-[#405858]" />
-            <span className="text-[11px] text-[#788888] hidden sm:inline">Role:</span>
+            <span className="text-[11px] text-[#788888] hidden sm:inline">{t.header.role}</span>
             <select
               value={userRole}
               onChange={(e) => onRoleChange(e.target.value as any)}
               className="bg-transparent text-xs font-bold text-[#405858] outline-none cursor-pointer"
             >
-              <option value="VIEWER">Viewer (GM/Manager)</option>
-              <option value="EDITOR">Editor (IE Staff)</option>
-              <option value="ADMIN">Admin (Full Access)</option>
+              <option value="VIEWER">{t.header.roleViewer}</option>
+              <option value="EDITOR">{t.header.roleEditor}</option>
+              <option value="ADMIN">{t.header.roleAdmin}</option>
             </select>
           </div>
 
@@ -183,11 +190,11 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onRefresh}
               disabled={isLoading}
-              title="Sinkronkan Ulang dari Google Sheets"
+              title={t.header.syncTooltip}
               className="flex items-center space-x-1.5 bg-[#D9F1EF] hover:bg-[#c4ece9] text-[#247F77] border border-[#BDE5E2] rounded-xl px-2.5 py-1.5 text-xs font-semibold cursor-pointer transition-colors disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">{isLoading ? 'Syncing...' : 'Sync'}</span>
+              <span className="hidden sm:inline">{isLoading ? t.common.syncing : t.common.sync}</span>
             </button>
           )}
 
@@ -197,3 +204,4 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+

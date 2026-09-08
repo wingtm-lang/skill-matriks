@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Operator } from '../types';
 import { normalizeFactoryName, normalizeLineName } from '../utils/ieCalculations';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface GoogleSheetsTabProps {
   operators: Operator[];
@@ -157,6 +158,7 @@ export const GoogleSheetsTab: React.FC<GoogleSheetsTabProps> = ({
   userRole,
   onSyncOperators,
 }) => {
+  const { t } = useLanguage();
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string>('Terkoneksi ke Google Sheets');
   const [syncSuccess, setSyncSuccess] = useState(false);
@@ -321,9 +323,9 @@ export const GoogleSheetsTab: React.FC<GoogleSheetsTabProps> = ({
               <FileSpreadsheet className="w-7 h-7" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-[#304848]">Google Sheets Live Connection</h3>
+              <h3 className="text-base font-bold text-[#304848]">{t.googleSheets.headerTitle}</h3>
               <p className="text-xs text-[#788888]">
-                Sinkronisasi data mentah Skill Matrix dan Master Style dari Google Spreadsheet PT. Winners International.
+                {t.googleSheets.headerSubtitle}
               </p>
             </div>
           </div>
@@ -334,7 +336,7 @@ export const GoogleSheetsTab: React.FC<GoogleSheetsTabProps> = ({
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#C8D8D8] text-xs font-semibold text-[#405858] hover:bg-[#F0F5F5] transition-colors"
           >
             <ExternalLink className="w-3.5 h-3.5 text-[#2AAFA3]" />
-            <span>Buka di Google Sheets</span>
+            <span>{t.googleSheets.openInSheets}</span>
           </a>
         </div>
 
@@ -345,9 +347,9 @@ export const GoogleSheetsTab: React.FC<GoogleSheetsTabProps> = ({
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 rounded-full bg-[#2AAFA3] animate-pulse" />
               <div>
-                <h4 className="text-xs font-bold text-[#304848]">Status: Terhubung & Aktif (.env Configured)</h4>
+                <h4 className="text-xs font-bold text-[#304848]">{t.googleSheets.connectedStatus}</h4>
                 <p className="text-[11px] text-[#788888]">
-                  ID Spreadsheet: <code className="text-[#405858] font-mono font-semibold">{spreadsheetId}</code>
+                  {t.googleSheets.spreadsheetIdLabel} <code className="text-[#405858] font-mono font-semibold">{spreadsheetId}</code>
                 </p>
               </div>
             </div>
@@ -359,7 +361,7 @@ export const GoogleSheetsTab: React.FC<GoogleSheetsTabProps> = ({
           {/* SPREADSHEET URL SETTING */}
           <div>
             <label className="block text-xs font-semibold text-[#506868] mb-1.5">
-              Google Sheet URL Target:
+              {t.googleSheets.targetUrlLabel}
             </label>
             <div className="flex flex-col sm:flex-row gap-2">
               <input
@@ -374,7 +376,7 @@ export const GoogleSheetsTab: React.FC<GoogleSheetsTabProps> = ({
                 className="bg-[#D0A018] hover:bg-[#B88C10] text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
               >
                 <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                <span>{isSyncing ? 'Menghubungkan...' : 'Tarik Data Baru'}</span>
+                <span>{isSyncing ? t.googleSheets.pullingData : t.googleSheets.pullDataBtn}</span>
               </button>
             </div>
           </div>
@@ -384,10 +386,10 @@ export const GoogleSheetsTab: React.FC<GoogleSheetsTabProps> = ({
               <CheckCircle2 className="w-4 h-4 text-[#2AAFA3] shrink-0" />
               <span>
                 {syncedCount
-                  ? `Berhasil menarik dan mengagregasikan ${syncedCount} Operator dari tab 'by_worker' Google Sheets!`
+                  ? `${t.googleSheets.pullSuccessToast} (${syncedCount} Operator)`
                   : sheetDetails?.spreadsheetTitle 
-                    ? `Berhasil tersambung ke "${sheetDetails.spreadsheetTitle}" (${sheetDetails.sheets?.length || 1} sheet tab ditemukan).` 
-                    : `Data ${operators.length} Operator di ${selectedFactory} • ${selectedLine} tersinkronisasi!`}
+                    ? `Connected to "${sheetDetails.spreadsheetTitle}" (${sheetDetails.sheets?.length || 1} sheet tabs).` 
+                    : `${operators.length} Operator (${selectedFactory} • ${selectedLine}) synchronized!`}
               </span>
             </div>
           )}
@@ -396,9 +398,9 @@ export const GoogleSheetsTab: React.FC<GoogleSheetsTabProps> = ({
             <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-start gap-2">
               <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <p className="font-semibold">Info Akses Google Sheets API:</p>
+                <p className="font-semibold">{t.googleSheets.apiInfoTitle}</p>
                 <p className="text-[11px] text-amber-700">{syncError}</p>
-                <p className="text-[11px] text-amber-700">Pastikan Spreadsheet diset ke "Anyone with the link can view" atau kredensial API Key memiliki izin akses.</p>
+                <p className="text-[11px] text-amber-700">{t.googleSheets.apiInfoHint}</p>
               </div>
             </div>
           )}
@@ -407,38 +409,38 @@ export const GoogleSheetsTab: React.FC<GoogleSheetsTabProps> = ({
           <div className="pt-2">
             <h4 className="text-xs font-bold text-[#405858] mb-2 flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-[#2AAFA3]" />
-              <span>Pengaturan Hak Akses Edit & Review (RBAC):</span>
+              <span>{t.googleSheets.rbacTitle}</span>
             </h4>
             
             <div className="bg-[#F8F8F8] border border-[#E0E8E8] rounded-2xl overflow-hidden text-xs">
               <table className="w-full text-left">
                 <thead className="bg-[#E8EEEE] border-b border-[#E0E8E8] text-[#405858] font-bold text-[11px] uppercase">
                   <tr>
-                    <th className="py-2.5 px-4">Level Pengguna</th>
-                    <th className="py-2.5 px-4">Akses Aplikasi</th>
-                    <th className="py-2.5 px-4">Status Anda</th>
+                    <th className="py-2.5 px-4">{t.googleSheets.thUserLevel}</th>
+                    <th className="py-2.5 px-4">{t.googleSheets.thAppAccess}</th>
+                    <th className="py-2.5 px-4">{t.googleSheets.thYourStatus}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E0E8E8] text-[#506868]">
                   <tr className={userRole === 'VIEWER' ? 'bg-[#D9F1EF]/30 font-semibold' : ''}>
-                    <td className="py-2.5 px-4 font-bold text-[#304848]">Viewer (GM / Factory Mgr)</td>
-                    <td className="py-2.5 px-4">Lihat Matrix, Ekspor CSV, Pantau Yamazumi & AI Consultant</td>
+                    <td className="py-2.5 px-4 font-bold text-[#304848]">{t.googleSheets.viewerTitle}</td>
+                    <td className="py-2.5 px-4">{t.googleSheets.viewerAccess}</td>
                     <td className="py-2.5 px-4">
-                      {userRole === 'VIEWER' && <span className="text-[#2AAFA3] font-bold">Aktif Saat Ini</span>}
+                      {userRole === 'VIEWER' && <span className="text-[#2AAFA3] font-bold">{t.googleSheets.activeNow}</span>}
                     </td>
                   </tr>
                   <tr className={userRole === 'EDITOR' ? 'bg-[#D9F1EF]/30 font-semibold' : ''}>
-                    <td className="py-2.5 px-4 font-bold text-[#304848]">Editor (IE Staff / Leader)</td>
-                    <td className="py-2.5 px-4">Input Skill Rate, Ubah Nilai SMV, Tambah Data Operator Baru</td>
+                    <td className="py-2.5 px-4 font-bold text-[#304848]">{t.googleSheets.editorTitle}</td>
+                    <td className="py-2.5 px-4">{t.googleSheets.editorAccess}</td>
                     <td className="py-2.5 px-4">
-                      {userRole === 'EDITOR' && <span className="text-[#2AAFA3] font-bold">Aktif Saat Ini</span>}
+                      {userRole === 'EDITOR' && <span className="text-[#2AAFA3] font-bold">{t.googleSheets.activeNow}</span>}
                     </td>
                   </tr>
                   <tr className={userRole === 'ADMIN' ? 'bg-[#D9F1EF]/30 font-semibold' : ''}>
-                    <td className="py-2.5 px-4 font-bold text-[#304848]">Admin (Head of IE & IT)</td>
-                    <td className="py-2.5 px-4">Full Control: Hapus Data, Setting Master Garment Style, Cloud Sync</td>
+                    <td className="py-2.5 px-4 font-bold text-[#304848]">{t.googleSheets.adminTitle}</td>
+                    <td className="py-2.5 px-4">{t.googleSheets.adminAccess}</td>
                     <td className="py-2.5 px-4">
-                      {userRole === 'ADMIN' && <span className="text-[#2AAFA3] font-bold">Aktif Saat Ini</span>}
+                      {userRole === 'ADMIN' && <span className="text-[#2AAFA3] font-bold">{t.googleSheets.activeNow}</span>}
                     </td>
                   </tr>
                 </tbody>
@@ -447,8 +449,8 @@ export const GoogleSheetsTab: React.FC<GoogleSheetsTabProps> = ({
           </div>
 
           <div className="text-[11px] text-[#788888] pt-2 flex items-center justify-between">
-            <span>Terakhir sinkronisasi: <strong>{lastSyncTime}</strong></span>
-            <span className="font-mono">Total Rekor: {operators.length} Operator</span>
+            <span>{t.googleSheets.lastSyncedLabel} <strong>{lastSyncTime}</strong></span>
+            <span className="font-mono">{t.googleSheets.totalRecordsLabel}: {operators.length} Operator</span>
           </div>
 
         </div>
