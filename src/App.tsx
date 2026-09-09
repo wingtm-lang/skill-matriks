@@ -102,11 +102,12 @@ export default function App() {
         // Mapping baris spreadsheet ke objek Operator
         const normalizedOps: Operator[] = dataRows.map((row: any, index: number) => {
           const rawProdRate = Number(row[idxRate] ?? row[12] ?? 0);
-          // Parse Kolom N / Indeks 13 (POINT) - Standar PT. Winners International: Maksimal 3 Poin per mesin
-          const rawPoints = parseFloat(String(row[idxPoints] ?? row[13] ?? "").replace(',', '.').replace(/[^0-9.]/g, '').trim()) || 0;
-          let pointVal = rawPoints > 0 ? Math.min(3, Math.max(1, Math.round(rawPoints))) : 0;
-          // Standar Sistem Poin IE: 0 Poin (0%), 1 Poin (1-60%), 2 Poin (61-89%), 3 Poin (>90%)
-          if (pointVal === 0 && rawProdRate > 0) {
+          // Parse Kolom N / Indeks 13 (POINT) - Standar PT. Winners International: 0 - 3 Poin per mesin
+          const rawPointsStr = String(row[idxPoints] ?? row[13] ?? "").trim();
+          const rawPoints = parseFloat(rawPointsStr.replace(',', '.').replace(/[^0-9.]/g, ''));
+          let pointVal = !isNaN(rawPoints) ? Math.min(3, Math.max(0, Math.round(rawPoints))) : 0;
+          // Standar Sistem Poin IE: HANYA infer jika kolom POIN benar-benar KOSONG di sheet dan rawProdRate > 0 (jika tertulis 0, harus tetap 0)
+          if (rawPointsStr === "" && rawProdRate > 0) {
             pointVal = getPointsFromEfficiency(rawProdRate);
           }
           const rawCat = String(row[idxMachine] ?? row[16] ?? "").toUpperCase();
@@ -152,7 +153,7 @@ export default function App() {
             styleNo: String(row[idxStyleNo] ?? row[8] ?? ""), // Kolom I: Style No
             process: String(row[idxProcess] ?? row[9] ?? ""), // Kolom J: Process
             productionRate: Number(row[idxRate] ?? row[12] ?? 0), // Kolom M: Production Rate (%)
-            points: pointVal, // Kolom N: POINT (maksimal 3 per mesin)
+            points: pointVal, // Kolom N: POINT (0, 1, 2, 3)
             workMonth: Number(row[idxWorkMonth] ?? row[14] ?? 1), // Kolom O: Work Month (langsung dari Sheets)
             dateOfResign: String(row[idxDateOfResign] ?? row[15] ?? ""), // Kolom P: Date of Resign
             machineCategory: rawCat, // Kolom Q: Machine Category
@@ -162,14 +163,14 @@ export default function App() {
             doj: String(row[idxDoj] ?? row[6] ?? "-"),
             workTimeMonths: Number(row[idxWorkMonth] ?? row[14] ?? 1),
             resignDate: (row[idxDateOfResign] ?? row[15]) ? String(row[idxDateOfResign] ?? row[15]) : null,
-            lockstitch: isLockstitch ? (pointVal > 0 ? pointVal : null) : (!rawCat && !rawMachineName && pointVal > 0 ? pointVal : null),
-            overlock: isOverlock ? (pointVal > 0 ? pointVal : null) : null,
-            flatseam: isFlatseam ? (pointVal > 0 ? pointVal : null) : null,
-            special: isSpecial ? (pointVal > 0 ? pointVal : null) : null,
-            buttonHole: isButtonHole ? (pointVal > 0 ? pointVal : null) : null,
-            buttonSet: isButtonSet ? (pointVal > 0 ? pointVal : null) : null,
-            chainstitch: isChainstitch ? (pointVal > 0 ? pointVal : null) : null,
-            bartack: isBartack ? (pointVal > 0 ? pointVal : null) : null,
+            lockstitch: isLockstitch ? pointVal : (!rawCat && !rawMachineName ? pointVal : null),
+            overlock: isOverlock ? pointVal : null,
+            flatseam: isFlatseam ? pointVal : null,
+            special: isSpecial ? pointVal : null,
+            buttonHole: isButtonHole ? pointVal : null,
+            buttonSet: isButtonSet ? pointVal : null,
+            chainstitch: isChainstitch ? pointVal : null,
+            bartack: isBartack ? pointVal : null,
           };
         });
 

@@ -34,7 +34,12 @@ import {
   getOperatorTotalPoints,
   isOperatorResignedAtPeriod,
   calculateWorkTimeMonths,
-  appendOperatorToByWorker
+  appendOperatorToByWorker,
+  lookupNikFromDateOfJoin,
+  formatFactoryForSheet,
+  formatLineForSheet,
+  normalizeFactoryName,
+  normalizeLineName
 } from '../utils/ieCalculations';
 import { getGradeFromRate, GRADE_BENCHMARKS } from '../data/mockData';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -98,6 +103,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
   const [isSearchingDoj, setIsSearchingDoj] = useState<boolean>(false);
   const [dojLookupStatus, setDojLookupStatus] = useState<'idle' | 'found' | 'not_found' | 'error'>('idle');
   const [dojLookupMessage, setDojLookupMessage] = useState<string>('');
+  const [allowManualInput, setAllowManualInput] = useState<boolean>(false);
 
   // Resign modal state
   const [resignTargetOp, setResignTargetOp] = useState<Operator | null>(null);
@@ -240,7 +246,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
     setIsEditModalOpen(true);
   };
 
-  // Lookup operator di sheet "date_of_join" berdasarkan NIK
+  // Lookup operator di sheet "date_of_join" berdasarkan NIK (Multi-Tier: Backend -> Direct GViz CSV Vercel -> Sheets API v4 -> Local state)
   const handleLookupNik = async (nikToSearch: string) => {
     const cleanNik = String(nikToSearch || '').trim();
     if (!cleanNik) {
@@ -255,106 +261,87 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
     setDojLookupMessage('');
 
     try {
-      let foundRecord: { name: string; doj: string; workTimeMonths?: number; factory?: string; line?: string } | null = null;
-
-      // 1. Coba baca dari backend endpoint /api/sheets/date-of-join
-      try {
-        const res = await fetch(`/api/sheets/date-of-join?nik=${encodeURIComponent(cleanNik)}`);
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && json.found && json.data) {
-            foundRecord = {
-              name: json.data.name,
-              doj: json.data.doj,
-              workTimeMonths: json.data.workTimeMonths ?? calculateWorkTimeMonths(json.data.doj),
-              factory: json.data.factory,
-              line: json.data.line
-            };
-          }
-        }
-      } catch (e) {
-        console.warn('Backend lookup error:', e);
-      }
-
-      // 2. Fallback: Google Apps Script Web App
-      if (!foundRecord) {
-        try {
-          const gasUrl = "https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Zj5fnKejoelvuKkHQ1fQV-8UA_lRhtuTPMcmUFBH-xqN-kCVr3Dw/exec";
-          const res = await fetch(`${gasUrl}?action=lookupDateOfJoin&nik=${encodeURIComponent(cleanNik)}`);
-          if (res.ok) {
-            const json = await res.json();
-            if (json.status === 'success' && json.data && json.data.name) {
-              foundRecord = {
-                name: json.data.name,
-                doj: json.data.doj || '-',
-                workTimeMonths: calculateWorkTimeMonths(json.data.doj)
-              };
-            }
-          }
-        } catch (e) {
-          console.warn('GAS lookup error:', e);
-        }
-      }
-
-      // 3. Fallback: Cek data operator yang sudah termuat di state
-      if (!foundRecord) {
-        const matchInOps = operators.find(o => o.nik && o.nik.trim().toUpperCase() === cleanNik.toUpperCase());
-        if (matchInOps && matchInOps.name) {
-          foundRecord = {
-            name: matchInOps.name,
-            doj: matchInOps.doj || '-',
-            workTimeMonths: matchInOps.workTimeMonths || calculateWorkTimeMonths(matchInOps.doj),
-            factory: matchInOps.factory,
-            line: matchInOps.line
-          };
-        }
-      }
+      // Panggil Universal Lookup yang otomatis berhasil di AI Studio maupun Vercel
+      const foundRecord = await lookupNikFromDateOfJoin(cleanNik);
 
       if (foundRecord) {
         const tenure = foundRecord.workTimeMonths ?? calculateWorkTimeMonths(foundRecord.doj);
         setFormData(prev => ({
           ...prev,
           nik: cleanNik,
-          name: foundRecord!.name.toUpperCase(),
-          doj: foundRecord!.doj || '-',
-          workTimeMonths: tenure
+          name: foundRecord.name.toUpperCase(),
+          doj: foundRecord.doj || '-',
+          workTimeMonths: tenure,
+          factory: foundRecord.factory ? formatFactoryForSheet(foundRecord.factory) : prev.factory,
+          line: foundRecord.line ? formatLineForSheet(foundRecord.line) : prev.line,
         }));
         setDojLookupStatus('found');
         setDojLookupMessage(`Data valid: ${foundRecord.name} (DOJ: ${foundRecord.doj || '-'} • Masa Kerja: ${tenure} Bulan)`);
       } else {
-        setFormData(prev => ({
-          ...prev,
-          nik: cleanNik,
-          name: '',
-          doj: '',
-          workTimeMonths: 0
-        }));
-        setDojLookupStatus('not_found');
-        setDojLookupMessage(`NIK "${cleanNik}" tidak ditemukan di sheet "date_of_join". Pastikan NIK terdaftar di master data.`);
+        // Fallback cek data operator lokal yang sudah termuat di tabel
+        const matchInOps = operators.find(o => o.nik && o.nik.trim().toUpperCase() === cleanNik.toUpperCase());
+        if (matchInOps && matchInOps.name) {
+          const tenure = matchInOps.workTimeMonths || calculateWorkTimeMonths(matchInOps.doj);
+          setFormData(prev => ({
+            ...prev,
+            nik: cleanNik,
+            name: matchInOps.name.toUpperCase(),
+            doj: matchInOps.doj || '-',
+            workTimeMonths: tenure,
+            factory: formatFactoryForSheet(matchInOps.factory),
+            line: formatLineForSheet(matchInOps.line),
+          }));
+          setDojLookupStatus('found');
+          setDojLookupMessage(`Data ditemukan dari riwayat operator: ${matchInOps.name} (DOJ: ${matchInOps.doj || '-'})`);
+        } else {
+          setFormData(prev => ({
+            ...prev,
+            nik: cleanNik,
+            name: allowManualInput ? prev.name : '',
+            doj: allowManualInput ? prev.doj : '',
+            workTimeMonths: allowManualInput ? prev.workTimeMonths : 0
+          }));
+          setDojLookupStatus('not_found');
+          setDojLookupMessage(`NIK "${cleanNik}" belum terdaftar di sheet date_of_join. Anda dapat mengaktifkan "Input Manual" jika operator baru masuk.`);
+        }
       }
     } catch (err: any) {
+      console.warn("Lookup NIK error:", err);
       setDojLookupStatus('error');
-      setDojLookupMessage('Gagal memeriksa data di sheet date_of_join.');
+      setDojLookupMessage('Pencarian NIK terhambat jaringan. Anda dapat mengaktifkan opsi input manual di bawah.');
     } finally {
       setIsSearchingDoj(false);
     }
   };
 
   const handleOpenAdd = () => {
+    const cleanFac = formatFactoryForSheet(selectedFactory);
+    const cleanLine = formatLineForSheet(selectedLine);
+
     setFormData({
       nik: '',
       name: '',
       doj: '',
       workTimeMonths: 0,
-      factory: selectedFactory,
-      line: selectedLine,
-      lockstitch: null,
+      factory: cleanFac, // Kolom A murni (e.g. "1")
+      line: cleanLine,   // Kolom B murni (e.g. "28" atau "1")
+      machineName: '1Needle Lockstitch Auto Trim',
+      machineCategory: 'LOCKSTITCH',
+      styleNo: 'NB17HQ271140',
+      tableCode: '1',
+      process: 'SEWING',
+      points: 0, // DEFAULT: 0 POIN (Helper / Belum Dinilai)
+      productionRate: 0,
+      meta: 0,
+      production: 0,
+      lockstitch: 0,
       overlock: null,
       flatseam: null,
       special: null,
       buttonHole: null,
       buttonSet: null,
     });
+    setAllowManualInput(false);
     setDojLookupStatus('idle');
     setDojLookupMessage('');
     setIsSearchingDoj(false);
@@ -371,7 +358,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
   const handleSaveAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.nik) return;
-    if (dojLookupStatus !== 'found') {
+    if (dojLookupStatus !== 'found' && !allowManualInput) {
       return;
     }
 
@@ -379,25 +366,95 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
 
     const today = new Date();
     const formattedToday = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
+    const formattedTodayYmd = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    // Format Factory dan Line murni untuk sheet
+    const facClean = formatFactoryForSheet(formData.factory || selectedFactory);
+    const lineClean = formatLineForSheet(formData.line || selectedLine);
+    const facNormalized = normalizeFactoryName(facClean);
+    const lineNormalized = normalizeLineName(lineClean);
+
+    // Parse nilai poin murni (0, 1, 2, 3 - 0 TETAP 0)
+    let rawPoints: number;
+    if (typeof formData.points === 'number') {
+      rawPoints = formData.points;
+    } else if (formData.points !== undefined && formData.points !== null && String(formData.points).trim() !== '') {
+      rawPoints = parseInt(String(formData.points), 10);
+    } else if (formData.lockstitch !== undefined && formData.lockstitch !== null) {
+      rawPoints = Number(formData.lockstitch);
+    } else {
+      rawPoints = 0;
+    }
+    const finalPoint = isNaN(rawPoints) ? 0 : Math.min(3, Math.max(0, Math.round(rawPoints)));
+
+    const machineName = String(formData.machineName || '1Needle Lockstitch Auto Trim').trim();
+    const machineCat = String(formData.machineCategory || 'LOCKSTITCH').toUpperCase();
+    const styleNo = String(formData.styleNo || 'NB17HQ271140').trim();
+    const tableCode = String(formData.tableCode || formData.table || '1').trim();
+    const process = String(formData.process || 'SEWING').trim();
+
+    const isLock = machineCat.includes('LOCKSTITCH') || machineCat.includes('SN');
+    const isOver = machineCat.includes('OVERLOCK') || machineCat.includes('OL');
+    const isFlat = machineCat.includes('FLATSEAM') || machineCat.includes('COVER');
+    const isSpec = machineCat.includes('SPECIAL');
+    const isBH = machineCat.includes('BUTTON HOLE') || machineCat.includes('BUTTON_HOLE');
+    const isBS = machineCat.includes('BUTTON SET') || machineCat.includes('BUTTON_SET');
+
+    // Production rate: jika poin 0 maka rate 0%, jika poin > 0 berikan rate realistis
+    const prodRate = finalPoint === 0 ? 0 : (formData.productionRate || (finalPoint === 1 ? 60 : finalPoint === 2 ? 80 : 92.44));
+    const targetMeta = finalPoint === 0 ? 0 : (formData.meta || formData.target || 844);
+    const actualProd = finalPoint === 0 ? 0 : (formData.production || formData.actual || Math.round(targetMeta * (prodRate / 100)));
 
     const newOp: Operator = {
       ...(formData as Operator),
       id: `op-${formData.nik}-${Date.now()}`,
       no: operators.length + 1,
-      factory: selectedFactory,
-      line: selectedLine,
+      factory: facNormalized,
+      line: lineNormalized,
       status: 'ACTIVE',
-      date: formData.date || formattedToday,
-      recordDate: formData.recordDate || formattedToday,
+      date: formData.date || formattedTodayYmd,
+      recordDate: formData.recordDate || formattedTodayYmd,
+      machine: machineName,
+      machineName: machineName,
+      machineCategory: machineCat,
+      styleNo: styleNo,
+      tableCode: tableCode,
+      process: process,
+      points: finalPoint, // NILAI 0 TETAP 0
+      productionRate: prodRate,
+      meta: targetMeta,
+      production: actualProd,
+      // Poin mesin individual
+      lockstitch: isLock ? finalPoint : (formData.lockstitch ?? null),
+      overlock: isOver ? finalPoint : (formData.overlock ?? null),
+      flatseam: isFlat ? finalPoint : (formData.flatseam ?? null),
+      special: isSpec ? finalPoint : (formData.special ?? null),
+      buttonHole: isBH ? finalPoint : (formData.buttonHole ?? null),
+      buttonSet: isBS ? finalPoint : (formData.buttonSet ?? null),
     };
 
     if (plantToByWorker) {
       try {
-        const res = await appendOperatorToByWorker(newOp, formattedToday);
+        const payloadToAppend = {
+          ...newOp,
+          factory: facClean, // Kolom A diisi hanya angka (e.g. "1")
+          line: lineClean,   // Kolom B diisi nomor line (e.g. "28")
+          tableCode: tableCode,
+          styleNo: styleNo,
+          machineName: machineName,
+          machineCategory: machineCat,
+          process: process,
+          points: finalPoint, // 0 TETAP 0
+          productionRate: prodRate,
+          meta: targetMeta,
+          production: actualProd,
+        };
+
+        const res = await appendOperatorToByWorker(payloadToAppend, formattedTodayYmd);
         if (res.success) {
           setPlantToast({
             type: 'success',
-            message: `Operator ${newOp.name} (${newOp.nik}) dengan status ACTIVE berhasil ditanamkan ke datasheet by_worker!`,
+            message: `Operator ${newOp.name} (${newOp.nik}) berhasil ditanamkan ke by_worker! [Pabrik: ${facClean}, Line: ${lineClean}, Mesin: ${machineName}, Poin: ${finalPoint}]`,
           });
         } else {
           setPlantToast({
@@ -415,7 +472,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
     } else {
       setPlantToast({
         type: 'success',
-        message: `Operator ${newOp.name} (${newOp.nik}) berhasil ditambahkan (Status: ACTIVE).`,
+        message: `Operator ${newOp.name} (${newOp.nik}) berhasil ditambahkan ke Skill Matrix (Status: ACTIVE).`,
       });
     }
 
@@ -1078,49 +1135,91 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
               )}
 
               {isAddModalOpen && dojLookupStatus === 'not_found' && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2.5 text-xs text-rose-900 animate-fade-in">
-                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                  <div className="space-y-0.5">
-                    <p className="font-bold text-rose-800">NIK Tidak Ditemukan di Sheet "date_of_join"</p>
-                    <p className="text-[11px] text-rose-700">
-                      {dojLookupMessage || `NIK "${formData.nik}" belum terdaftar di sheet date_of_join. Pastikan NIK sudah benar.`}
-                    </p>
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl space-y-2 text-xs text-rose-900 animate-fade-in">
+                  <div className="flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5 flex-1">
+                      <p className="font-bold text-rose-800">NIK Tidak Ditemukan di Sheet "date_of_join"</p>
+                      <p className="text-[11px] text-rose-700">
+                        {dojLookupMessage || `NIK "${formData.nik}" belum terdaftar di sheet date_of_join.`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="pt-1 flex items-center justify-between border-t border-rose-200/60">
+                    <span className="text-[11px] text-rose-800">Operator baru belum diinput HRD?</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAllowManualInput(!allowManualInput);
+                        setDojLookupStatus('found');
+                        setDojLookupMessage('Mode input manual diaktifkan.');
+                      }}
+                      className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
+                    >
+                      {allowManualInput ? "Gunakan Cari NIK" : "Izinkan Input Manual"}
+                    </button>
                   </div>
                 </div>
               )}
 
-              {/* KOLOM NAMA LENGKAP (READ-ONLY DI MODE TAMBAH) */}
+              {/* Toggle Input Manual jika ingin diaktifkan tanpa mencari NIK */}
+              {isAddModalOpen && dojLookupStatus !== 'not_found' && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !allowManualInput;
+                      setAllowManualInput(next);
+                      if (next) {
+                        setDojLookupStatus('found');
+                        setDojLookupMessage('Mode input manual diaktifkan.');
+                      }
+                    }}
+                    className="text-[11px] text-[#2AAFA3] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Edit3 className="w-3 h-3" />
+                    <span>{allowManualInput ? "Kunci Input (Gunakan Lookup)" : "Input NIK / Nama Manual"}</span>
+                  </button>
+                </div>
+              )}
+
+              {/* KOLOM NAMA LENGKAP */}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-xs font-semibold text-[#506868]">{t.matrix.nameLabel}:</label>
-                  {isAddModalOpen && (
+                  {isAddModalOpen && !allowManualInput && (
                     <span className="text-[10px] text-[#788888] flex items-center gap-1 font-medium bg-[#F0F5F5] px-2 py-0.5 rounded-md border border-[#E0E8E8]">
                       <Lock className="w-3 h-3 text-[#2AAFA3]" /> Otomatis dari date_of_join
+                    </span>
+                  )}
+                  {allowManualInput && (
+                    <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                      Mode Input Manual
                     </span>
                   )}
                 </div>
                 <input
                   type="text"
                   required
-                  readOnly={isAddModalOpen}
-                  disabled={isAddModalOpen}
-                  placeholder={isAddModalOpen ? "Otomatis terisi saat NIK ditemukan di date_of_join..." : "Nama Lengkap"}
+                  readOnly={isAddModalOpen && !allowManualInput}
+                  disabled={isAddModalOpen && !allowManualInput}
+                  placeholder={isAddModalOpen && !allowManualInput ? "Otomatis terisi saat NIK ditemukan di date_of_join..." : "Nama Lengkap"}
                   value={formData.name || ''}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value.toUpperCase() })}
                   className={`w-full rounded-xl px-3.5 py-2.5 text-xs uppercase font-bold focus:outline-none ${
-                    isAddModalOpen 
+                    isAddModalOpen && !allowManualInput
                       ? 'bg-[#F0F5F5] border border-[#D5E2E2] text-[#304848] cursor-not-allowed select-none' 
                       : 'bg-[#F8F8F8] border border-[#E0E8E8] text-[#304848] focus:border-[#2AAFA3]'
                   }`}
                 />
               </div>
 
-              {/* KOLOM MASA KERJA & DATE OF JOIN (READ-ONLY DI MODE TAMBAH) */}
+              {/* KOLOM MASA KERJA & DATE OF JOIN */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-xs font-semibold text-[#506868]">{t.matrix.tenureLabel}:</label>
-                    {isAddModalOpen && (
+                    {isAddModalOpen && !allowManualInput && (
                       <span className="text-[10px] text-[#788888] flex items-center gap-1 font-medium">
                         <Lock className="w-2.5 h-2.5 text-[#2AAFA3]" /> Auto
                       </span>
@@ -1130,12 +1229,12 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                     type="number"
                     min={0}
                     step={1}
-                    readOnly={isAddModalOpen}
-                    disabled={isAddModalOpen}
-                    value={formData.workTimeMonths || 0}
-                    onChange={(e) => setFormData({ ...formData, workTimeMonths: parseFloat(e.target.value) || 0 })}
+                    readOnly={isAddModalOpen && !allowManualInput}
+                    disabled={isAddModalOpen && !allowManualInput}
+                    value={formData.workTimeMonths ?? 0}
+                    onChange={(e) => setFormData({ ...formData, workTimeMonths: parseInt(e.target.value, 10) || 0 })}
                     className={`w-full rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold focus:outline-none ${
-                      isAddModalOpen 
+                      isAddModalOpen && !allowManualInput
                         ? 'bg-[#F0F5F5] border border-[#D5E2E2] text-[#304848] cursor-not-allowed select-none' 
                         : 'bg-[#F8F8F8] border border-[#E0E8E8] text-[#304848] focus:border-[#2AAFA3]'
                     }`}
@@ -1144,7 +1243,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-xs font-semibold text-[#506868]">{t.matrix.dojLabel}:</label>
-                    {isAddModalOpen && (
+                    {isAddModalOpen && !allowManualInput && (
                       <span className="text-[10px] text-[#788888] flex items-center gap-1 font-medium">
                         <Lock className="w-2.5 h-2.5 text-[#2AAFA3]" /> Auto
                       </span>
@@ -1152,13 +1251,13 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                   </div>
                   <input
                     type="text"
-                    readOnly={isAddModalOpen}
-                    disabled={isAddModalOpen}
-                    placeholder={isAddModalOpen ? "Auto date_of_join..." : "DD-MM-YYYY"}
+                    readOnly={isAddModalOpen && !allowManualInput}
+                    disabled={isAddModalOpen && !allowManualInput}
+                    placeholder={isAddModalOpen && !allowManualInput ? "Auto date_of_join..." : "DD-MM-YYYY"}
                     value={formData.doj || ''}
                     onChange={(e) => setFormData({ ...formData, doj: e.target.value })}
                     className={`w-full rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none ${
-                      isAddModalOpen 
+                      isAddModalOpen && !allowManualInput
                         ? 'bg-[#F0F5F5] border border-[#D5E2E2] text-[#304848] cursor-not-allowed select-none' 
                         : 'bg-[#F8F8F8] border border-[#E0E8E8] text-[#304848] focus:border-[#2AAFA3]'
                     }`}
@@ -1166,108 +1265,241 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 </div>
               </div>
 
-              {/* PENEMPATAN LOKASI PABRIK & LINE */}
-              <div className="p-3 bg-[#F8FBFB] border border-[#E0E8E8] rounded-xl flex items-center justify-between text-xs text-[#506868]">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-[#304848]">Penempatan:</span>
-                  <span className="badge-teal font-bold">{selectedFactory}</span>
-                  <span className="text-[#809090]">•</span>
-                  <span className="font-semibold text-[#405858]">{selectedLine}</span>
+              {/* PENEMPATAN LOKASI PABRIK & LINE (KOLOM A & B DATASHEET BY_WORKER) */}
+              <div className="p-3 bg-[#F8FBFB] border border-[#E0E8E8] rounded-xl space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-[#304848] flex items-center gap-1.5">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-[#2AAFA3]" />
+                    Lokasi Penempatan Datasheet (Kolom A & B):
+                  </span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-bold">
+                    Status: ACTIVE
+                  </span>
                 </div>
-                <span className="text-[11px] text-[#788888] font-mono">Status: ACTIVE</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] text-[#788888] mb-1 font-semibold">
+                      Pabrik / Factory (Kolom A):
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="1"
+                      value={formData.factory ?? formatFactoryForSheet(selectedFactory)}
+                      onChange={(e) => setFormData({ ...formData, factory: e.target.value })}
+                      className="w-full bg-white border border-[#D5E2E2] rounded-xl px-3 py-2 text-xs font-bold text-[#304848] focus:border-[#2AAFA3] focus:outline-none"
+                    />
+                    <span className="text-[10px] text-[#809090] mt-0.5 block">Format Sheets: Angka (cth: 1 atau 2)</span>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-[#788888] mb-1 font-semibold">
+                      Line / Jalur (Kolom B):
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="28"
+                      value={formData.line ?? formatLineForSheet(selectedLine)}
+                      onChange={(e) => setFormData({ ...formData, line: e.target.value })}
+                      className="w-full bg-white border border-[#D5E2E2] rounded-xl px-3 py-2 text-xs font-bold text-[#304848] focus:border-[#2AAFA3] focus:outline-none"
+                    />
+                    <span className="text-[10px] text-[#809090] mt-0.5 block">Format Sheets: Nomor (cth: 28 atau 1)</span>
+                  </div>
+                </div>
               </div>
 
-              {/* Machine Competencies Header */}
-              <div className="pt-2 border-t border-[#E0E8E8]">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-xs font-bold text-[#405858]">{t.matrix.machinePointsHeader}:</h4>
-                  <span className="text-[10px] text-[#788888] bg-[#F0F4F4] px-2 py-0.5 rounded-full font-medium">{t.matrix.max3Points}</span>
+              {/* DETAIL OPERASI & SPESIFIKASI MESIN GARMEN (KOLOM C, H, I, J, Q) */}
+              <div className="p-3 bg-slate-50/80 border border-slate-200 rounded-xl space-y-2.5 text-xs">
+                <h4 className="font-bold text-[#304848] flex items-center gap-1.5">
+                  <Table className="w-3.5 h-3.5 text-[#2AAFA3]" />
+                  Spesifikasi Mesin & Proses Garmen (Datasheet by_worker):
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {/* Style No (Kolom I) */}
+                  <div>
+                    <label className="block text-[11px] text-[#607070] mb-1 font-semibold">
+                      Style No (Kolom I):
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="NB17HQ271140"
+                      value={formData.styleNo ?? 'NB17HQ271140'}
+                      onChange={(e) => setFormData({ ...formData, styleNo: e.target.value })}
+                      className="w-full bg-white border border-[#D0DCDC] rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#304848] focus:border-[#2AAFA3] focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Table / Style Code (Kolom C) */}
+                  <div>
+                    <label className="block text-[11px] text-[#607070] mb-1 font-semibold">
+                      Table / Style Code (Kolom C):
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="1"
+                      value={formData.tableCode ?? '1'}
+                      onChange={(e) => setFormData({ ...formData, tableCode: e.target.value })}
+                      className="w-full bg-white border border-[#D0DCDC] rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#304848] focus:border-[#2AAFA3] focus:outline-none"
+                    />
+                  </div>
                 </div>
-                
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {/* Nama Mesin (Kolom H) */}
                   <div>
-                    <label className="block text-[11px] text-[#788888] mb-1">Lockstitch ({t.common.points}):</label>
+                    <label className="block text-[11px] text-[#607070] mb-1 font-semibold">
+                      Nama Mesin (Kolom H):
+                    </label>
                     <input
-                      type="number"
-                      step={1}
-                      min={0}
-                      max={3}
-                      value={formData.lockstitch ?? ''}
-                      onChange={(e) => setFormData({ ...formData, lockstitch: e.target.value ? Math.min(3, Math.max(0, parseInt(e.target.value, 10))) : null })}
-                      className="w-full bg-[#F8F8F8] border border-[#E0E8E8] rounded-xl px-2.5 py-1.5 text-xs text-[#304848] focus:border-[#2AAFA3] focus:outline-none font-mono"
-                      placeholder="1 - 3"
+                      type="text"
+                      list="machine-presets"
+                      placeholder="1Needle Lockstitch Auto Trim"
+                      value={formData.machineName ?? '1Needle Lockstitch Auto Trim'}
+                      onChange={(e) => {
+                        const mName = e.target.value;
+                        let cat = formData.machineCategory || 'LOCKSTITCH';
+                        const upper = mName.toUpperCase();
+                        if (upper.includes('FLAT') || upper.includes('COVER')) cat = 'FLATSEAM';
+                        else if (upper.includes('OVERLOCK') || upper.includes('OL')) cat = 'OVERLOCK';
+                        else if (upper.includes('LOCKSTITCH') || upper.includes('SN')) cat = 'LOCKSTITCH';
+                        else if (upper.includes('BUTTON HOLE')) cat = 'BUTTON HOLE';
+                        else if (upper.includes('BUTTON SET')) cat = 'BUTTON SET';
+                        else if (upper.includes('BARTACK') || upper.includes('PRESS') || upper.includes('SPECIAL')) cat = 'SPECIAL';
+
+                        setFormData({ 
+                          ...formData, 
+                          machineName: mName,
+                          machineCategory: cat 
+                        });
+                      }}
+                      className="w-full bg-white border border-[#D0DCDC] rounded-xl px-3 py-2 text-xs font-semibold text-[#304848] focus:border-[#2AAFA3] focus:outline-none"
                     />
+                    <datalist id="machine-presets">
+                      <option value="1Needle Lockstitch Auto Trim" />
+                      <option value="2Needle Flat Seam Auto Trim" />
+                      <option value="2Needle Overlock" />
+                      <option value="Bartack Auto Trim" />
+                      <option value="Button Hole Auto" />
+                      <option value="Button Set Auto" />
+                      <option value="Coverstitch Machine" />
+                      <option value="Press Machine" />
+                    </datalist>
                   </div>
 
+                  {/* Kategori Mesin (Kolom Q) */}
                   <div>
-                    <label className="block text-[11px] text-[#788888] mb-1">Overlock ({t.common.points}):</label>
-                    <input
-                      type="number"
-                      step={1}
-                      min={0}
-                      max={3}
-                      value={formData.overlock ?? ''}
-                      onChange={(e) => setFormData({ ...formData, overlock: e.target.value ? Math.min(3, Math.max(0, parseInt(e.target.value, 10))) : null })}
-                      className="w-full bg-[#F8F8F8] border border-[#E0E8E8] rounded-xl px-2.5 py-1.5 text-xs text-[#304848] focus:border-[#2AAFA3] focus:outline-none font-mono"
-                      placeholder="1 - 3"
-                    />
+                    <label className="block text-[11px] text-[#607070] mb-1 font-semibold">
+                      Kategori Mesin (Kolom Q):
+                    </label>
+                    <select
+                      value={formData.machineCategory ?? 'LOCKSTITCH'}
+                      onChange={(e) => setFormData({ ...formData, machineCategory: e.target.value })}
+                      className="w-full bg-white border border-[#D0DCDC] rounded-xl px-3 py-2 text-xs font-bold text-[#304848] focus:border-[#2AAFA3] focus:outline-none cursor-pointer"
+                    >
+                      <option value="LOCKSTITCH">LOCKSTITCH (Single Needle / SN)</option>
+                      <option value="OVERLOCK">OVERLOCK (Obras / OL)</option>
+                      <option value="FLATSEAM">FLATSEAM (Coverstitch / FS)</option>
+                      <option value="SPECIAL">SPECIAL (Bartack / Press)</option>
+                      <option value="BUTTON HOLE">BUTTON HOLE (Lubang Kancing)</option>
+                      <option value="BUTTON SET">BUTTON SET (Pasang Kancing)</option>
+                    </select>
                   </div>
+                </div>
 
-                  <div>
-                    <label className="block text-[11px] text-[#788888] mb-1">Flatseam ({t.common.points}):</label>
-                    <input
-                      type="number"
-                      step={1}
-                      min={0}
-                      max={3}
-                      value={formData.flatseam ?? ''}
-                      onChange={(e) => setFormData({ ...formData, flatseam: e.target.value ? Math.min(3, Math.max(0, parseInt(e.target.value, 10))) : null })}
-                      className="w-full bg-[#F8F8F8] border border-[#E0E8E8] rounded-xl px-2.5 py-1.5 text-xs text-[#304848] focus:border-[#2AAFA3] focus:outline-none font-mono"
-                      placeholder="1 - 3"
-                    />
-                  </div>
+                {/* Proses (Kolom J) */}
+                <div>
+                  <label className="block text-[11px] text-[#607070] mb-1 font-semibold">
+                    Nama Proses (Kolom J):
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="BIND 3PLIES ARMHOLE / SEWING"
+                    value={formData.process ?? 'SEWING'}
+                    onChange={(e) => setFormData({ ...formData, process: e.target.value.toUpperCase() })}
+                    className="w-full bg-white border border-[#D0DCDC] rounded-xl px-3 py-2 text-xs font-semibold uppercase text-[#304848] focus:border-[#2AAFA3] focus:outline-none"
+                  />
+                </div>
+              </div>
 
-                  <div>
-                    <label className="block text-[11px] text-[#788888] mb-1">Special / Press ({t.common.points}):</label>
-                    <input
-                      type="number"
-                      step={1}
-                      min={0}
-                      max={3}
-                      value={formData.special ?? ''}
-                      onChange={(e) => setFormData({ ...formData, special: e.target.value ? Math.min(3, Math.max(0, parseInt(e.target.value, 10))) : null })}
-                      className="w-full bg-[#F8F8F8] border border-[#E0E8E8] rounded-xl px-2.5 py-1.5 text-xs text-[#304848] focus:border-[#2AAFA3] focus:outline-none font-mono"
-                      placeholder="1 - 3"
-                    />
-                  </div>
+              {/* POIN EVALUASI MESIN (KOLOM N DATASHEET BY_WORKER) - 0 POIN TETAP 0 */}
+              <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-emerald-950 flex items-center gap-1.5">
+                    <Award className="w-4 h-4 text-emerald-600" />
+                    Poin Evaluasi Mesin (Kolom N):
+                  </h4>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                    (formData.points ?? 0) === 0 
+                      ? 'bg-amber-100 text-amber-900 border-amber-300' 
+                      : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                  }`}>
+                    {(formData.points ?? 0) === 0 ? 'Nilai: 0 Poin (Helper)' : `Nilai: ${formData.points} Poin`}
+                  </span>
+                </div>
 
-                  <div>
-                    <label className="block text-[11px] text-[#788888] mb-1">Button Hole ({t.common.points}):</label>
-                    <input
-                      type="number"
-                      step={1}
-                      min={0}
-                      max={3}
-                      value={formData.buttonHole ?? ''}
-                      onChange={(e) => setFormData({ ...formData, buttonHole: e.target.value ? Math.min(3, Math.max(0, parseInt(e.target.value, 10))) : null })}
-                      className="w-full bg-[#F8F8F8] border border-[#E0E8E8] rounded-xl px-2.5 py-1.5 text-xs text-[#304848] focus:border-[#2AAFA3] focus:outline-none font-mono"
-                      placeholder="1 - 3"
-                    />
-                  </div>
+                {/* Selector 4 Pilihan Cepat: 0, 1, 2, 3 */}
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { pt: 0, label: '0 Poin', desc: 'Helper / 0%' },
+                    { pt: 1, label: '1 Poin', desc: 'Dasar (1-60%)' },
+                    { pt: 2, label: '2 Poin', desc: 'Mahir (61-89%)' },
+                    { pt: 3, label: '3 Poin', desc: 'Spesialis (>90%)' },
+                  ].map((item) => {
+                    const isSelected = (formData.points ?? 0) === item.pt;
+                    return (
+                      <button
+                        key={item.pt}
+                        type="button"
+                        onClick={() => {
+                          setFormData({
+                            ...formData,
+                            points: item.pt,
+                            lockstitch: item.pt === 0 ? 0 : item.pt,
+                            productionRate: item.pt === 0 ? 0 : item.pt === 1 ? 60 : item.pt === 2 ? 80 : 92.44,
+                            meta: item.pt === 0 ? 0 : 844,
+                            production: item.pt === 0 ? 0 : item.pt === 1 ? 506 : item.pt === 2 ? 675 : 781,
+                          });
+                        }}
+                        className={`p-2 rounded-xl text-center border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#2AAFA3] border-[#2AAFA3] text-white shadow-sm font-bold'
+                            : 'bg-white border-emerald-200 text-emerald-900 hover:bg-emerald-100/50'
+                        }`}
+                      >
+                        <div className="text-sm font-extrabold">{item.pt}</div>
+                        <div className="text-[10px] leading-tight opacity-90">{item.desc}</div>
+                      </button>
+                    );
+                  })}
+                </div>
 
-                  <div>
-                    <label className="block text-[11px] text-[#788888] mb-1">Button Set ({t.common.points}):</label>
-                    <input
-                      type="number"
-                      step={1}
-                      min={0}
-                      max={3}
-                      value={formData.buttonSet ?? ''}
-                      onChange={(e) => setFormData({ ...formData, buttonSet: e.target.value ? Math.min(3, Math.max(0, parseInt(e.target.value, 10))) : null })}
-                      className="w-full bg-[#F8F8F8] border border-[#E0E8E8] rounded-xl px-2.5 py-1.5 text-xs text-[#304848] focus:border-[#2AAFA3] focus:outline-none font-mono"
-                      placeholder="1 - 3"
-                    />
-                  </div>
+                {/* Input Angka Langsung (Mendukung ketik '0') */}
+                <div className="pt-1 flex items-center justify-between gap-3">
+                  <label className="text-[11px] text-emerald-900 font-medium">
+                    Atau ketik angka poin langsung (0 s/d 3):
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={3}
+                    step={1}
+                    value={formData.points !== undefined && formData.points !== null ? formData.points : 0}
+                    onChange={(e) => {
+                      const inputStr = e.target.value.trim();
+                      const num = inputStr === '' ? 0 : parseInt(inputStr, 10);
+                      const safeNum = isNaN(num) ? 0 : Math.min(3, Math.max(0, num));
+                      setFormData({
+                        ...formData,
+                        points: safeNum, // Nilai 0 tersimpan sebagai 0
+                        lockstitch: safeNum,
+                        productionRate: safeNum === 0 ? 0 : safeNum === 1 ? 60 : safeNum === 2 ? 80 : 92.44,
+                        meta: safeNum === 0 ? 0 : 844,
+                        production: safeNum === 0 ? 0 : safeNum === 1 ? 506 : safeNum === 2 ? 675 : 781,
+                      });
+                    }}
+                    className="w-20 bg-white border border-emerald-300 rounded-xl px-2.5 py-1.5 text-center text-xs font-bold font-mono text-emerald-950 focus:border-[#2AAFA3] focus:outline-none"
+                  />
                 </div>
               </div>
 
@@ -1286,22 +1518,48 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                       <span>Tanamkan Operator ke Datasheet 'by_worker'</span>
                     </label>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                      Status: ACTIVE
+                      Kolom R: ACTIVE
                     </span>
                   </div>
                   <p className="text-[11px] text-emerald-700 leading-relaxed pl-6">
                     Data operator baru (NIK, Nama, DOJ, Masa Kerja, Pabrik, Line, Poin Mesin, dan Status <strong>ACTIVE</strong>) akan langsung ditanamkan secara permanen ke tab <strong>by_worker</strong> di Google Sheets.
                   </p>
                   
-                  {/* Info baris yang akan ditanamkan */}
-                  {formData.name && (
-                    <div className="mt-2 pl-6 pt-2 border-t border-emerald-200/60 flex flex-wrap gap-2 text-[10px] font-mono text-emerald-800">
-                      <span className="bg-white/80 px-2 py-0.5 rounded border border-emerald-200">NIK: {formData.nik}</span>
-                      <span className="bg-white/80 px-2 py-0.5 rounded border border-emerald-200">{formData.name}</span>
-                      <span className="bg-white/80 px-2 py-0.5 rounded border border-emerald-200">{selectedFactory} - {selectedLine}</span>
-                      <span className="bg-emerald-600 text-white px-2 py-0.5 rounded font-bold">Kolom R: ACTIVE</span>
+                  {/* Pratinjau Baris Lengkap yang akan ditanamkan */}
+                  <div className="mt-2 pl-6 pt-2 border-t border-emerald-200/60 space-y-1.5 text-[11px] font-mono text-emerald-900">
+                    <div className="font-bold text-[10px] text-emerald-800 uppercase tracking-wide">
+                      Pratinjau Format Baris Google Sheets:
                     </div>
-                  )}
+                    <div className="flex flex-wrap gap-1.5 text-[10px]">
+                      <span className="bg-white/90 px-2 py-0.5 rounded border border-emerald-200">
+                        Kolom A (Factory): <strong>{formData.factory ?? formatFactoryForSheet(selectedFactory)}</strong>
+                      </span>
+                      <span className="bg-white/90 px-2 py-0.5 rounded border border-emerald-200">
+                        Kolom B (Line): <strong>{formData.line ?? formatLineForSheet(selectedLine)}</strong>
+                      </span>
+                      <span className="bg-white/90 px-2 py-0.5 rounded border border-emerald-200">
+                        Kolom C (Table): <strong>{formData.tableCode || '1'}</strong>
+                      </span>
+                      <span className="bg-white/90 px-2 py-0.5 rounded border border-emerald-200">
+                        Kolom D (NIK): <strong>{formData.nik || '-'}</strong>
+                      </span>
+                      <span className="bg-white/90 px-2 py-0.5 rounded border border-emerald-200">
+                        Kolom E (Nama): <strong>{formData.name || '-'}</strong>
+                      </span>
+                      <span className="bg-white/90 px-2 py-0.5 rounded border border-emerald-200">
+                        Kolom H (Mesin): <strong>{formData.machineName || '1Needle Lockstitch Auto Trim'}</strong>
+                      </span>
+                      <span className="bg-white/90 px-2 py-0.5 rounded border border-emerald-200">
+                        Kolom I (Style): <strong>{formData.styleNo || 'NB17HQ271140'}</strong>
+                      </span>
+                      <span className="bg-emerald-600 text-white px-2 py-0.5 rounded font-bold">
+                        Kolom N (POIN): {formData.points ?? 0}
+                      </span>
+                      <span className="bg-emerald-700 text-white px-2 py-0.5 rounded font-bold">
+                        Kolom R: ACTIVE
+                      </span>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1319,9 +1577,9 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 </button>
                 <button
                   type="submit"
-                  disabled={isAddModalOpen && (isSearchingDoj || isPlanting || dojLookupStatus !== 'found' || !formData.name || !formData.nik)}
+                  disabled={isAddModalOpen && (isSearchingDoj || isPlanting || (dojLookupStatus !== 'found' && !allowManualInput) || !formData.name || !formData.nik)}
                   className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#2AAFA3] hover:bg-[#208C82] text-white shadow-sm transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
-                  title={isAddModalOpen && dojLookupStatus !== 'found' ? "Cari dan validasi NIK di sheet date_of_join terlebih dahulu" : ""}
+                  title={isAddModalOpen && dojLookupStatus !== 'found' && !allowManualInput ? "Cari dan validasi NIK di sheet date_of_join terlebih dahulu atau aktifkan input manual" : ""}
                 >
                   {isPlanting ? (
                     <>

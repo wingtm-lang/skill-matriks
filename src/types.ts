@@ -44,10 +44,17 @@ export interface Operator {
   
   // Google Sheets by_worker direct columns
   machine?: string; // Kolom H: Machine
+  machineName?: string;
   styleNo?: string; // Kolom I: Style No
   process?: string; // Kolom J: Process
+  tableCode?: string | number; // Kolom C: Table / Style Code (e.g. "19", "1")
+  table?: string | number;
+  meta?: number; // Kolom K: SMV / Target Meta
+  target?: number;
+  production?: number; // Kolom L: Actual Production
+  actual?: number;
   productionRate?: number; // Kolom M: Production Rate (%)
-  points?: number; // Kolom N: POINT (langsung dari Sheets)
+  points?: number; // Kolom N: POINT (langsung dari Sheets, 0, 1, 2, 3)
   workMonth?: number; // Kolom O: Work Month (langsung dari Sheets)
   dateOfResign?: string; // Kolom P: Date of Resign
   machineCategory?: string; // Kolom Q: Machine Category

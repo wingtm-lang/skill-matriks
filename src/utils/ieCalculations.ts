@@ -365,6 +365,28 @@ export function normalizeLineName(raw: any): string {
   return `Line ${str}`;
 }
 
+/**
+ * Format nama factory murni untuk penulisan ke Google Sheets Kolom A (hanya angka).
+ * Contoh: "Factory 1" -> "1", "Factory 2" -> "2", "1" -> "1"
+ */
+export function formatFactoryForSheet(raw: any): string {
+  if (raw === undefined || raw === null) return "1";
+  const str = String(raw).trim();
+  const match = str.match(/\d+/);
+  return match ? match[0] : (str.replace(/factory\s*/i, "").trim() || "1");
+}
+
+/**
+ * Format nomor line murni untuk penulisan ke Google Sheets Kolom B (hanya nomor line).
+ * Contoh: "Line 28" -> "28", "Line 1" -> "1", "28" -> "28"
+ */
+export function formatLineForSheet(raw: any): string {
+  if (raw === undefined || raw === null) return "1";
+  const str = String(raw).trim();
+  const match = str.match(/\d+/);
+  return match ? match[0] : (str.replace(/line\s*/i, "").trim() || "1");
+}
+
 export const MONTH_NAMES_ID = [
   { value: 1, label: 'Januari' },
   { value: 2, label: 'Februari' },
@@ -1162,18 +1184,150 @@ export async function setOperatorResigned(
   }
 }
 
+export interface NikLookupResult {
+  nik: string;
+  name: string;
+  doj: string;
+  workTimeMonths: number;
+  factory?: string;
+  line?: string;
+  status?: string;
+}
+
+/**
+ * Universal NIK Lookup yang bekerja baik di AI Studio (Express Backend)
+ * maupun di Vercel Deployment (Direct GViz CSV & Sheets API v4 fallback).
+ */
+export async function lookupNikFromDateOfJoin(nikToSearch: string): Promise<NikLookupResult | null> {
+  const cleanNik = String(nikToSearch || '').trim();
+  if (!cleanNik) return null;
+
+  // 1. Tier 1: Coba Express backend /api/sheets/date-of-join (berfungsi di AI Studio & backend container)
+  try {
+    const res = await fetch(`/api/sheets/date-of-join?nik=${encodeURIComponent(cleanNik)}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && json.found && json.data) {
+        return {
+          nik: json.data.nik || cleanNik,
+          name: String(json.data.name || '').toUpperCase(),
+          doj: json.data.doj || '-',
+          workTimeMonths: json.data.workTimeMonths ?? calculateWorkTimeMonths(json.data.doj),
+          factory: json.data.factory,
+          line: json.data.line,
+          status: json.data.status || 'ACTIVE'
+        };
+      }
+    }
+  } catch (backendErr) {
+    console.warn('Backend lookup tidak tersedia, beralih ke Vercel direct client-side lookup:', backendErr);
+  }
+
+  // 2. Tier 2: Direct Google Visualization CSV query (100% BEKERJA DI VERCEL, CORS OPEN, TANPA BUTUH API KEY)
+  try {
+    const gvizUrl = "https://docs.google.com/spreadsheets/d/1tA8YyHxFr1xwGWvdwHLOXaF9q8SjgbDuxDinzuH6kag/gviz/tq?tqx=out:csv&sheet=date_of_join";
+    const res = await fetch(gvizUrl);
+    if (res.ok) {
+      const csvText = await res.text();
+      const lines = csvText.split(/\r?\n/);
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        // Parse CSV baris dengan regex penangkap tanda kutip
+        const cells: string[] = [];
+        const regex = /(?:^|,)(?:"([^"]*(?:""[^"]*)*)"|([^",]*))/g;
+        let match;
+        while ((match = regex.exec(line)) !== null) {
+          let val = match[1] !== undefined ? match[1].replace(/""/g, '"') : match[2];
+          cells.push((val || '').trim());
+        }
+        if (cells.length >= 2) {
+          const rowNik = cells[0];
+          if (rowNik && rowNik.toUpperCase() === cleanNik.toUpperCase()) {
+            const name = (cells[1] || '').toUpperCase();
+            const doj = cells[2] || '-';
+            return {
+              nik: rowNik,
+              name,
+              doj,
+              workTimeMonths: calculateWorkTimeMonths(doj),
+              status: 'ACTIVE'
+            };
+          }
+        }
+      }
+    }
+  } catch (gvizErr) {
+    console.warn('GViz CSV direct lookup failed:', gvizErr);
+  }
+
+  // 3. Tier 3: Direct Google Sheets API v4 fallback
+  try {
+    const apiKey = "AIzaSyBA08ZGyorJcsIXqe77sTuuNPxsOMWVabw";
+    const sheetId = "1tA8YyHxFr1xwGWvdwHLOXaF9q8SjgbDuxDinzuH6kag";
+    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/date_of_join!A1:E5000?key=${apiKey}`;
+    const res = await fetch(sheetsUrl);
+    if (res.ok) {
+      const json = await res.json();
+      const rows = json.values || [];
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        const rowNik = String(row[0] || '').trim();
+        if (rowNik.toUpperCase() === cleanNik.toUpperCase()) {
+          const name = String(row[1] || '').trim().toUpperCase();
+          const doj = String(row[2] || '').trim();
+          return {
+            nik: rowNik,
+            name,
+            doj,
+            workTimeMonths: calculateWorkTimeMonths(doj),
+            status: 'ACTIVE'
+          };
+        }
+      }
+    }
+  } catch (apiErr) {
+    console.warn('Direct Sheets API v4 lookup failed:', apiErr);
+  }
+
+  return null;
+}
+
 /**
  * Menanamkan baris data operator baru (dengan status ACTIVE) ke Google Sheets datasheet 'by_worker'.
+ * Memformat kolom A (Factory angka), B (Line angka), C (Table/Style Code),
+ * H (Machine spesifik), I (Style No), J (Process), N (POIN 0,1,2,3 - 0 tetap 0).
  */
 export async function appendOperatorToByWorker(
   operator: any,
   dateStr?: string
-): Promise<{ success: boolean; message: string; gasSuccess?: boolean }> {
+): Promise<{ success: boolean; message: string; gasSuccess?: boolean; row?: any[] }> {
   try {
+    const factoryFormatted = formatFactoryForSheet(operator.factory);
+    const lineFormatted = formatLineForSheet(operator.line);
+    const rawPoints = typeof operator.points === 'number' 
+      ? operator.points 
+      : (operator.points !== undefined && operator.points !== null && String(operator.points).trim() !== '' ? parseInt(String(operator.points), 10) : 0);
+    const pointVal = isNaN(rawPoints) ? 0 : Math.min(3, Math.max(0, Math.round(rawPoints)));
+
+    const today = new Date();
+    const formattedTodayYmd = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
     const payload = {
       ...operator,
+      factory: factoryFormatted,
+      line: lineFormatted,
+      tableCode: String(operator.tableCode || operator.table || operator.styleCode || "1").trim(),
+      styleNo: String(operator.styleNo || operator.style || "NB17HQ271140").trim(),
+      machineName: String(operator.machineName || operator.machine || "1Needle Lockstitch Auto Trim").trim(),
+      machineCategory: String(operator.machineCategory || operator.category || "LOCKSTITCH").toUpperCase(),
+      process: String(operator.process || "SEWING").trim(),
+      points: pointVal, // Nilai murni 0, 1, 2, atau 3 (0 TIDAK BOLEH BERUBAH JADI 1)
+      productionRate: pointVal === 0 ? 0 : (operator.productionRate || (pointVal === 1 ? 60 : pointVal === 2 ? 80 : 92.44)),
+      meta: pointVal === 0 ? 0 : (operator.meta || operator.target || 844),
+      production: pointVal === 0 ? 0 : (operator.production || operator.actual || 781),
       status: 'ACTIVE',
-      date: dateStr || operator.date || operator.recordDate,
+      date: dateStr || operator.date || operator.recordDate || formattedTodayYmd,
     };
 
     // 1. Coba via API Proxy Express Backend

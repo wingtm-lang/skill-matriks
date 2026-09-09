@@ -596,64 +596,74 @@ app.post("/api/sheets/append-by-worker", async (req, res) => {
     const nik = String(operator.nik).trim();
     const name = String(operator.name).trim().toUpperCase();
     const doj = String(operator.doj || "-").trim();
-    const factory = operator.factory || "Factory 1";
-    const line = operator.line || "Line 1";
+    
+    // Format Factory: hanya angka (e.g. "Factory 1" -> "1", "1" -> "1")
+    const rawFac = String(operator.factory || "1").trim();
+    const facMatch = rawFac.match(/\d+/);
+    const factory = facMatch ? facMatch[0] : (rawFac.replace(/factory\s*/i, "").trim() || "1");
+
+    // Format Line: hanya nomor line (e.g. "Line 28" -> "28", "Line 1" -> "1", "28" -> "28")
+    const rawLine = String(operator.line || "1").trim();
+    const lineMatch = rawLine.match(/\d+/);
+    const line = lineMatch ? lineMatch[0] : (rawLine.replace(/line\s*/i, "").trim() || "1");
+
     const status = (operator.status || "ACTIVE").toUpperCase();
     const workMonth = typeof operator.workTimeMonths === "number" 
       ? operator.workTimeMonths 
       : (typeof operator.workMonth === "number" ? operator.workMonth : calculateWorkTimeMonths(doj));
 
     const today = new Date();
-    const formattedToday = `${String(today.getDate()).padStart(2, "0")}-${String(today.getMonth() + 1).padStart(2, "0")}-${today.getFullYear()}`;
-    const dateStr = operator.date || operator.recordDate || formattedToday;
+    const formattedTodayYmd = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const dateStr = operator.date || operator.recordDate || formattedTodayYmd;
 
-    // Kumpulkan baris untuk setiap mesin yang dievaluasi/diberi poin
-    const machineEntries: Array<{ category: string; machineName: string; points: number }> = [];
-    if (operator.lockstitch && operator.lockstitch > 0) {
-      machineEntries.push({ category: "LOCKSTITCH", machineName: "LOCKSTITCH / SN", points: Math.min(3, Math.round(operator.lockstitch)) });
-    }
-    if (operator.overlock && operator.overlock > 0) {
-      machineEntries.push({ category: "OVERLOCK", machineName: "OVERLOCK / OBRAS", points: Math.min(3, Math.round(operator.overlock)) });
-    }
-    if (operator.flatseam && operator.flatseam > 0) {
-      machineEntries.push({ category: "FLATSEAM", machineName: "FLATSEAM / COVERSTITCH", points: Math.min(3, Math.round(operator.flatseam)) });
-    }
-    if (operator.special && operator.special > 0) {
-      machineEntries.push({ category: "SPECIAL", machineName: "SPECIAL MACHINE", points: Math.min(3, Math.round(operator.special)) });
-    }
-    if (operator.buttonHole && operator.buttonHole > 0) {
-      machineEntries.push({ category: "BUTTON HOLE", machineName: "BUTTON HOLE", points: Math.min(3, Math.round(operator.buttonHole)) });
-    }
-    if (operator.buttonSet && operator.buttonSet > 0) {
-      machineEntries.push({ category: "BUTTON SET", machineName: "BUTTON SET", points: Math.min(3, Math.round(operator.buttonSet)) });
-    }
+    // Mesin & Proses spesifik garmen
+    const machineName = String(operator.machineName || operator.machine || "1Needle Lockstitch Auto Trim").trim();
+    const machineCategory = String(operator.machineCategory || operator.category || "LOCKSTITCH").toUpperCase();
+    const styleNo = String(operator.styleNo || operator.style || "NB17HQ271140").trim();
+    const tableCode = String(operator.tableCode || operator.table || operator.styleCode || "1").trim();
+    const process = String(operator.process || "SEWING").trim();
 
-    // Jika belum ada mesin yang dipilih, default 1 baris mesin LOCKSTITCH (1 poin)
-    if (machineEntries.length === 0) {
-      machineEntries.push({ category: "LOCKSTITCH", machineName: "LOCKSTITCH", points: 1 });
+    // Nilai POIN (Mendukung 0, 1, 2, 3 - jika user mengetik 0, harus tetap 0)
+    let rawPoints: number;
+    if (typeof operator.points === "number") {
+      rawPoints = operator.points;
+    } else if (operator.points !== undefined && operator.points !== null && String(operator.points).trim() !== "") {
+      rawPoints = parseInt(String(operator.points), 10);
+    } else if (operator.lockstitch !== undefined && operator.lockstitch !== null) {
+      rawPoints = Number(operator.lockstitch);
+    } else {
+      rawPoints = 0;
     }
+    const pointVal = isNaN(rawPoints) ? 0 : Math.min(3, Math.max(0, Math.round(rawPoints)));
 
-    // Susun baris 18 kolom sesuai datasheet 'by_worker'
-    const rowsToAppend = machineEntries.map((entry) => [
-      factory,                    // Kolom A: Factory
-      line,                       // Kolom B: Line
-      "BASIC",                    // Kolom C: Style
-      dateStr,                    // Kolom D: Date
-      nik,                        // Kolom E: Worker Code
-      name,                       // Kolom F: Worker
-      doj,                        // Kolom G: Date of Join
-      entry.machineName,          // Kolom H: Machine
-      "BASIC",                    // Kolom I: Style No
-      "SEWING",                   // Kolom J: Process
-      0,                          // Kolom K: SMV
-      0,                          // Kolom L: Target
-      100,                        // Kolom M: Production Rate (%)
-      entry.points,               // Kolom N: POINT (1-3)
-      workMonth,                  // Kolom O: Work Month
-      "",                         // Kolom P: Date of Resign
-      entry.category,             // Kolom Q: Machine Category
-      status,                     // Kolom R: Status (ACTIVE)
-    ]);
+    // Production rate: jika poin 0 maka rate 0%, jika poin > 0 berikan nilai rate yang realistis
+    const prodRate = pointVal === 0 ? 0 : Number(operator.productionRate || (pointVal === 1 ? 60 : pointVal === 2 ? 80 : 92.44));
+    const targetMeta = pointVal === 0 ? 0 : Number(operator.meta || operator.target || 844);
+    const actualProd = pointVal === 0 ? 0 : Number(operator.production || operator.actual || Math.round(targetMeta * (prodRate / 100)));
+
+    // Susun baris 18 kolom sesuai datasheet asli 'by_worker'
+    const rowsToAppend = [
+      [
+        factory,                    // Kolom A: Factory ("1")
+        line,                       // Kolom B: Line ("28" atau "1")
+        tableCode,                  // Kolom C: Table / Style Code ("19" atau "1")
+        dateStr,                    // Kolom D: Date ("2026-09-08" atau YYYY-MM-DD)
+        nik,                        // Kolom E: Worker Code ("25092882")
+        name,                       // Kolom F: Worker ("M. FAUZIL ADZIM")
+        doj,                        // Kolom G: Date of Join ("11-09-2025")
+        machineName,                // Kolom H: Machine ("2Needle Flat Seam Auto Trim")
+        styleNo,                    // Kolom I: Style No ("NB17HQ271140")
+        process,                    // Kolom J: Process ("BIND 3PLIES ARMHOLE")
+        targetMeta,                 // Kolom K: SMV / Target Meta (844 atau 0)
+        actualProd,                 // Kolom L: Actual Production (781 atau 0)
+        prodRate,                   // Kolom M: Production Rate (%) (92.44 atau 0)
+        pointVal,                   // Kolom N: POINT (0, 1, 2, atau 3 - KETIKA KETIK 0 TETAP 0)
+        workMonth,                  // Kolom O: Work Month (11 atau 57)
+        "",                         // Kolom P: Date of Resign
+        machineCategory,            // Kolom Q: Machine Category ("FLATSEAM (COVERS" atau "LOCKSTITCH")
+        status,                     // Kolom R: Status ("ACTIVE")
+      ]
+    ];
 
     // Kirim data ke Google Apps Script Web App untuk ditanamkan ke sheet 'by_worker'
     const gasUrls = [
@@ -680,7 +690,12 @@ app.post("/api/sheets/append-by-worker", async (req, res) => {
               workMonth,
               status,
               date: dateStr,
-              machines: machineEntries,
+              machineName,
+              machineCategory,
+              points: pointVal,
+              styleNo,
+              tableCode,
+              process,
               rows: rowsToAppend,
             },
           }),
