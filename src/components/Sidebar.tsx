@@ -4,7 +4,6 @@ import {
   Sparkles, 
   Target, 
   BotMessageSquare, 
-  FileSpreadsheet,
   Building2,
   X,
   Layers,
@@ -63,12 +62,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: t.sidebar.navChat,
       sublabel: t.sidebar.navChatSub,
       icon: BotMessageSquare,
-    },
-    {
-      id: 'sheets',
-      label: t.sidebar.navSheets,
-      sublabel: t.sidebar.navSheetsSub,
-      icon: FileSpreadsheet,
     },
   ];
 

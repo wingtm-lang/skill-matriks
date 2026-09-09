@@ -6,7 +6,6 @@ import { SkillMatrixTab } from './components/SkillMatrixTab';
 import { LineBalancingTab } from './components/LineBalancingTab';
 import { MultiSkillDevelopmentTab } from './components/MultiSkillDevelopmentTab';
 import { IEChatAssistantTab } from './components/IEChatAssistantTab';
-import { GoogleSheetsTab } from './components/GoogleSheetsTab';
 import { INITIAL_STYLES, FACTORIES, LINES } from './data/mockData';
 import { Operator, GarmentStyle } from './types';
 import { 
@@ -373,94 +372,6 @@ export default function App() {
               styles={styles}
               selectedLine={selectedLine}
               selectedFactory={selectedFactory}
-            />
-          )}
-
-          {activeTab === 'sheets' && (
-            <GoogleSheetsTab
-              operators={displayedOperators}
-              selectedFactory={selectedFactory}
-              selectedLine={selectedLine}
-              userRole={userRole}
-              onSyncOperators={(newOps) => {
-                if (!Array.isArray(newOps)) return;
-                const normalizedOps = newOps.map((op: any, idx: number) => {
-                  if (Array.isArray(op)) {
-                    const rawProdRate = Number(op[12] || 0);
-                    const rawPoints = parseFloat(String(op[13] || "").replace(',', '.').replace(/[^0-9.]/g, '').trim()) || 0;
-                    const pointVal = rawPoints > 0 ? Math.min(3, Math.max(1, Math.round(rawPoints))) : 0;
-                    const rawCat = String(op[16] || "").toUpperCase();
-                    const rawMachineName = String(op[7] || "").toUpperCase();
-
-                    const isLockstitch = rawCat.includes("LOCKSTITCH") || rawCat.includes("SN") || rawCat.includes("SINGLE NEEDLE") ||
-                      (!rawCat && (rawMachineName.includes("LOCKSTITCH") || rawMachineName.includes("1NEEDLE") || rawMachineName.includes("SN")));
-
-                    const isOverlock = rawCat.includes("OVERLOCK") || rawCat.includes("OL") || rawCat.includes("OBRAS") ||
-                      (!rawCat && (rawMachineName.includes("OVERLOCK") || rawMachineName.includes("OBRAS") || rawMachineName.includes("2NEEDLE OVERLOCK")));
-
-                    const isFlatseam = rawCat.includes("FLATSEAM") || rawCat.includes("COVERSTITCH") || rawCat.includes("FS") || rawCat.includes("KAM") ||
-                      (!rawCat && (rawMachineName.includes("FLAT SEAM") || rawMachineName.includes("COVERSTITCH") || rawMachineName.includes("FLATSEAM")));
-
-                    const isSpecial = rawCat.includes("SPECIAL") || rawCat.includes("SP") || rawCat.includes("PRESS") || rawCat.includes("OTOMATIS") ||
-                      (!rawCat && (rawMachineName.includes("PRESS") || rawMachineName.includes("HEAT TRANSFER") || rawMachineName.includes("SPECIAL")));
-
-                    const isButtonHole = rawCat.includes("BUTTON HOLE") || rawCat.includes("BUTTON_HOLE") || rawCat.includes("BH") || rawCat.includes("LUBANG KANCING") ||
-                      (!rawCat && (rawMachineName.includes("BUTTON HOLE") || rawMachineName.includes("LUBANG KANCING")));
-
-                    const isButtonSet = rawCat.includes("BUTTON SET") || rawCat.includes("BUTTON_SET") || rawCat.includes("BS") || rawCat.includes("PASANG KANCING") ||
-                      (!rawCat && (rawMachineName.includes("BUTTON SET") || rawMachineName.includes("PASANG KANCING")));
-
-                    const isChainstitch = rawCat.includes("CHAINSTITCH") || rawCat.includes("CS") || rawCat.includes("KANSAI") ||
-                      (!rawCat && (rawMachineName.includes("CHAINSTITCH") || rawMachineName.includes("KANSAI") || rawMachineName.includes("CHAIN STITCH")));
-
-                    const isBartack = rawCat.includes("BARTACK") || rawCat.includes("BT") || rawCat.includes("BAR TACK") ||
-                      (!rawCat && (rawMachineName.includes("BARTACK") || rawMachineName.includes("BAR TACK")));
-
-                    const rawDate = op[3] || "";
-                    const rowDateStr = rawDate ? String(rawDate).trim() : "";
-                    return {
-                      id: String(op[4] || idx), // Kolom E: Worker Code
-                      no: idx + 1,
-                      factory: normalizeFactoryName(String(op[0] || "1")), // Kolom A: Factory
-                      line: normalizeLineName(String(op[1] || "1")), // Kolom B: Line
-                      nik: String(op[4] || ""), // Kolom E: Worker Code
-                      name: String(op[5] || "Unknown"), // Kolom F: Worker
-                      date: rowDateStr,
-                      recordDate: rowDateStr,
-                      machine: String(op[7] || ""), // Kolom H: Machine
-                      styleNo: String(op[8] || ""), // Kolom I: Style No
-                      process: String(op[9] || ""), // Kolom J: Process
-                      productionRate: Number(op[12] || 0), // Kolom M: Production Rate (%)
-                      points: pointVal, // Kolom N: POINT (maksimal 3 per mesin)
-                      workMonth: Number(op[14] || 1), // Kolom O: Work Month (langsung dari Sheets)
-                      dateOfResign: String(op[15] || ""), // Kolom P: Date of Resign
-                      machineCategory: rawCat, // Kolom Q: Machine Category
-                      status: String(op[17] || "ACTIVE"), // Kolom R: Status
-
-                      // Kompatibilitas dengan fitur Skill Matrix & Line Balancing
-                      doj: String(op[6] || "-"),
-                      workTimeMonths: Number(op[14] || 1),
-                      resignDate: op[15] ? String(op[15]) : null,
-                      lockstitch: isLockstitch ? (pointVal > 0 ? pointVal : null) : (!rawCat && !rawMachineName && pointVal > 0 ? pointVal : null),
-                      overlock: isOverlock ? (pointVal > 0 ? pointVal : null) : null,
-                      flatseam: isFlatseam ? (pointVal > 0 ? pointVal : null) : null,
-                      special: isSpecial ? (pointVal > 0 ? pointVal : null) : null,
-                      buttonHole: isButtonHole ? (pointVal > 0 ? pointVal : null) : null,
-                      buttonSet: isButtonSet ? (pointVal > 0 ? pointVal : null) : null,
-                      chainstitch: isChainstitch ? (pointVal > 0 ? pointVal : null) : null,
-                      bartack: isBartack ? (pointVal > 0 ? pointVal : null) : null,
-                    };
-                  }
-                  return {
-                    ...op,
-                    factory: normalizeFactoryName(op.factory),
-                    line: normalizeLineName(op.line),
-                    status: op.status || 'ACTIVE'
-                  };
-                });
-                setOperators(normalizedOps);
-                setIsLiveFromSheets(true);
-              }}
             />
           )}
         </div>

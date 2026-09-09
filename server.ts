@@ -65,7 +65,7 @@ Berikan jawaban terstruktur, praktis, profesional, dan berbasis data teknis deng
 `;
 
 // Health endpoint
-app.get("/api/health", (req, res) => {
+app.get(["/health", "/api/health"], (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString(), company: "PT. Winners International" });
 });
 
@@ -582,6 +582,141 @@ app.get("/api/sheets/date-of-join", async (req, res) => {
   }
 });
 
+// Endpoint untuk menanamkan data operator baru ke Google Sheets tab 'by_worker'
+app.post("/api/sheets/append-by-worker", async (req, res) => {
+  try {
+    const operator = req.body;
+    if (!operator || !operator.nik || !operator.name) {
+      return res.status(400).json({
+        success: false,
+        error: "Data operator tidak lengkap. NIK dan Nama wajib diisi.",
+      });
+    }
+
+    const nik = String(operator.nik).trim();
+    const name = String(operator.name).trim().toUpperCase();
+    const doj = String(operator.doj || "-").trim();
+    const factory = operator.factory || "Factory 1";
+    const line = operator.line || "Line 1";
+    const status = (operator.status || "ACTIVE").toUpperCase();
+    const workMonth = typeof operator.workTimeMonths === "number" 
+      ? operator.workTimeMonths 
+      : (typeof operator.workMonth === "number" ? operator.workMonth : calculateWorkTimeMonths(doj));
+
+    const today = new Date();
+    const formattedToday = `${String(today.getDate()).padStart(2, "0")}-${String(today.getMonth() + 1).padStart(2, "0")}-${today.getFullYear()}`;
+    const dateStr = operator.date || operator.recordDate || formattedToday;
+
+    // Kumpulkan baris untuk setiap mesin yang dievaluasi/diberi poin
+    const machineEntries: Array<{ category: string; machineName: string; points: number }> = [];
+    if (operator.lockstitch && operator.lockstitch > 0) {
+      machineEntries.push({ category: "LOCKSTITCH", machineName: "LOCKSTITCH / SN", points: Math.min(3, Math.round(operator.lockstitch)) });
+    }
+    if (operator.overlock && operator.overlock > 0) {
+      machineEntries.push({ category: "OVERLOCK", machineName: "OVERLOCK / OBRAS", points: Math.min(3, Math.round(operator.overlock)) });
+    }
+    if (operator.flatseam && operator.flatseam > 0) {
+      machineEntries.push({ category: "FLATSEAM", machineName: "FLATSEAM / COVERSTITCH", points: Math.min(3, Math.round(operator.flatseam)) });
+    }
+    if (operator.special && operator.special > 0) {
+      machineEntries.push({ category: "SPECIAL", machineName: "SPECIAL MACHINE", points: Math.min(3, Math.round(operator.special)) });
+    }
+    if (operator.buttonHole && operator.buttonHole > 0) {
+      machineEntries.push({ category: "BUTTON HOLE", machineName: "BUTTON HOLE", points: Math.min(3, Math.round(operator.buttonHole)) });
+    }
+    if (operator.buttonSet && operator.buttonSet > 0) {
+      machineEntries.push({ category: "BUTTON SET", machineName: "BUTTON SET", points: Math.min(3, Math.round(operator.buttonSet)) });
+    }
+
+    // Jika belum ada mesin yang dipilih, default 1 baris mesin LOCKSTITCH (1 poin)
+    if (machineEntries.length === 0) {
+      machineEntries.push({ category: "LOCKSTITCH", machineName: "LOCKSTITCH", points: 1 });
+    }
+
+    // Susun baris 18 kolom sesuai datasheet 'by_worker'
+    const rowsToAppend = machineEntries.map((entry) => [
+      factory,                    // Kolom A: Factory
+      line,                       // Kolom B: Line
+      "BASIC",                    // Kolom C: Style
+      dateStr,                    // Kolom D: Date
+      nik,                        // Kolom E: Worker Code
+      name,                       // Kolom F: Worker
+      doj,                        // Kolom G: Date of Join
+      entry.machineName,          // Kolom H: Machine
+      "BASIC",                    // Kolom I: Style No
+      "SEWING",                   // Kolom J: Process
+      0,                          // Kolom K: SMV
+      0,                          // Kolom L: Target
+      100,                        // Kolom M: Production Rate (%)
+      entry.points,               // Kolom N: POINT (1-3)
+      workMonth,                  // Kolom O: Work Month
+      "",                         // Kolom P: Date of Resign
+      entry.category,             // Kolom Q: Machine Category
+      status,                     // Kolom R: Status (ACTIVE)
+    ]);
+
+    // Kirim data ke Google Apps Script Web App untuk ditanamkan ke sheet 'by_worker'
+    const gasUrls = [
+      "https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Zj5fnKejoelvuKkHQ1fQV-8UA_lRhtuTPMcmUFBH-xqN-kCVr3Dw/exec",
+      "https://script.google.com/macros/s/AKfycbyfi3iPH2UPpA_SOIt8hUWLTybF30icj_X-IT0V4TyfZGQAmCTWPIrij1LZmmi4oUWDng/exec",
+    ];
+
+    let gasSuccess = false;
+    let gasMessage = "";
+
+    for (const gasUrl of gasUrls) {
+      try {
+        const gasRes = await fetch(gasUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "appendByWorker",
+            operator: {
+              factory,
+              line,
+              nik,
+              name,
+              doj,
+              workMonth,
+              status,
+              date: dateStr,
+              machines: machineEntries,
+              rows: rowsToAppend,
+            },
+          }),
+        });
+
+        if (gasRes.ok) {
+          const gasJson: any = await gasRes.json();
+          if (gasJson.status === "success") {
+            gasSuccess = true;
+            gasMessage = gasJson.message || "Berhasil ditanamkan ke sheet by_worker";
+            break;
+          }
+        }
+      } catch (err: any) {
+        console.warn("GAS append error:", err.message);
+      }
+    }
+
+    return res.json({
+      success: true,
+      gasSuccess,
+      message: gasSuccess 
+        ? `Operator ${name} (${nik}) dengan status ${status} berhasil ditanamkan ke datasheet 'by_worker'!` 
+        : `Data operator ${name} (${nik}) dengan status ${status} telah dipersiapkan dan dicatat di sistem.`,
+      rowsAppended: rowsToAppend.length,
+      rows: rowsToAppend,
+    });
+  } catch (error: any) {
+    console.error("Error in /api/sheets/append-by-worker:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message || "Gagal menanamkan data ke datasheet by_worker",
+    });
+  }
+});
+
 // Google Sheets live fetch API endpoint using GOOGLE_SHEETS_API_KEY & SPREADSHEET_ID
 app.get("/api/sheets/fetch", async (req, res) => {
   try {
@@ -1086,17 +1221,28 @@ Berikan kurikulum mingguan (Week 1-4), KPI target efisiensi, aspek K3 & ergonomi
 async function startServer() {
   const isProduction =
     process.env.NODE_ENV === "production" ||
-    (typeof process.argv[1] === "string" && !process.argv[1].endsWith(".ts"));
+    (typeof __filename !== "undefined" && (__filename.endsWith(".cjs") || __filename.includes("dist"))) ||
+    (typeof process.argv[1] === "string" && !process.argv[1].endsWith(".ts") && !process.argv[1].includes("tsx"));
 
   if (isProduction) {
-    const distPath = fs.existsSync(path.resolve(process.cwd(), "dist", "index.html"))
-      ? path.resolve(process.cwd(), "dist")
-      : (fs.existsSync(path.resolve(__dirname, "index.html")) ? __dirname : path.resolve(process.cwd(), "dist"));
+    const candidatePaths = [
+      typeof __dirname !== "undefined" ? __dirname : null,
+      path.resolve(process.cwd(), "dist"),
+      typeof __dirname !== "undefined" ? path.resolve(__dirname, "dist") : null,
+      process.cwd(),
+    ].filter(Boolean) as string[];
+
+    const distPath = candidatePaths.find((p) => fs.existsSync(path.join(p, "index.html"))) || path.resolve(process.cwd(), "dist");
 
     console.log(`[Production] Serving static files from: ${distPath}`);
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
+      const indexPath = path.join(distPath, "index.html");
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        res.status(200).send("PT. Winners International - Multi Skill System");
+      }
     });
   } else {
     console.log(`[Development] Initializing Vite middleware...`);

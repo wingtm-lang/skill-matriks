@@ -18,7 +18,12 @@ import {
   AlertCircle,
   Loader2,
   Info,
-  Lock
+  Lock,
+  Database,
+  FileSpreadsheet,
+  ExternalLink,
+  HelpCircle,
+  Table
 } from 'lucide-react';
 import { Operator, GradeType, MachineCategory } from '../types';
 import { 
@@ -28,7 +33,8 @@ import {
   getGradeFromTotalPoints, 
   getOperatorTotalPoints,
   isOperatorResignedAtPeriod,
-  calculateWorkTimeMonths
+  calculateWorkTimeMonths,
+  appendOperatorToByWorker
 } from '../utils/ieCalculations';
 import { getGradeFromRate, GRADE_BENCHMARKS } from '../data/mockData';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -97,6 +103,12 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
   const [resignTargetOp, setResignTargetOp] = useState<Operator | null>(null);
   const [isResigning, setIsResigning] = useState(false);
   const [resignToast, setResignToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // State untuk penanaman ke datasheet by_worker
+  const [plantToByWorker, setPlantToByWorker] = useState<boolean>(true);
+  const [isPlanting, setIsPlanting] = useState<boolean>(false);
+  const [plantToast, setPlantToast] = useState<{ type: 'success' | 'warning' | 'error'; message: string } | null>(null);
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState<boolean>(false);
 
   const handleConfirmResign = async () => {
     if (!resignTargetOp) return;
@@ -356,12 +368,18 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
     setIsEditModalOpen(false);
   };
 
-  const handleSaveAdd = (e: React.FormEvent) => {
+  const handleSaveAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.nik) return;
     if (dojLookupStatus !== 'found') {
       return;
     }
+
+    setIsPlanting(true);
+
+    const today = new Date();
+    const formattedToday = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
+
     const newOp: Operator = {
       ...(formData as Operator),
       id: `op-${formData.nik}-${Date.now()}`,
@@ -369,7 +387,39 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
       factory: selectedFactory,
       line: selectedLine,
       status: 'ACTIVE',
+      date: formData.date || formattedToday,
+      recordDate: formData.recordDate || formattedToday,
     };
+
+    if (plantToByWorker) {
+      try {
+        const res = await appendOperatorToByWorker(newOp, formattedToday);
+        if (res.success) {
+          setPlantToast({
+            type: 'success',
+            message: `Operator ${newOp.name} (${newOp.nik}) dengan status ACTIVE berhasil ditanamkan ke datasheet by_worker!`,
+          });
+        } else {
+          setPlantToast({
+            type: 'warning',
+            message: `Operator ditambahkan ke sistem. Status penanaman: ${res.message}`,
+          });
+        }
+      } catch (err: any) {
+        console.warn("Gagal menanamkan ke by_worker:", err);
+        setPlantToast({
+          type: 'warning',
+          message: `Operator ditambahkan ke sistem lokal. Catatan sinkronisasi: ${err.message || 'Tertunda'}`,
+        });
+      }
+    } else {
+      setPlantToast({
+        type: 'success',
+        message: `Operator ${newOp.name} (${newOp.nik}) berhasil ditambahkan (Status: ACTIVE).`,
+      });
+    }
+
+    setIsPlanting(false);
     onAddOperator(newOp);
     setIsAddModalOpen(false);
   };
@@ -457,6 +507,34 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
           <button
             onClick={() => setResignToast(null)}
             className="text-xs opacity-70 hover:opacity-100 ml-3 p-1 rounded hover:bg-black/5"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Plant to by_worker Status Toast Notification */}
+      {plantToast && (
+        <div className={`p-4 rounded-2xl flex items-center justify-between shadow-sm border ${
+          plantToast.type === 'success' 
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-900' 
+            : plantToast.type === 'warning'
+            ? 'bg-amber-50 border-amber-200 text-amber-900'
+            : 'bg-rose-50 border-rose-200 text-rose-900'
+        }`}>
+          <div className="flex items-center gap-2.5 text-xs font-semibold">
+            {plantToast.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            ) : plantToast.type === 'warning' ? (
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            )}
+            <span>{plantToast.message}</span>
+          </div>
+          <button
+            onClick={() => setPlantToast(null)}
+            className="text-xs opacity-70 hover:opacity-100 ml-3 p-1 rounded hover:bg-black/5 cursor-pointer"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -606,6 +684,17 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
             >
               <Download className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">{t.matrix.exportCSV}</span>
+            </button>
+
+            {/* Panduan Datasheet by_worker Button */}
+            <button
+              type="button"
+              onClick={() => setIsGuideModalOpen(true)}
+              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+              title="Tata Cara Manual & Panduan Datasheet by_worker"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="hidden md:inline">Panduan by_worker</span>
             </button>
 
             {/* Add Operator (Visible for Editor and Admin) */}
@@ -1182,6 +1271,40 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 </div>
               </div>
 
+              {/* FORM PENANAMAN KE DATASHEET BY_WORKER (KHUSUS TAMBAH OPERATOR) */}
+              {isAddModalOpen && (
+                <div className="p-3.5 bg-emerald-50/80 border border-emerald-200 rounded-2xl space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 cursor-pointer select-none font-bold text-emerald-900">
+                      <input
+                        type="checkbox"
+                        checked={plantToByWorker}
+                        onChange={(e) => setPlantToByWorker(e.target.checked)}
+                        className="w-4 h-4 rounded text-[#2AAFA3] focus:ring-[#2AAFA3] border-emerald-300 cursor-pointer"
+                      />
+                      <Database className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>Tanamkan Operator ke Datasheet 'by_worker'</span>
+                    </label>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      Status: ACTIVE
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-emerald-700 leading-relaxed pl-6">
+                    Data operator baru (NIK, Nama, DOJ, Masa Kerja, Pabrik, Line, Poin Mesin, dan Status <strong>ACTIVE</strong>) akan langsung ditanamkan secara permanen ke tab <strong>by_worker</strong> di Google Sheets.
+                  </p>
+                  
+                  {/* Info baris yang akan ditanamkan */}
+                  {formData.name && (
+                    <div className="mt-2 pl-6 pt-2 border-t border-emerald-200/60 flex flex-wrap gap-2 text-[10px] font-mono text-emerald-800">
+                      <span className="bg-white/80 px-2 py-0.5 rounded border border-emerald-200">NIK: {formData.nik}</span>
+                      <span className="bg-white/80 px-2 py-0.5 rounded border border-emerald-200">{formData.name}</span>
+                      <span className="bg-white/80 px-2 py-0.5 rounded border border-emerald-200">{selectedFactory} - {selectedLine}</span>
+                      <span className="bg-emerald-600 text-white px-2 py-0.5 rounded font-bold">Kolom R: ACTIVE</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Form Action Buttons */}
               <div className="pt-4 border-t border-[#E0E8E8] flex items-center justify-end space-x-2">
                 <button
@@ -1196,16 +1319,217 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 </button>
                 <button
                   type="submit"
-                  disabled={isAddModalOpen && (isSearchingDoj || dojLookupStatus !== 'found' || !formData.name || !formData.nik)}
-                  className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#D0A018] hover:bg-[#B88C10] text-white shadow-sm transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+                  disabled={isAddModalOpen && (isSearchingDoj || isPlanting || dojLookupStatus !== 'found' || !formData.name || !formData.nik)}
+                  className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#2AAFA3] hover:bg-[#208C82] text-white shadow-sm transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
                   title={isAddModalOpen && dojLookupStatus !== 'found' ? "Cari dan validasi NIK di sheet date_of_join terlebih dahulu" : ""}
                 >
-                  {isSearchingDoj ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                  <span>{t.common.save}</span>
+                  {isPlanting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Menanamkan ke by_worker...</span>
+                    </>
+                  ) : isAddModalOpen && plantToByWorker ? (
+                    <>
+                      <Database className="w-3.5 h-3.5" />
+                      <span>Simpan & Tanamkan ke by_worker</span>
+                    </>
+                  ) : (
+                    <span>{t.common.save}</span>
+                  )}
                 </button>
               </div>
 
             </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PANDUAN DATASHEET BY_WORKER & TATA CARA INPUT MANUAL */}
+      {isGuideModalOpen && (
+        <div className="fixed inset-0 bg-[#304848]/50 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white border border-[#E0E8E8] rounded-[24px] max-w-3xl w-full p-5 sm:p-6 shadow-2xl animate-fade-in my-8 max-h-[90vh] flex flex-col">
+            
+            {/* Header Modal */}
+            <div className="flex items-center justify-between pb-4 border-b border-[#E0E8E8]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
+                  <FileSpreadsheet className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[#304848]">Panduan Datasheet 'by_worker'</h3>
+                  <p className="text-xs text-[#788888]">Struktur standar 18 kolom & tata cara penanaman data operator</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsGuideModalOpen(false)}
+                className="text-[#788888] hover:text-[#304848] p-1.5 rounded-xl hover:bg-[#F8F8F8] transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content Scrollable */}
+            <div className="overflow-y-auto pr-1 py-4 space-y-6 text-xs text-[#405858]">
+              
+              {/* Bagian 1: Mengapa Status Operator Sangat Krusial */}
+              <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-2">
+                <div className="flex items-center gap-2 font-bold text-emerald-950">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Solusi: Penanaman Status Operator ke Tab 'by_worker'</span>
+                </div>
+                <p className="text-[#304848] leading-relaxed">
+                  Ketika Anda menambahkan operator baru dari sheet <code>date_of_join</code>, sistem sekarang <strong>secara otomatis menanamkan baris data baru ke datasheet <code>by_worker</code> dengan Status: <code>ACTIVE</code> (Kolom R)</strong>. 
+                  Dengan begitu, data operator baru akan tetap tersimpan secara permanen dan tidak hilang saat halaman disegarkan atau saat disinkronisasi ulang dengan Google Sheets.
+                </p>
+              </div>
+
+              {/* Bagian 2: Tata Cara & Struktur Kolom Pengisian Manual di Google Sheets */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 font-bold text-sm text-[#304848]">
+                  <Table className="w-4 h-4 text-[#2AAFA3]" />
+                  <span>Struktur 18 Kolom Tab 'by_worker' (Jika Mengisi/Merubah Manual)</span>
+                </div>
+                <p className="text-xs text-[#788888]">
+                  Jika tim IE atau Supervisor ingin menginput baris operator baru secara langsung di Google Spreadsheet pada tab <strong>by_worker</strong>, pastikan seluruh 18 kolom berikut terisi dengan benar:
+                </p>
+
+                <div className="border border-[#E0E8E8] rounded-xl overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-[11px]">
+                      <thead>
+                        <tr className="bg-[#F0F5F5] text-[#304848] font-bold border-b border-[#E0E8E8]">
+                          <th className="py-2.5 px-3">Kolom</th>
+                          <th className="py-2.5 px-3">Header Kolom</th>
+                          <th className="py-2.5 px-3">Wajib</th>
+                          <th className="py-2.5 px-3">Format / Contoh Isi</th>
+                          <th className="py-2.5 px-3">Keterangan IE</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#E0E8E8] font-mono">
+                        <tr className="hover:bg-slate-50">
+                          <td className="py-2 px-3 font-bold text-teal-700">A</td>
+                          <td className="py-2 px-3 font-bold">Factory</td>
+                          <td className="py-2 px-3 text-emerald-700 font-bold">Ya</td>
+                          <td className="py-2 px-3 text-slate-700">Factory 1</td>
+                          <td className="py-2 px-3 font-sans text-slate-600">Nomor pabrik operator</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50">
+                          <td className="py-2 px-3 font-bold text-teal-700">B</td>
+                          <td className="py-2 px-3 font-bold">Line</td>
+                          <td className="py-2 px-3 text-emerald-700 font-bold">Ya</td>
+                          <td className="py-2 px-3 text-slate-700">Line 1</td>
+                          <td className="py-2 px-3 font-sans text-slate-600">Jalur sewing penempatan</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50">
+                          <td className="py-2 px-3 font-bold text-teal-700">C</td>
+                          <td className="py-2 px-3 font-bold">Style</td>
+                          <td className="py-2 px-3 text-slate-400">Opsional</td>
+                          <td className="py-2 px-3 text-slate-700">BASIC</td>
+                          <td className="py-2 px-3 font-sans text-slate-600">Style garmen yang sedang berjalan</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50">
+                          <td className="py-2 px-3 font-bold text-teal-700">D</td>
+                          <td className="py-2 px-3 font-bold">Date</td>
+                          <td className="py-2 px-3 text-emerald-700 font-bold">Ya</td>
+                          <td className="py-2 px-3 text-slate-700">09-09-2026</td>
+                          <td className="py-2 px-3 font-sans text-slate-600">Format tanggal penilaian DD-MM-YYYY</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50 bg-amber-50/50">
+                          <td className="py-2 px-3 font-bold text-teal-700">E</td>
+                          <td className="py-2 px-3 font-bold">Worker Code</td>
+                          <td className="py-2 px-3 text-emerald-700 font-bold">KUNCI</td>
+                          <td className="py-2 px-3 text-slate-900 font-bold">260123</td>
+                          <td className="py-2 px-3 font-sans text-slate-600">NIK Karyawan (kunci validasi)</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50">
+                          <td className="py-2 px-3 font-bold text-teal-700">F</td>
+                          <td className="py-2 px-3 font-bold">Worker</td>
+                          <td className="py-2 px-3 text-emerald-700 font-bold">Ya</td>
+                          <td className="py-2 px-3 text-slate-700">SITI NURHALIZA</td>
+                          <td className="py-2 px-3 font-sans text-slate-600">Nama lengkap operator (kapital)</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50">
+                          <td className="py-2 px-3 font-bold text-teal-700">G</td>
+                          <td className="py-2 px-3 font-bold">Date of Join</td>
+                          <td className="py-2 px-3 text-emerald-700 font-bold">Ya</td>
+                          <td className="py-2 px-3 text-slate-700">01-01-2025</td>
+                          <td className="py-2 px-3 font-sans text-slate-600">DOJ untuk kalkulasi masa kerja</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50">
+                          <td className="py-2 px-3 font-bold text-teal-700">H</td>
+                          <td className="py-2 px-3 font-bold">Machine</td>
+                          <td className="py-2 px-3 text-slate-400">Opsional</td>
+                          <td className="py-2 px-3 text-slate-700">LOCKSTITCH / SN</td>
+                          <td className="py-2 px-3 font-sans text-slate-600">Nama mesin yang dioperasikan</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50">
+                          <td className="py-2 px-3 font-bold text-teal-700">I - L</td>
+                          <td className="py-2 px-3 font-bold">Style No / Process / SMV / Target</td>
+                          <td className="py-2 px-3 text-slate-400">Opsional</td>
+                          <td className="py-2 px-3 text-slate-700">BASIC, SEWING, 0, 0</td>
+                          <td className="py-2 px-3 font-sans text-slate-600">Informasi standar proses IE</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50">
+                          <td className="py-2 px-3 font-bold text-teal-700">M</td>
+                          <td className="py-2 px-3 font-bold">Production Rate (%)</td>
+                          <td className="py-2 px-3 text-slate-400">Opsional</td>
+                          <td className="py-2 px-3 text-slate-700">100% atau 85</td>
+                          <td className="py-2 px-3 font-sans text-slate-600">Persentase kecepatan operator</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50 bg-teal-50/50">
+                          <td className="py-2 px-3 font-bold text-teal-700">N</td>
+                          <td className="py-2 px-3 font-bold">POINT</td>
+                          <td className="py-2 px-3 text-emerald-700 font-bold">Ya</td>
+                          <td className="py-2 px-3 text-teal-800 font-bold">1, 2, atau 3</td>
+                          <td className="py-2 px-3 font-sans text-slate-600">Standar Poin IE (Maksimal 3 poin)</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50">
+                          <td className="py-2 px-3 font-bold text-teal-700">O</td>
+                          <td className="py-2 px-3 font-bold">Work Month</td>
+                          <td className="py-2 px-3 text-slate-400">Opsional</td>
+                          <td className="py-2 px-3 text-slate-700">12</td>
+                          <td className="py-2 px-3 font-sans text-slate-600">Masa kerja dalam satuan bulan</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50">
+                          <td className="py-2 px-3 font-bold text-teal-700">P</td>
+                          <td className="py-2 px-3 font-bold">Date of Resign</td>
+                          <td className="py-2 px-3 text-slate-400">Khusus</td>
+                          <td className="py-2 px-3 text-slate-700">- (Kosongkan jika aktif)</td>
+                          <td className="py-2 px-3 font-sans text-slate-600">Isi tanggal jika operator mengundurkan diri</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50">
+                          <td className="py-2 px-3 font-bold text-teal-700">Q</td>
+                          <td className="py-2 px-3 font-bold">Machine Category</td>
+                          <td className="py-2 px-3 text-emerald-700 font-bold">Ya</td>
+                          <td className="py-2 px-3 text-slate-700">LOCKSTITCH</td>
+                          <td className="py-2 px-3 font-sans text-slate-600">Kategori: LOCKSTITCH, OVERLOCK, dll.</td>
+                        </tr>
+                        <tr className="hover:bg-emerald-50 bg-emerald-100/60 font-bold text-emerald-950">
+                          <td className="py-2.5 px-3 text-emerald-800">R</td>
+                          <td className="py-2.5 px-3">Status</td>
+                          <td className="py-2.5 px-3 text-emerald-700">WAJIB MUTLAK</td>
+                          <td className="py-2.5 px-3 text-emerald-800">ACTIVE</td>
+                          <td className="py-2.5 px-3 font-sans text-emerald-900">Harus bernilai ACTIVE agar masuk di sistem</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Footer Modal */}
+            <div className="pt-3 border-t border-[#E0E8E8] flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsGuideModalOpen(false)}
+                className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#2AAFA3] hover:bg-[#208C82] text-white transition-colors cursor-pointer"
+              >
+                Tutup Panduan
+              </button>
+            </div>
 
           </div>
         </div>

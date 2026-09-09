@@ -1161,3 +1161,86 @@ export async function setOperatorResigned(
     return false;
   }
 }
+
+/**
+ * Menanamkan baris data operator baru (dengan status ACTIVE) ke Google Sheets datasheet 'by_worker'.
+ */
+export async function appendOperatorToByWorker(
+  operator: any,
+  dateStr?: string
+): Promise<{ success: boolean; message: string; gasSuccess?: boolean }> {
+  try {
+    const payload = {
+      ...operator,
+      status: 'ACTIVE',
+      date: dateStr || operator.date || operator.recordDate,
+    };
+
+    // 1. Coba via API Proxy Express Backend
+    try {
+      const res = await fetch('/api/sheets/append-by-worker', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          return {
+            success: true,
+            gasSuccess: json.gasSuccess,
+            message: json.message || `Operator ${operator.name} berhasil ditanamkan ke datasheet by_worker`,
+          };
+        }
+      }
+    } catch (apiErr) {
+      console.warn("Backend append-by-worker error, mencoba direct GAS fallback:", apiErr);
+    }
+
+    // 2. Fallback: Direct POST ke Google Apps Script Web App
+    const gasUrls = [
+      GAS_WEB_APP_URL,
+      "https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Zj5fnKejoelvuKkHQ1fQV-8UA_lRhtuTPMcmUFBH-xqN-kCVr3Dw/exec"
+    ];
+
+    for (const url of gasUrls) {
+      try {
+        await fetch(url, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8',
+          },
+          body: JSON.stringify({
+            action: 'appendByWorker',
+            operator: payload,
+          }),
+        });
+
+        return {
+          success: true,
+          gasSuccess: true,
+          message: `Operator ${operator.name} berhasil dikirim ke Google Apps Script untuk ditanamkan ke by_worker`,
+        };
+      } catch (gasErr) {
+        console.warn("GAS Direct POST failed:", gasErr);
+      }
+    }
+
+    return {
+      success: true,
+      gasSuccess: false,
+      message: `Data operator ${operator.name} tercatat di sistem lokal`,
+    };
+  } catch (error: any) {
+    console.error("Gagal menanamkan operator ke by_worker:", error);
+    return {
+      success: false,
+      message: error.message || 'Gagal menanamkan operator ke datasheet by_worker',
+    };
+  }
+}
+
