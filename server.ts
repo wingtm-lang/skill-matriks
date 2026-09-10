@@ -1283,9 +1283,32 @@ async function startServer() {
     app.use(vite.middlewares);
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  // Port 3000 wajib selalu aktif untuk dev server dan reverse proxy container
+  const mainServer = app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://0.0.0.0:${PORT} (Mode: ${isProduction ? "Production" : "Development"})`);
   });
+
+  mainServer.on("error", (err: any) => {
+    console.error(`Error on port ${PORT}:`, err.message);
+  });
+
+  // Untuk live Cloud Run di mana Cloud Run menentukan PORT via environment variable (misal 8080)
+  // Dengarkan juga port tersebut agar container health check probe Cloud Run langsung sukses
+  if (isProduction && process.env.PORT) {
+    const cloudRunPort = parseInt(process.env.PORT, 10);
+    if (!isNaN(cloudRunPort) && cloudRunPort !== PORT) {
+      try {
+        const altServer = app.listen(cloudRunPort, "0.0.0.0", () => {
+          console.log(`Cloud Run container port listening on http://0.0.0.0:${cloudRunPort}`);
+        });
+        altServer.on("error", (err: any) => {
+          console.warn(`Additional port ${cloudRunPort} bind notice: ${err.message}`);
+        });
+      } catch (err: any) {
+        console.warn(`Could not listen on secondary port ${cloudRunPort}:`, err.message);
+      }
+    }
+  }
 }
 
 startServer().catch((err) => {
