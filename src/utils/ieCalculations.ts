@@ -1738,7 +1738,7 @@ export async function appendOperatorToByWorker(
       console.warn("Backend append-by-worker error, mencoba direct GAS fallback:", apiErr);
     }
 
-    // 4. Fallback ke Google Apps Script Web App
+    // 4. Fallback ke Google Apps Script Web App (Multi-Tier POST & GET Fallback untuk Vercel)
     if (!networkSuccess) {
       const gasUrls = [
         GAS_WEB_APP_URL,
@@ -1746,6 +1746,7 @@ export async function appendOperatorToByWorker(
       ];
 
       for (const url of gasUrls) {
+        // Coba Metode 1: POST text/plain
         try {
           await fetch(url, {
             method: 'POST',
@@ -1762,8 +1763,26 @@ export async function appendOperatorToByWorker(
           networkSuccess = true;
           successMessage = `Operator ${operator.name} berhasil dikirim ke Google Apps Script untuk ditanamkan ke by_worker`;
           break;
-        } catch (gasErr) {
-          console.warn("GAS Direct POST failed:", gasErr);
+        } catch (gasPostErr) {
+          console.warn("GAS Direct POST failed, mencoba GET fallback:", gasPostErr);
+        }
+
+        // Coba Metode 2: GET query string (100% tembus CORS & kompatibel di seluruh browser)
+        try {
+          const queryParams = new URLSearchParams({
+            action: 'appendByWorker',
+            operator: JSON.stringify(payload),
+          });
+          await fetch(`${url}?${queryParams.toString()}`, {
+            method: 'GET',
+            mode: 'no-cors',
+          });
+
+          networkSuccess = true;
+          successMessage = `Operator ${operator.name} berhasil dikirim ke Google Apps Script (via GET) untuk ditanamkan ke by_worker`;
+          break;
+        } catch (gasGetErr) {
+          console.warn("GAS Direct GET failed:", gasGetErr);
         }
       }
     }

@@ -543,28 +543,37 @@ app.get("/api/sheets/date-of-join", async (req, res) => {
 
     for (const gasUrl of gasUrls) {
       try {
-        const gasRes = await fetch(`${gasUrl}?action=lookupDateOfJoin&nik=${encodeURIComponent(requestedNik)}`);
+        const gasRes = await fetch(`${gasUrl}?action=lookupDateOfJoin&nik=${encodeURIComponent(requestedNik)}`, {
+          headers: { "Accept": "application/json" }
+        });
         if (gasRes.ok) {
-          const gasData: any = await gasRes.json();
-          if (gasData.status === "success" && gasData.data) {
-            const doj = gasData.data.doj || "";
-            return res.json({
-              success: true,
-              found: true,
-              data: {
-                nik: gasData.data.nik || requestedNik,
-                name: (gasData.data.name || "").toUpperCase(),
-                doj,
-                workTimeMonths: calculateWorkTimeMonths(doj),
-                factory: gasData.data.factory || "",
-                line: gasData.data.line || "",
-                status: gasData.data.status || "ACTIVE",
-              },
-            });
+          const rawText = await gasRes.text();
+          if (rawText && !rawText.trim().startsWith("<")) {
+            try {
+              const gasData: any = JSON.parse(rawText);
+              if (gasData.status === "success" && gasData.data) {
+                const doj = gasData.data.doj || "";
+                return res.json({
+                  success: true,
+                  found: true,
+                  data: {
+                    nik: gasData.data.nik || requestedNik,
+                    name: (gasData.data.name || "").toUpperCase(),
+                    doj,
+                    workTimeMonths: calculateWorkTimeMonths(doj),
+                    factory: gasData.data.factory || "",
+                    line: gasData.data.line || "",
+                    status: gasData.data.status || "ACTIVE",
+                  },
+                });
+              }
+            } catch (jsonErr) {
+              console.warn("GAS JSON parse error:", jsonErr);
+            }
           }
         }
       } catch (gasErr: any) {
-        console.warn("GAS fetch error:", gasErr.message);
+        console.warn("GAS fetch warning (skipping to next fallback):", gasErr?.message || gasErr);
       }
     }
 
@@ -702,15 +711,22 @@ app.post("/api/sheets/append-by-worker", async (req, res) => {
         });
 
         if (gasRes.ok) {
-          const gasJson: any = await gasRes.json();
-          if (gasJson.status === "success") {
-            gasSuccess = true;
-            gasMessage = gasJson.message || "Berhasil ditanamkan ke sheet by_worker";
-            break;
+          const rawText = await gasRes.text();
+          if (rawText && !rawText.trim().startsWith("<")) {
+            try {
+              const gasJson: any = JSON.parse(rawText);
+              if (gasJson.status === "success") {
+                gasSuccess = true;
+                gasMessage = gasJson.message || "Berhasil ditanamkan ke sheet by_worker";
+                break;
+              }
+            } catch (jsonErr) {
+              console.warn("GAS JSON parse error in append:", jsonErr);
+            }
           }
         }
       } catch (err: any) {
-        console.warn("GAS append error:", err.message);
+        console.warn("GAS append error:", err?.message || err);
       }
     }
 
