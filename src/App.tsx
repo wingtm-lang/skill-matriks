@@ -16,7 +16,9 @@ import {
   normalizeLineName,
   MONTH_NAMES_ID,
   isOperatorResignedAtPeriod,
-  getPointsFromEfficiency 
+  getPointsFromEfficiency,
+  fetchOperatorsFromGViz,
+  getCustomAddedOperatorsFromStorage,
 } from './utils/ieCalculations';
 import { AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 
@@ -174,16 +176,36 @@ export default function App() {
           };
         });
 
-        setOperators(normalizedOps);
+        let finalOps = normalizedOps;
+
+        // Gabungkan dengan operator yang baru ditambahkan dari LocalStorage agar tidak pernah hilang saat refresh
+        const localAdded = getCustomAddedOperatorsFromStorage();
+        if (localAdded.length > 0) {
+          const existingKeys = new Set(
+            finalOps.map((o) => `${String(o.nik || o.id).trim()}_${String(o.date || o.recordDate || '').trim()}_${String(o.line).trim()}`)
+          );
+          const newFromStorage = localAdded
+            .filter((o) => !existingKeys.has(`${String(o.nik || o.id).trim()}_${String(o.date || o.recordDate || '').trim()}_${String(o.line).trim()}`))
+            .map((o: any, idx: number) => ({
+              ...o,
+              id: o.id || `storage-${o.nik}-${idx}`,
+              factory: normalizeFactoryName(o.factory),
+              line: normalizeLineName(o.line),
+              status: o.status || 'ACTIVE',
+            }));
+          finalOps = [...newFromStorage, ...finalOps];
+        }
+
+        setOperators(finalOps);
         setIsLiveFromSheets(true);
-        setSyncMessage(`Tersambung ke Google Sheets: ${normalizedOps.length} operator berhasil dimuat`);
+        setSyncMessage(`Tersambung ke Google Sheets: ${finalOps.length} operator berhasil dimuat`);
 
         // Dynamically update available factories & lines
-        const uniqueFactories = Array.from(new Set(normalizedOps.map((op) => op.factory).filter(Boolean)));
+        const uniqueFactories = Array.from(new Set(finalOps.map((op) => op.factory).filter(Boolean)));
         if (uniqueFactories.length > 0) {
           setAvailableFactories(sortFactoriesNumerically(Array.from(new Set([...FACTORIES, ...uniqueFactories]))));
         }
-        const uniqueLines = Array.from(new Set(normalizedOps.map((op) => op.line).filter(Boolean)));
+        const uniqueLines = Array.from(new Set(finalOps.map((op) => op.line).filter(Boolean)));
         if (uniqueLines.length > 0) {
           setAvailableLines(sortLinesNumerically(Array.from(new Set([...LINES, ...uniqueLines]))));
         }
@@ -191,25 +213,96 @@ export default function App() {
         throw new Error(result.message || "Gagal mengambil data dari Google Sheets.");
       }
     } catch (err: any) {
-      setSyncError(err.toString());
-      // Fallback ke proxy server jika ada kendala jaringan browser langsung
+      console.warn("GAS fetch gagal, mencoba GViz CSV fallback:", err);
+
+      // Fallback 1: Ambil langsung via GViz CSV (Tahan banting di Vercel/Produksi)
+      try {
+        const gvizRes = await fetchOperatorsFromGViz();
+        if (gvizRes.success && gvizRes.operators.length > 0) {
+          let gvizOps = gvizRes.operators;
+          const localAdded = getCustomAddedOperatorsFromStorage();
+          if (localAdded.length > 0) {
+            const existingKeys = new Set(
+              gvizOps.map((o) => `${String(o.nik || o.id).trim()}_${String(o.date || o.recordDate || '').trim()}_${String(o.line).trim()}`)
+            );
+            const newFromStorage = localAdded
+              .filter((o) => !existingKeys.has(`${String(o.nik || o.id).trim()}_${String(o.date || o.recordDate || '').trim()}_${String(o.line).trim()}`))
+              .map((o: any, idx: number) => ({
+                ...o,
+                id: o.id || `storage-${o.nik}-${idx}`,
+                factory: normalizeFactoryName(o.factory),
+                line: normalizeLineName(o.line),
+                status: o.status || 'ACTIVE',
+              }));
+            gvizOps = [...newFromStorage, ...gvizOps];
+          }
+
+          setOperators(gvizOps);
+          setIsLiveFromSheets(true);
+          setSyncMessage(`Tersambung ke Google Sheets (GViz CSV): ${gvizOps.length} operator berhasil dimuat`);
+          setSyncError(null);
+
+          const uniqueFactories = Array.from(new Set(gvizOps.map((op) => op.factory).filter(Boolean)));
+          if (uniqueFactories.length > 0) {
+            setAvailableFactories(sortFactoriesNumerically(Array.from(new Set([...FACTORIES, ...uniqueFactories]))));
+          }
+          const uniqueLines = Array.from(new Set(gvizOps.map((op) => op.line).filter(Boolean)));
+          if (uniqueLines.length > 0) {
+            setAvailableLines(sortLinesNumerically(Array.from(new Set([...LINES, ...uniqueLines]))));
+          }
+          return;
+        }
+      } catch (gvizErr) {
+        console.warn("GViz fetch failed:", gvizErr);
+      }
+
+      // Fallback 2: Proxy server backend
       try {
         const fallbackRes = await fetch("/api/sheets/operators");
         const fallbackData = await fallbackRes.json();
         if (fallbackRes.ok && fallbackData.success && Array.isArray(fallbackData.operators) && fallbackData.operators.length > 0) {
-          const fallbackOps = fallbackData.operators.map((op: Operator) => ({
+          let fallbackOps = fallbackData.operators.map((op: Operator) => ({
             ...op,
             factory: normalizeFactoryName(op.factory),
             line: normalizeLineName(op.line),
             status: op.status || "ACTIVE",
           }));
+
+          const localAdded = getCustomAddedOperatorsFromStorage();
+          if (localAdded.length > 0) {
+            const existingKeys = new Set(
+              fallbackOps.map((o: any) => `${String(o.nik || o.id).trim()}_${String(o.date || o.recordDate || '').trim()}_${String(o.line).trim()}`)
+            );
+            const newFromStorage = localAdded
+              .filter((o) => !existingKeys.has(`${String(o.nik || o.id).trim()}_${String(o.date || o.recordDate || '').trim()}_${String(o.line).trim()}`))
+              .map((o: any, idx: number) => ({
+                ...o,
+                id: o.id || `storage-${o.nik}-${idx}`,
+                factory: normalizeFactoryName(o.factory),
+                line: normalizeLineName(o.line),
+                status: o.status || 'ACTIVE',
+              }));
+            fallbackOps = [...newFromStorage, ...fallbackOps];
+          }
+
           setOperators(fallbackOps);
           setIsLiveFromSheets(true);
-          setSyncMessage(`Tersambung ke Google Sheets (Proxy): ${fallbackData.count} operator berhasil dimuat`);
+          setSyncMessage(`Tersambung ke Google Sheets (Proxy): ${fallbackOps.length} operator berhasil dimuat`);
           setSyncError(null);
+          return;
         }
       } catch (fallbackErr) {
-        console.warn("Fallback failed:", fallbackErr);
+        console.warn("Backend proxy fallback failed:", fallbackErr);
+      }
+
+      // Jika semua koneksi online gagal, muat operator dari localStorage
+      const localAdded = getCustomAddedOperatorsFromStorage();
+      if (localAdded.length > 0) {
+        setOperators(localAdded);
+        setSyncMessage(`Memuat ${localAdded.length} operator tersimpan di perangkat lokal`);
+        setSyncError(null);
+      } else {
+        setSyncError(err.toString());
       }
     } finally {
       setIsLoadingSheets(false);

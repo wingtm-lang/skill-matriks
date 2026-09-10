@@ -586,8 +586,8 @@ export function extractMonthAndYear(input: string | Date | null | undefined): { 
  */
 function mergeMachineRates(existing: Operator, incoming: Operator): void {
   const mergeRateMax = (curr: number | null | undefined, next: number | null | undefined): number | null => {
-    const hasCurr = curr !== null && curr !== undefined && !isNaN(curr) && curr > 0;
-    const hasNext = next !== null && next !== undefined && !isNaN(next) && next > 0;
+    const hasCurr = curr !== null && curr !== undefined && !isNaN(curr) && curr >= 0;
+    const hasNext = next !== null && next !== undefined && !isNaN(next) && next >= 0;
 
     if (hasCurr && hasNext) {
       // Ambil poin paling tinggi di Kolom N untuk riwayat mesin ini (maksimal 3 poin per mesin)
@@ -1294,43 +1294,430 @@ export async function lookupNikFromDateOfJoin(nikToSearch: string): Promise<NikL
 }
 
 /**
- * Menanamkan baris data operator baru (dengan status ACTIVE) ke Google Sheets datasheet 'by_worker'.
- * Memformat kolom A (Factory angka), B (Line angka), C (Table/Style Code),
- * H (Machine spesifik), I (Style No), J (Process), N (POIN 0,1,2,3 - 0 tetap 0).
+ * Menghasilkan 18 kolom baris standar Google Sheets 'by_worker'
+ * beserta rumus XLOOKUP, IFS, DATEDIF, dan INDEX MATCH yang tepat
+ */
+export interface ByWorkerPlantingResult {
+  factory: string;
+  line: string;
+  tableCode: string;
+  dateStr: string;
+  nik: string;
+  name: string;
+  doj: string;
+  machineName: string;
+  styleNo: string;
+  process: string;
+  meta: number;
+  production: number;
+  productionRate: number;
+  points: number;
+  workMonth: number;
+  dateOfResign: string;
+  machineCategory: string;
+  status: string;
+  values: (string | number)[];
+  formulas: (string | number)[];
+  tsvLine: string;
+  formulaTsvLine: string;
+}
+
+export function generateByWorkerPlantingRow(
+  operator: any,
+  targetRowNumber: number = 19625,
+  dateStr?: string
+): ByWorkerPlantingResult {
+  const factoryFormatted = formatFactoryForSheet(operator.factory);
+  const lineFormatted = formatLineForSheet(operator.line);
+  const rawPoints = typeof operator.points === 'number' 
+    ? operator.points 
+    : (operator.points !== undefined && operator.points !== null && String(operator.points).trim() !== '' ? parseInt(String(operator.points), 10) : 0);
+  const pointVal = isNaN(rawPoints) ? 0 : Math.min(3, Math.max(0, Math.round(rawPoints)));
+
+  const today = new Date();
+  const formattedTodayYmd = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const dateVal = dateStr || operator.date || operator.recordDate || formattedTodayYmd;
+
+  const nik = String(operator.nik || "").trim();
+  const name = String(operator.name || "").trim().toUpperCase();
+  const doj = String(operator.doj || "-").trim();
+  const tableCode = String(operator.tableCode || operator.table || operator.styleCode || "1").trim();
+  const styleNo = String(operator.styleNo || operator.style || "NB17HQ271140").trim();
+  const machineName = String(operator.machineName || operator.machine || "1Needle Lockstitch Auto Trim").trim();
+  const machineCategory = String(operator.machineCategory || operator.category || "LOCKSTITCH").toUpperCase();
+  const process = String(operator.process || "MANUAL").trim().toUpperCase();
+
+  const prodRate = pointVal === 0 ? 0 : Number(operator.productionRate || (pointVal === 1 ? 60 : pointVal === 2 ? 80 : 92.44));
+  const meta = pointVal === 0 ? 0 : Number(operator.meta || operator.target || 844);
+  const production = pointVal === 0 ? 0 : Number(operator.production || operator.actual || Math.round(meta * (prodRate / 100)));
+  const workMonth = typeof operator.workTimeMonths === 'number'
+    ? operator.workTimeMonths
+    : (typeof operator.workMonth === 'number' ? operator.workMonth : calculateWorkTimeMonths(doj));
+
+  const rowIdx = targetRowNumber > 0 ? targetRowNumber : 19625;
+
+  // RUMUS PENANAMAN GOOGLE SHEETS ASLI:
+  // Kolom G (Date of Join): XLOOKUP dari sheet date_of_join
+  const formulaG = `=XLOOKUP(E${rowIdx},date_of_join!$A$2:$A$19392,date_of_join!$C$2:$C$19392)`;
+  // Kolom N (POIN): 0 untuk Helper (atau IFS yang aman untuk 0)
+  const formulaN = pointVal === 0 
+    ? 0 
+    : `=IFS(M${rowIdx}<=0,0,M${rowIdx}<=60.99,1,AND(M${rowIdx}>=61,M${rowIdx}<=89.99),2,M${rowIdx}>=90,3)`;
+  // Kolom O (Work Month): DATEDIF dari DOJ (Kolom G) ke Tanggal (Kolom D)
+  const formulaO = `=DATEDIF(G${rowIdx}, D${rowIdx}, "M")`;
+  // Kolom P (Date of Resign): XLOOKUP dari sheet date_of_join Kolom D
+  const formulaP = `=XLOOKUP(E${rowIdx},date_of_join!$A$2:$A$9996,date_of_join!$D$2:$D$9996)`;
+  // Kolom Q (Machine Category): INDEX MATCH ke daftar mesin ($Y$2:$Y$74, $Z$2:$Z$74)
+  const formulaQ = `=INDEX($Y$2:$Y$74,MATCH(H${rowIdx},$Z$2:$Z$74,))`;
+
+  // 18 Kolom format Data murni (Static Values)
+  const values = [
+    factoryFormatted,  // Kolom A: Factory
+    lineFormatted,     // Kolom B: Line
+    tableCode,         // Kolom C: Table
+    dateVal,           // Kolom D: Date
+    nik,               // Kolom E: Worker Code
+    name,              // Kolom F: Worker
+    doj,               // Kolom G: Date of Join
+    machineName,       // Kolom H: Machine
+    styleNo,           // Kolom I: Style No
+    process,           // Kolom J: Process
+    meta,              // Kolom K: Meta
+    production,        // Kolom L: Production
+    prodRate,          // Kolom M: Production Rate (%)
+    pointVal,          // Kolom N: POIN (0 untuk Helper)
+    workMonth,         // Kolom O: Work Month
+    "",                // Kolom P: Date of Resign
+    machineCategory,   // Kolom Q: Machine Category
+    "ACTIVE",          // Kolom R: Status
+  ];
+
+  // 18 Kolom format Formula Google Sheets
+  const formulas = [
+    factoryFormatted,  // Kolom A
+    lineFormatted,     // Kolom B
+    tableCode,         // Kolom C
+    dateVal,           // Kolom D
+    nik,               // Kolom E
+    name,              // Kolom F
+    formulaG,          // Kolom G (Formula)
+    machineName,       // Kolom H
+    styleNo,           // Kolom I
+    process,           // Kolom J
+    meta,              // Kolom K
+    production,        // Kolom L
+    prodRate,          // Kolom M
+    formulaN,          // Kolom N (Formula / 0)
+    formulaO,          // Kolom O (Formula)
+    formulaP,          // Kolom P (Formula)
+    formulaQ,          // Kolom Q (Formula)
+    "ACTIVE",          // Kolom R
+  ];
+
+  const tsvLine = values.join('\t');
+  const formulaTsvLine = formulas.join('\t');
+
+  return {
+    factory: factoryFormatted,
+    line: lineFormatted,
+    tableCode,
+    dateStr: dateVal,
+    nik,
+    name,
+    doj,
+    machineName,
+    styleNo,
+    process,
+    meta,
+    production,
+    productionRate: prodRate,
+    points: pointVal,
+    workMonth,
+    dateOfResign: "",
+    machineCategory,
+    status: "ACTIVE",
+    values,
+    formulas,
+    tsvLine,
+    formulaTsvLine,
+  };
+}
+
+// Helper Persistensi LocalStorage untuk Operator Baru
+const STORAGE_KEY_OPERATORS = "ie_custom_added_operators_v2";
+
+export function getCustomAddedOperatorsFromStorage(): any[] {
+  if (typeof window === "undefined" || !window.localStorage) return [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_OPERATORS);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.warn("Gagal membaca custom operators dari localStorage:", e);
+    return [];
+  }
+}
+
+export function saveCustomAddedOperatorToStorage(operator: any): void {
+  if (typeof window === "undefined" || !window.localStorage) return;
+  try {
+    const existing = getCustomAddedOperatorsFromStorage();
+    const nik = String(operator.nik || operator.id || "").trim();
+    const date = String(operator.date || operator.recordDate || "").trim();
+    const line = String(operator.line || "").trim();
+
+    const filtered = existing.filter((item: any) => {
+      const itemNik = String(item.nik || item.id || "").trim();
+      const itemDate = String(item.date || item.recordDate || "").trim();
+      const itemLine = String(item.line || "").trim();
+      return !(itemNik === nik && itemDate === date && itemLine === line);
+    });
+
+    filtered.unshift({
+      ...operator,
+      isLocallySaved: true,
+      savedAt: new Date().toISOString(),
+    });
+
+    localStorage.setItem(STORAGE_KEY_OPERATORS, JSON.stringify(filtered));
+  } catch (e) {
+    console.warn("Gagal menyimpan custom operator ke localStorage:", e);
+  }
+}
+
+export function removeCustomAddedOperatorFromStorage(nik: string): void {
+  if (typeof window === "undefined" || !window.localStorage) return;
+  try {
+    const existing = getCustomAddedOperatorsFromStorage();
+    const updated = existing.filter((op) => String(op.nik || op.id).trim() !== String(nik).trim());
+    localStorage.setItem(STORAGE_KEY_OPERATORS, JSON.stringify(updated));
+  } catch (e) {
+    console.warn("Gagal menghapus custom operator dari localStorage:", e);
+  }
+}
+
+/**
+ * Helper untuk mem-parsing satu baris CSV dengan dukungan tanda kutip (quotes)
+ */
+export function parseCsvLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+/**
+ * Membaca dan mem-parse data tab 'by_worker' secara langsung via Google Visualization (GViz) CSV
+ * Sangat cepat, tahan banting, dan 100% bekerja di Vercel maupun lingkungan mana pun tanpa butuh backend
+ */
+export async function fetchOperatorsFromGViz(sheetId: string = "1tA8YyHxFr1xwGWvdwHLOXaF9q8SjgbDuxDinzuH6kag"): Promise<{
+  success: boolean;
+  operators: any[];
+  count: number;
+  error?: string;
+}> {
+  try {
+    const gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=by_worker`;
+    const res = await fetch(gvizUrl);
+    if (!res.ok) {
+      throw new Error(`GViz fetch error: HTTP ${res.status}`);
+    }
+
+    const csvText = await res.text();
+    const lines = csvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
+    if (lines.length < 2) {
+      return { success: true, operators: [], count: 0 };
+    }
+
+    // Parse Header
+    const headerLine = lines[0];
+    const headers = parseCsvLine(headerLine).map((h) => h.trim());
+
+    const findColIdx = (candidates: string[], fallbackIdx: number) => {
+      for (const cand of candidates) {
+        const idx = headers.findIndex((h) => h.toUpperCase() === cand.toUpperCase());
+        if (idx !== -1) return idx;
+      }
+      for (const cand of candidates) {
+        const idx = headers.findIndex((h) => h.toUpperCase().includes(cand.toUpperCase()));
+        if (idx !== -1) return idx;
+      }
+      return fallbackIdx;
+    };
+
+    const idxFactory = findColIdx(["Factory", "Pabrik"], 0);
+    const idxLine = findColIdx(["Line", "Jalur"], 1);
+    const idxDate = findColIdx(["Date", "Tanggal", "Tgl"], 3);
+    const idxWorkerCode = findColIdx(["Worker Code", "NIK", "ID"], 4);
+    const idxWorker = findColIdx(["Worker", "Nama", "Operator"], 5);
+    const idxDoj = findColIdx(["Date of Join", "D.O.J", "DOJ"], 6);
+    const idxMachineName = findColIdx(["Machine", "Mesin", "Nama Mesin"], 7);
+    const idxStyleNo = findColIdx(["Style No", "Style"], 8);
+    const idxProcess = findColIdx(["Process", "Proses", "Operasi"], 9);
+    const idxRate = findColIdx(["Production Rate (%)", "Actual Rate", "Rate", "Efisiensi"], 12);
+    const idxPoints = findColIdx(["POIN", "POINT (KOLOM N)", "POIN MESIN"], 13);
+    const idxWorkMonth = findColIdx(["Work Month", "Masa Kerja"], 14);
+    const idxDateOfResign = findColIdx(["Date of Resign", "Resign"], 15);
+    const idxMachine = findColIdx(["Machine Category", "Kategori Mesin", "Category", "Kategori"], 16);
+    const idxStatus = findColIdx(["Status"], 17);
+
+    const parsedOps: any[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const cols = parseCsvLine(lines[i]);
+      const nik = (cols[idxWorkerCode] ?? cols[4] ?? "").trim();
+      if (!nik || nik.toLowerCase() === "worker code" || nik.toLowerCase() === "nik") continue;
+
+      const rawRate = Number(cols[idxRate] ?? cols[12] ?? 0);
+      const rawPointsStr = String(cols[idxPoints] ?? cols[13] ?? "").trim();
+      const rawPoints = parseFloat(rawPointsStr.replace(',', '.').replace(/[^0-9.]/g, ''));
+      let pointVal = !isNaN(rawPoints) ? Math.min(3, Math.max(0, Math.round(rawPoints))) : 0;
+      if (rawPointsStr === "" && rawRate > 0) {
+        pointVal = getPointsFromEfficiency(rawRate);
+      }
+
+      const rawCat = String(cols[idxMachine] ?? cols[16] ?? "").toUpperCase();
+      const rawMachineName = String(cols[idxMachineName] ?? cols[7] ?? "").toUpperCase();
+
+      const isLockstitch = rawCat.includes("LOCKSTITCH") || rawCat.includes("SN") || rawCat.includes("SINGLE NEEDLE") ||
+        (!rawCat && (rawMachineName.includes("LOCKSTITCH") || rawMachineName.includes("1NEEDLE") || rawMachineName.includes("SN")));
+      const isOverlock = rawCat.includes("OVERLOCK") || rawCat.includes("OL") || rawCat.includes("OBRAS") ||
+        (!rawCat && (rawMachineName.includes("OVERLOCK") || rawMachineName.includes("OBRAS") || rawMachineName.includes("2NEEDLE OVERLOCK")));
+      const isFlatseam = rawCat.includes("FLATSEAM") || rawCat.includes("COVERSTITCH") || rawCat.includes("FS") || rawCat.includes("KAM") ||
+        (!rawCat && (rawMachineName.includes("FLAT SEAM") || rawMachineName.includes("COVERSTITCH") || rawMachineName.includes("FLATSEAM")));
+      const isSpecial = rawCat.includes("SPECIAL") || rawCat.includes("SP") || rawCat.includes("PRESS") || rawCat.includes("OTOMATIS") ||
+        (!rawCat && (rawMachineName.includes("PRESS") || rawMachineName.includes("HEAT TRANSFER") || rawMachineName.includes("SPECIAL")));
+      const isButtonHole = rawCat.includes("BUTTON HOLE") || rawCat.includes("BUTTON_HOLE") || rawCat.includes("BH") || rawCat.includes("LUBANG KANCING") ||
+        (!rawCat && (rawMachineName.includes("BUTTON HOLE") || rawMachineName.includes("LUBANG KANCING")));
+      const isButtonSet = rawCat.includes("BUTTON SET") || rawCat.includes("BUTTON_SET") || rawCat.includes("BS") || rawCat.includes("PASANG KANCING") ||
+        (!rawCat && (rawMachineName.includes("BUTTON SET") || rawMachineName.includes("PASANG KANCING")));
+      const isChainstitch = rawCat.includes("CHAINSTITCH") || rawCat.includes("CS") || rawCat.includes("KANSAI") ||
+        (!rawCat && (rawMachineName.includes("CHAINSTITCH") || rawMachineName.includes("KANSAI") || rawMachineName.includes("CHAIN STITCH")));
+      const isBartack = rawCat.includes("BARTACK") || rawCat.includes("BT") || rawCat.includes("BAR TACK") ||
+        (!rawCat && (rawMachineName.includes("BARTACK") || rawMachineName.includes("BAR TACK")));
+
+      const rawDate = cols[idxDate] ?? cols[3] ?? "";
+      const rowDateStr = rawDate ? String(rawDate).trim() : "";
+
+      parsedOps.push({
+        id: String(nik || i),
+        no: i,
+        factory: normalizeFactoryName(String(cols[idxFactory] ?? cols[0] ?? "1")),
+        line: normalizeLineName(String(cols[idxLine] ?? cols[1] ?? "1")),
+        nik: nik,
+        name: String(cols[idxWorker] ?? cols[5] ?? "Unknown"),
+        date: rowDateStr,
+        recordDate: rowDateStr,
+        machine: String(cols[idxMachineName] ?? cols[7] ?? ""),
+        styleNo: String(cols[idxStyleNo] ?? cols[8] ?? ""),
+        process: String(cols[idxProcess] ?? cols[9] ?? ""),
+        productionRate: rawRate,
+        points: pointVal,
+        workMonth: Number(cols[idxWorkMonth] ?? cols[14] ?? 1),
+        dateOfResign: String(cols[idxDateOfResign] ?? cols[15] ?? ""),
+        machineCategory: rawCat,
+        status: String(cols[idxStatus] ?? cols[17] ?? "ACTIVE"),
+        doj: String(cols[idxDoj] ?? cols[6] ?? "-"),
+        workTimeMonths: Number(cols[idxWorkMonth] ?? cols[14] ?? 1),
+        resignDate: (cols[idxDateOfResign] ?? cols[15]) ? String(cols[idxDateOfResign] ?? cols[15]) : null,
+        lockstitch: isLockstitch ? pointVal : (!rawCat && !rawMachineName ? pointVal : null),
+        overlock: isOverlock ? pointVal : null,
+        flatseam: isFlatseam ? pointVal : null,
+        special: isSpecial ? pointVal : null,
+        buttonHole: isButtonHole ? pointVal : null,
+        buttonSet: isButtonSet ? pointVal : null,
+        chainstitch: isChainstitch ? pointVal : null,
+        bartack: isBartack ? pointVal : null,
+      });
+    }
+
+    return {
+      success: true,
+      operators: parsedOps,
+      count: parsedOps.length,
+    };
+  } catch (err: any) {
+    console.warn("Gagal fetch operators via GViz:", err);
+    return {
+      success: false,
+      operators: [],
+      count: 0,
+      error: err.message || String(err),
+    };
+  }
+}
+
+/**
+ * Menanamkan operator baru ke Google Sheets (tab 'by_worker')
+ * Menggunakan rumus formula penanaman 18 kolom standar
+ * Serta menyimpan ke localStorage agar tidak pernah hilang saat refresh
  */
 export async function appendOperatorToByWorker(
   operator: any,
   dateStr?: string
-): Promise<{ success: boolean; message: string; gasSuccess?: boolean; row?: any[] }> {
+): Promise<{ 
+  success: boolean; 
+  message: string; 
+  gasSuccess?: boolean; 
+  plantingResult?: ByWorkerPlantingResult;
+  row?: any[]; 
+}> {
   try {
-    const factoryFormatted = formatFactoryForSheet(operator.factory);
-    const lineFormatted = formatLineForSheet(operator.line);
-    const rawPoints = typeof operator.points === 'number' 
-      ? operator.points 
-      : (operator.points !== undefined && operator.points !== null && String(operator.points).trim() !== '' ? parseInt(String(operator.points), 10) : 0);
-    const pointVal = isNaN(rawPoints) ? 0 : Math.min(3, Math.max(0, Math.round(rawPoints)));
-
     const today = new Date();
     const formattedTodayYmd = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const dateVal = dateStr || operator.date || operator.recordDate || formattedTodayYmd;
+
+    // 1. Susun baris 18 kolom & rumus penanaman standar
+    const plantingResult = generateByWorkerPlantingRow(operator, 19625, dateVal);
 
     const payload = {
       ...operator,
-      factory: factoryFormatted,
-      line: lineFormatted,
-      tableCode: String(operator.tableCode || operator.table || operator.styleCode || "1").trim(),
-      styleNo: String(operator.styleNo || operator.style || "NB17HQ271140").trim(),
-      machineName: String(operator.machineName || operator.machine || "1Needle Lockstitch Auto Trim").trim(),
-      machineCategory: String(operator.machineCategory || operator.category || "LOCKSTITCH").toUpperCase(),
-      process: String(operator.process || "SEWING").trim(),
-      points: pointVal, // Nilai murni 0, 1, 2, atau 3 (0 TIDAK BOLEH BERUBAH JADI 1)
-      productionRate: pointVal === 0 ? 0 : (operator.productionRate || (pointVal === 1 ? 60 : pointVal === 2 ? 80 : 92.44)),
-      meta: pointVal === 0 ? 0 : (operator.meta || operator.target || 844),
-      production: pointVal === 0 ? 0 : (operator.production || operator.actual || 781),
+      factory: plantingResult.factory,
+      line: plantingResult.line,
+      tableCode: plantingResult.tableCode,
+      styleNo: plantingResult.styleNo,
+      machineName: plantingResult.machineName,
+      machineCategory: plantingResult.machineCategory,
+      process: plantingResult.process,
+      points: plantingResult.points, // 0 TETAP 0
+      productionRate: plantingResult.productionRate,
+      meta: plantingResult.meta,
+      production: plantingResult.production,
       status: 'ACTIVE',
-      date: dateStr || operator.date || operator.recordDate || formattedTodayYmd,
+      date: dateVal,
+      rowValues: plantingResult.values,
+      rowFormulas: plantingResult.formulas,
     };
 
-    // 1. Coba via API Proxy Express Backend
+    // 2. SIMPAN KE LOCAL STORAGE (Jaminan data TIDAK PERNAH HILANG saat refresh)
+    saveCustomAddedOperatorToStorage({
+      ...payload,
+      id: operator.id || `op-${plantingResult.nik}-${Date.now()}`,
+    });
+
+    let networkSuccess = false;
+    let successMessage = "";
+
+    // 3. Coba kirim via Express Backend API Proxy
     try {
       const res = await fetch('/api/sheets/append-by-worker', {
         method: 'POST',
@@ -1343,51 +1730,52 @@ export async function appendOperatorToByWorker(
       if (res.ok) {
         const json = await res.json();
         if (json.success) {
-          return {
-            success: true,
-            gasSuccess: json.gasSuccess,
-            message: json.message || `Operator ${operator.name} berhasil ditanamkan ke datasheet by_worker`,
-          };
+          networkSuccess = true;
+          successMessage = json.message || `Operator ${operator.name} berhasil ditanamkan ke datasheet by_worker`;
         }
       }
     } catch (apiErr) {
       console.warn("Backend append-by-worker error, mencoba direct GAS fallback:", apiErr);
     }
 
-    // 2. Fallback: Direct POST ke Google Apps Script Web App
-    const gasUrls = [
-      GAS_WEB_APP_URL,
-      "https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Zj5fnKejoelvuKkHQ1fQV-8UA_lRhtuTPMcmUFBH-xqN-kCVr3Dw/exec"
-    ];
+    // 4. Fallback ke Google Apps Script Web App
+    if (!networkSuccess) {
+      const gasUrls = [
+        GAS_WEB_APP_URL,
+        "https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Zj5fnKejoelvuKkHQ1fQV-8UA_lRhtuTPMcmUFBH-xqN-kCVr3Dw/exec"
+      ];
 
-    for (const url of gasUrls) {
-      try {
-        await fetch(url, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: {
-            'Content-Type': 'text/plain;charset=utf-8',
-          },
-          body: JSON.stringify({
-            action: 'appendByWorker',
-            operator: payload,
-          }),
-        });
+      for (const url of gasUrls) {
+        try {
+          await fetch(url, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+              'Content-Type': 'text/plain;charset=utf-8',
+            },
+            body: JSON.stringify({
+              action: 'appendByWorker',
+              operator: payload,
+            }),
+          });
 
-        return {
-          success: true,
-          gasSuccess: true,
-          message: `Operator ${operator.name} berhasil dikirim ke Google Apps Script untuk ditanamkan ke by_worker`,
-        };
-      } catch (gasErr) {
-        console.warn("GAS Direct POST failed:", gasErr);
+          networkSuccess = true;
+          successMessage = `Operator ${operator.name} berhasil dikirim ke Google Apps Script untuk ditanamkan ke by_worker`;
+          break;
+        } catch (gasErr) {
+          console.warn("GAS Direct POST failed:", gasErr);
+        }
       }
     }
 
     return {
       success: true,
-      gasSuccess: false,
-      message: `Data operator ${operator.name} tercatat di sistem lokal`,
+      gasSuccess: networkSuccess,
+      message: networkSuccess 
+        ? successMessage 
+        : `Operator ${operator.name} (${plantingResult.nik}) berhasil disimpan di sistem lokal & rumus penanaman telah dibuat!`,
+      plantingResult,
+      row: plantingResult.values,
     };
   } catch (error: any) {
     console.error("Gagal menanamkan operator ke by_worker:", error);

@@ -23,7 +23,9 @@ import {
   FileSpreadsheet,
   ExternalLink,
   HelpCircle,
-  Table
+  Table,
+  Copy,
+  Check
 } from 'lucide-react';
 import { Operator, GradeType, MachineCategory } from '../types';
 import { 
@@ -35,6 +37,7 @@ import {
   isOperatorResignedAtPeriod,
   calculateWorkTimeMonths,
   appendOperatorToByWorker,
+  generateByWorkerPlantingRow,
   lookupNikFromDateOfJoin,
   formatFactoryForSheet,
   formatLineForSheet,
@@ -115,6 +118,34 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
   const [isPlanting, setIsPlanting] = useState<boolean>(false);
   const [plantToast, setPlantToast] = useState<{ type: 'success' | 'warning' | 'error'; message: string } | null>(null);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState<boolean>(false);
+  const [hasCopiedFormula, setHasCopiedFormula] = useState<boolean>(false);
+
+  const handleCopyPlantingFormula = () => {
+    try {
+      const cleanFac = formData.factory ?? formatFactoryForSheet(selectedFactory);
+      const cleanLine = formData.line ?? formatLineForSheet(selectedLine);
+      const dataToGenerate = {
+        ...formData,
+        factory: cleanFac,
+        line: cleanLine,
+        points: formData.points !== undefined && formData.points !== null ? formData.points : 0,
+        tableCode: formData.tableCode || '1',
+        machineName: formData.machineName || '1Needle Lockstitch Auto Trim',
+        styleNo: formData.styleNo || 'NB17HQ271140',
+        process: formData.process || 'SEWING',
+        meta: formData.points === 0 ? 0 : (formData.meta || 844),
+        production: formData.points === 0 ? 0 : (formData.production || 780),
+        productionRate: formData.points === 0 ? 0 : (formData.productionRate || 92.44),
+      };
+      // Estimasi baris spreadsheet (di atas 19600)
+      const res = generateByWorkerPlantingRow(dataToGenerate, 19625);
+      navigator.clipboard.writeText(res.formulaTsvLine);
+      setHasCopiedFormula(true);
+      setTimeout(() => setHasCopiedFormula(false), 3000);
+    } catch (e) {
+      console.warn("Gagal menyalin rumus:", e);
+    }
+  };
 
   const handleConfirmResign = async () => {
     if (!resignTargetOp) return;
@@ -1526,37 +1557,79 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                   </p>
                   
                   {/* Pratinjau Baris Lengkap yang akan ditanamkan */}
-                  <div className="mt-2 pl-6 pt-2 border-t border-emerald-200/60 space-y-1.5 text-[11px] font-mono text-emerald-900">
-                    <div className="font-bold text-[10px] text-emerald-800 uppercase tracking-wide">
-                      Pratinjau Format Baris Google Sheets:
+                  <div className="mt-2 pl-6 pt-2 border-t border-emerald-200/60 space-y-2 text-[11px] font-mono text-emerald-900">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-[10px] text-emerald-800 uppercase tracking-wide">
+                        Pratinjau Format 18 Kolom 'by_worker' + Rumus Otomatis:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleCopyPlantingFormula}
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white text-emerald-800 border border-emerald-300 hover:bg-emerald-100/80 transition-colors shadow-xs cursor-pointer"
+                        title="Salin 18 kolom beserta rumus XLOOKUP, DATEDIF, dan INDEX MATCH ke clipboard"
+                      >
+                        {hasCopiedFormula ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            <span className="text-emerald-700">18 Kolom & Rumus Disalin!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Salin Rumus Baris Sheets</span>
+                          </>
+                        )}
+                      </button>
                     </div>
-                    <div className="flex flex-wrap gap-1.5 text-[10px]">
-                      <span className="bg-white/90 px-2 py-0.5 rounded border border-emerald-200">
-                        Kolom A (Factory): <strong>{formData.factory ?? formatFactoryForSheet(selectedFactory)}</strong>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[10px]">
+                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate">
+                        <strong>A (Factory):</strong> {formData.factory ?? formatFactoryForSheet(selectedFactory)}
                       </span>
-                      <span className="bg-white/90 px-2 py-0.5 rounded border border-emerald-200">
-                        Kolom B (Line): <strong>{formData.line ?? formatLineForSheet(selectedLine)}</strong>
+                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate">
+                        <strong>B (Line):</strong> {formData.line ?? formatLineForSheet(selectedLine)}
                       </span>
-                      <span className="bg-white/90 px-2 py-0.5 rounded border border-emerald-200">
-                        Kolom C (Table): <strong>{formData.tableCode || '1'}</strong>
+                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate">
+                        <strong>C (Table):</strong> {formData.tableCode || '1'}
                       </span>
-                      <span className="bg-white/90 px-2 py-0.5 rounded border border-emerald-200">
-                        Kolom D (NIK): <strong>{formData.nik || '-'}</strong>
+                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate">
+                        <strong>D (Date):</strong> {formData.date || new Date().toISOString().split('T')[0]}
                       </span>
-                      <span className="bg-white/90 px-2 py-0.5 rounded border border-emerald-200">
-                        Kolom E (Nama): <strong>{formData.name || '-'}</strong>
+                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate font-bold text-teal-800">
+                        <strong>E (NIK):</strong> {formData.nik || '-'}
                       </span>
-                      <span className="bg-white/90 px-2 py-0.5 rounded border border-emerald-200">
-                        Kolom H (Mesin): <strong>{formData.machineName || '1Needle Lockstitch Auto Trim'}</strong>
+                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate font-bold text-teal-800">
+                        <strong>F (Nama):</strong> {formData.name || '-'}
                       </span>
-                      <span className="bg-white/90 px-2 py-0.5 rounded border border-emerald-200">
-                        Kolom I (Style): <strong>{formData.styleNo || 'NB17HQ271140'}</strong>
+                      <span className="bg-amber-50/90 px-2 py-1 rounded border border-amber-200 truncate text-[9px] text-amber-900" title="=XLOOKUP(E...,date_of_join!$A$2:$A$19392,date_of_join!$C$2:$C$19392)">
+                        <strong>G (DOJ):</strong> =XLOOKUP(...)
                       </span>
-                      <span className="bg-emerald-600 text-white px-2 py-0.5 rounded font-bold">
-                        Kolom N (POIN): {formData.points ?? 0}
+                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate">
+                        <strong>H (Mesin):</strong> {formData.machineName || '1Needle Lockstitch'}
                       </span>
-                      <span className="bg-emerald-700 text-white px-2 py-0.5 rounded font-bold">
-                        Kolom R: ACTIVE
+                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate">
+                        <strong>I (Style):</strong> {formData.styleNo || 'NB17HQ271140'}
+                      </span>
+                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate">
+                        <strong>J (Process):</strong> {formData.process || 'SEWING'}
+                      </span>
+                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate">
+                        <strong>K-M:</strong> 0 | 0 | 0%
+                      </span>
+                      <span className="bg-emerald-600 text-white px-2 py-1 rounded font-bold truncate">
+                        <strong>N (POIN):</strong> {formData.points ?? 0}
+                      </span>
+                      <span className="bg-amber-50/90 px-2 py-1 rounded border border-amber-200 truncate text-[9px] text-amber-900" title="=DATEDIF(G..., D..., 'M')">
+                        <strong>O (Masa Kerja):</strong> =DATEDIF(...)
+                      </span>
+                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate text-[9px]">
+                        <strong>P (Resign):</strong> =XLOOKUP(...)
+                      </span>
+                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate text-[9px]">
+                        <strong>Q (Kat Mesin):</strong> =INDEX(...)
+                      </span>
+                      <span className="bg-emerald-700 text-white px-2 py-1 rounded font-bold truncate col-span-2 sm:col-span-1">
+                        <strong>R:</strong> ACTIVE
                       </span>
                     </div>
                   </div>
@@ -1707,68 +1780,85 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                           <td className="py-2 px-3 text-slate-700">SITI NURHALIZA</td>
                           <td className="py-2 px-3 font-sans text-slate-600">Nama lengkap operator (kapital)</td>
                         </tr>
-                        <tr className="hover:bg-slate-50">
+                        <tr className="hover:bg-slate-50 bg-amber-50/30">
                           <td className="py-2 px-3 font-bold text-teal-700">G</td>
                           <td className="py-2 px-3 font-bold">Date of Join</td>
-                          <td className="py-2 px-3 text-emerald-700 font-bold">Ya</td>
-                          <td className="py-2 px-3 text-slate-700">01-01-2025</td>
-                          <td className="py-2 px-3 font-sans text-slate-600">DOJ untuk kalkulasi masa kerja</td>
+                          <td className="py-2 px-3 text-emerald-700 font-bold">Rumus Otomatis</td>
+                          <td className="py-2 px-3 text-slate-800 text-[10px] break-all font-mono">
+                            =XLOOKUP(E{'{row}'},date_of_join!$A$2:$A$19392,date_of_join!$C$2:$C$19392)
+                          </td>
+                          <td className="py-2 px-3 font-sans text-slate-600">Ambil tanggal masuk otomatis dari sheet date_of_join</td>
                         </tr>
                         <tr className="hover:bg-slate-50">
                           <td className="py-2 px-3 font-bold text-teal-700">H</td>
                           <td className="py-2 px-3 font-bold">Machine</td>
-                          <td className="py-2 px-3 text-slate-400">Opsional</td>
-                          <td className="py-2 px-3 text-slate-700">LOCKSTITCH / SN</td>
-                          <td className="py-2 px-3 font-sans text-slate-600">Nama mesin yang dioperasikan</td>
+                          <td className="py-2 px-3 text-emerald-700 font-bold">Ya</td>
+                          <td className="py-2 px-3 text-slate-700">1Needle Lockstitch Auto Trim</td>
+                          <td className="py-2 px-3 font-sans text-slate-600">Nama spesifik mesin yang dioperasikan</td>
                         </tr>
                         <tr className="hover:bg-slate-50">
-                          <td className="py-2 px-3 font-bold text-teal-700">I - L</td>
-                          <td className="py-2 px-3 font-bold">Style No / Process / SMV / Target</td>
-                          <td className="py-2 px-3 text-slate-400">Opsional</td>
-                          <td className="py-2 px-3 text-slate-700">BASIC, SEWING, 0, 0</td>
-                          <td className="py-2 px-3 font-sans text-slate-600">Informasi standar proses IE</td>
+                          <td className="py-2 px-3 font-bold text-teal-700">I</td>
+                          <td className="py-2 px-3 font-bold">Style No</td>
+                          <td className="py-2 px-3 text-slate-600">Ya</td>
+                          <td className="py-2 px-3 text-slate-700">NB17HQ271140</td>
+                          <td className="py-2 px-3 font-sans text-slate-600">Kode style garmen yang sedang dikerjakan</td>
                         </tr>
                         <tr className="hover:bg-slate-50">
-                          <td className="py-2 px-3 font-bold text-teal-700">M</td>
-                          <td className="py-2 px-3 font-bold">Production Rate (%)</td>
-                          <td className="py-2 px-3 text-slate-400">Opsional</td>
-                          <td className="py-2 px-3 text-slate-700">100% atau 85</td>
-                          <td className="py-2 px-3 font-sans text-slate-600">Persentase kecepatan operator</td>
+                          <td className="py-2 px-3 font-bold text-teal-700">J</td>
+                          <td className="py-2 px-3 font-bold">Process</td>
+                          <td className="py-2 px-3 text-slate-600">Ya</td>
+                          <td className="py-2 px-3 text-slate-700">SEWING</td>
+                          <td className="py-2 px-3 font-sans text-slate-600">Nama proses sewing atau stasiun kerja</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50">
+                          <td className="py-2 px-3 font-bold text-teal-700">K - M</td>
+                          <td className="py-2 px-3 font-bold">Meta / Prod / Rate(%)</td>
+                          <td className="py-2 px-3 text-slate-600">Ya</td>
+                          <td className="py-2 px-3 text-slate-700">0 / 0 / 0% (Untuk Helper)</td>
+                          <td className="py-2 px-3 font-sans text-slate-600">K: Target, L: Output, M: % Efisiensi</td>
                         </tr>
                         <tr className="hover:bg-slate-50 bg-teal-50/50">
                           <td className="py-2 px-3 font-bold text-teal-700">N</td>
                           <td className="py-2 px-3 font-bold">POINT</td>
                           <td className="py-2 px-3 text-emerald-700 font-bold">Ya</td>
-                          <td className="py-2 px-3 text-teal-800 font-bold">1, 2, atau 3</td>
-                          <td className="py-2 px-3 font-sans text-slate-600">Standar Poin IE (Maksimal 3 poin)</td>
+                          <td className="py-2 px-3 text-teal-800 font-bold">0 (Helper) / 1 / 2 / 3</td>
+                          <td className="py-2 px-3 font-sans text-slate-600">
+                            Poin kompetensi IE. <strong>0 untuk Helper</strong>. Rumus: =IFS(M{'{row}'}&lt;=0,0,M{'{row}'}&lt;=60.99,1,AND(M{'{row}'}&gt;=61,M{'{row}'}&lt;=89.99),2,M{'{row}'}&gt;=90,3)
+                          </td>
                         </tr>
-                        <tr className="hover:bg-slate-50">
+                        <tr className="hover:bg-slate-50 bg-amber-50/30">
                           <td className="py-2 px-3 font-bold text-teal-700">O</td>
                           <td className="py-2 px-3 font-bold">Work Month</td>
-                          <td className="py-2 px-3 text-slate-400">Opsional</td>
-                          <td className="py-2 px-3 text-slate-700">12</td>
-                          <td className="py-2 px-3 font-sans text-slate-600">Masa kerja dalam satuan bulan</td>
+                          <td className="py-2 px-3 text-emerald-700 font-bold">Rumus Otomatis</td>
+                          <td className="py-2 px-3 text-slate-800 text-[10px] break-all font-mono">
+                            =DATEDIF(G{'{row}'}, D{'{row}'}, "M")
+                          </td>
+                          <td className="py-2 px-3 font-sans text-slate-600">Masa kerja dalam satuan bulan dari DOJ ke Tanggal</td>
                         </tr>
-                        <tr className="hover:bg-slate-50">
+                        <tr className="hover:bg-slate-50 bg-amber-50/30">
                           <td className="py-2 px-3 font-bold text-teal-700">P</td>
                           <td className="py-2 px-3 font-bold">Date of Resign</td>
-                          <td className="py-2 px-3 text-slate-400">Khusus</td>
-                          <td className="py-2 px-3 text-slate-700">- (Kosongkan jika aktif)</td>
-                          <td className="py-2 px-3 font-sans text-slate-600">Isi tanggal jika operator mengundurkan diri</td>
+                          <td className="py-2 px-3 text-slate-600 font-bold">Rumus Otomatis</td>
+                          <td className="py-2 px-3 text-slate-800 text-[10px] break-all font-mono">
+                            =XLOOKUP(E{'{row}'},date_of_join!$A$2:$A$9996,date_of_join!$D$2:$D$9996)
+                          </td>
+                          <td className="py-2 px-3 font-sans text-slate-600">Otomatis kosong / tanggal resign dari date_of_join</td>
                         </tr>
-                        <tr className="hover:bg-slate-50">
+                        <tr className="hover:bg-slate-50 bg-amber-50/30">
                           <td className="py-2 px-3 font-bold text-teal-700">Q</td>
                           <td className="py-2 px-3 font-bold">Machine Category</td>
-                          <td className="py-2 px-3 text-emerald-700 font-bold">Ya</td>
-                          <td className="py-2 px-3 text-slate-700">LOCKSTITCH</td>
-                          <td className="py-2 px-3 font-sans text-slate-600">Kategori: LOCKSTITCH, OVERLOCK, dll.</td>
+                          <td className="py-2 px-3 text-emerald-700 font-bold">Rumus Otomatis</td>
+                          <td className="py-2 px-3 text-slate-800 text-[10px] break-all font-mono">
+                            =INDEX($Y$2:$Y$74,MATCH(H{'{row}'},$Z$2:$Z$74,))
+                          </td>
+                          <td className="py-2 px-3 font-sans text-slate-600">Pencocokan kategori mesin ke tabel referensi Y-Z</td>
                         </tr>
                         <tr className="hover:bg-emerald-50 bg-emerald-100/60 font-bold text-emerald-950">
                           <td className="py-2.5 px-3 text-emerald-800">R</td>
                           <td className="py-2.5 px-3">Status</td>
                           <td className="py-2.5 px-3 text-emerald-700">WAJIB MUTLAK</td>
-                          <td className="py-2.5 px-3 text-emerald-800">ACTIVE</td>
-                          <td className="py-2.5 px-3 font-sans text-emerald-900">Harus bernilai ACTIVE agar masuk di sistem</td>
+                          <td className="py-2.5 px-3 text-emerald-800 font-mono">ACTIVE</td>
+                          <td className="py-2.5 px-3 font-sans text-emerald-900">Harus bertuliskan ACTIVE agar terbaca oleh sistem</td>
                         </tr>
                       </tbody>
                     </table>
