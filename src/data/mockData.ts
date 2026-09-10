@@ -287,7 +287,7 @@ export const LINES = [
   "Line 21", "Line 22", "Line 23", "Line 24", "Line 25", "Line 26", "Line 27", "Line 28", "Line 29", "Line 30"
 ];
 
-export const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyfi3iPH2UPpA_SOIt8hUWLTybF30icj_X-IT0V4TyfZGQAmCTWPIrij1LZmmi4oUWDng/exec";
+export const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Zj5fnKejoelvuKkHQ1fQV-8UA_lRhtuTPMcmUFBH-xqN-kCVr3Dw/exec";
 
 /**
  * Filter operator aktif di dalam fungsi kalkulasi/tabel frontend.

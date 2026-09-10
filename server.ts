@@ -538,7 +538,6 @@ app.get("/api/sheets/date-of-join", async (req, res) => {
     // 2. Fallback: Coba panggil Google Apps Script Web App
     const gasUrls = [
       "https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Zj5fnKejoelvuKkHQ1fQV-8UA_lRhtuTPMcmUFBH-xqN-kCVr3Dw/exec",
-      "https://script.google.com/macros/s/AKfycbyfi3iPH2UPpA_SOIt8hUWLTybF30icj_X-IT0V4TyfZGQAmCTWPIrij1LZmmi4oUWDng/exec",
     ];
 
     for (const gasUrl of gasUrls) {
@@ -677,37 +676,36 @@ app.post("/api/sheets/append-by-worker", async (req, res) => {
     // Kirim data ke Google Apps Script Web App untuk ditanamkan ke sheet 'by_worker'
     const gasUrls = [
       "https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Zj5fnKejoelvuKkHQ1fQV-8UA_lRhtuTPMcmUFBH-xqN-kCVr3Dw/exec",
-      "https://script.google.com/macros/s/AKfycbyfi3iPH2UPpA_SOIt8hUWLTybF30icj_X-IT0V4TyfZGQAmCTWPIrij1LZmmi4oUWDng/exec",
     ];
 
     let gasSuccess = false;
     let gasMessage = "";
 
+    const appendQueryParams = new URLSearchParams({
+      action: "appendByWorker",
+      factory: String(factory),
+      line: String(line),
+      tableCode: String(tableCode),
+      date: String(dateStr),
+      nik: String(nik),
+      name: String(name),
+      doj: String(doj || "-"),
+      machineName: String(machineName),
+      styleNo: String(styleNo),
+      process: String(process),
+      meta: String(targetMeta),
+      production: String(actualProd),
+      productionRate: String(prodRate),
+      points: String(pointVal),
+      workMonth: String(workMonth),
+      machineCategory: String(machineCategory),
+      status: String(status || "ACTIVE"),
+    });
+
     for (const gasUrl of gasUrls) {
       try {
-        const gasRes = await fetch(gasUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "appendByWorker",
-            operator: {
-              factory,
-              line,
-              nik,
-              name,
-              doj,
-              workMonth,
-              status,
-              date: dateStr,
-              machineName,
-              machineCategory,
-              points: pointVal,
-              styleNo,
-              tableCode,
-              process,
-              rows: rowsToAppend,
-            },
-          }),
+        const gasRes = await fetch(`${gasUrl}?${appendQueryParams.toString()}`, {
+          method: "GET",
         });
 
         if (gasRes.ok) {

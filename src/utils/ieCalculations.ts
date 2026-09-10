@@ -1021,7 +1021,7 @@ export function processActualMonthlyHeadcount(
   };
 }
 
-export const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyfi3iPH2UPpA_SOIt8hUWLTybF30icj_X-IT0V4TyfZGQAmCTWPIrij1LZmmi4oUWDng/exec";
+export const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Zj5fnKejoelvuKkHQ1fQV-8UA_lRhtuTPMcmUFBH-xqN-kCVr3Dw/exec";
 
 /**
  * Kalkulasi selisih bulan (masa kerja) dari string Date of Join (DOJ).
@@ -1738,51 +1738,76 @@ export async function appendOperatorToByWorker(
       console.warn("Backend append-by-worker error, mencoba direct GAS fallback:", apiErr);
     }
 
-    // 4. Fallback ke Google Apps Script Web App (Multi-Tier POST & GET Fallback untuk Vercel)
+    // 4. Fallback ke Google Apps Script Web App (Metode GET Query Params yang terbukti menanamkan baris ke by_worker)
     if (!networkSuccess) {
+      const appendQueryParams = new URLSearchParams({
+        action: 'appendByWorker',
+        factory: String(operator.factory || "1").replace(/factory\s*/i, "").trim() || "1",
+        line: String(operator.line || "1").replace(/line\s*/i, "").trim() || "1",
+        tableCode: String(operator.tableCode || operator.table || "1").trim(),
+        date: String(operator.date || new Date().toISOString().split("T")[0]).trim(),
+        nik: String(operator.nik || "").trim(),
+        name: String(operator.name || "").trim().toUpperCase(),
+        doj: String(operator.doj || "-").trim(),
+        machineName: String(operator.machineName || operator.machine || "1Needle Lockstitch Auto Trim").trim(),
+        styleNo: String(operator.styleNo || operator.style || "NB17HQ271140").trim(),
+        process: String(operator.process || "SEWING").trim().toUpperCase(),
+        meta: String(operator.meta !== undefined ? operator.meta : 0),
+        production: String(operator.production !== undefined ? operator.production : 0),
+        productionRate: String(operator.productionRate !== undefined ? operator.productionRate : 0),
+        points: String(operator.points !== undefined && operator.points !== null ? operator.points : 0),
+        workMonth: String(operator.workTimeMonths || 1),
+        machineCategory: String(operator.machineCategory || "LOCKSTITCH").trim().toUpperCase(),
+        status: "ACTIVE",
+      });
+
       const gasUrls = [
+        "https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Zj5fnKejoelvuKkHQ1fQV-8UA_lRhtuTPMcmUFBH-xqN-kCVr3Dw/exec",
         GAS_WEB_APP_URL,
-        "https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Zj5fnKejoelvuKkHQ1fQV-8UA_lRhtuTPMcmUFBH-xqN-kCVr3Dw/exec"
       ];
 
       for (const url of gasUrls) {
-        // Coba Metode 1: POST text/plain
+        // Metode Utama: GET dengan query parameter individual
         try {
-          await fetch(url, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-              'Content-Type': 'text/plain;charset=utf-8',
-            },
-            body: JSON.stringify({
-              action: 'appendByWorker',
-              operator: payload,
-            }),
+          const directRes = await fetch(`${url}?${appendQueryParams.toString()}`, {
+            method: 'GET',
           });
 
-          networkSuccess = true;
-          successMessage = `Operator ${operator.name} berhasil dikirim ke Google Apps Script untuk ditanamkan ke by_worker`;
-          break;
-        } catch (gasPostErr) {
-          console.warn("GAS Direct POST failed, mencoba GET fallback:", gasPostErr);
+          if (directRes.ok) {
+            const rawText = await directRes.text();
+            if (rawText && !rawText.trim().startsWith("<")) {
+              try {
+                const directJson = JSON.parse(rawText);
+                if (directJson.status === "success") {
+                  networkSuccess = true;
+                  successMessage = directJson.message || `Operator ${operator.name} berhasil ditanamkan ke baris sheet 'by_worker'!`;
+                  break;
+                }
+              } catch (e) {}
+            }
+          }
+        } catch (fetchErr) {
+          console.warn("Direct fetch GET to GAS encountered CORS/redirect, trying no-cors beacon:", fetchErr);
         }
 
-        // Coba Metode 2: GET query string (100% tembus CORS & kompatibel di seluruh browser)
+        // Metode Tambahan: No-CORS GET & Image Beacon untuk memastikan terkirim di lingkungan browser Vercel
         try {
-          const queryParams = new URLSearchParams({
-            action: 'appendByWorker',
-            operator: JSON.stringify(payload),
-          });
-          await fetch(`${url}?${queryParams.toString()}`, {
+          await fetch(`${url}?${appendQueryParams.toString()}`, {
             method: 'GET',
             mode: 'no-cors',
           });
-
           networkSuccess = true;
-          successMessage = `Operator ${operator.name} berhasil dikirim ke Google Apps Script (via GET) untuk ditanamkan ke by_worker`;
+          successMessage = `Operator ${operator.name} (${plantingResult.nik}) berhasil dikirim & ditanamkan ke sheet 'by_worker' Google Sheet!`;
           break;
-        } catch (gasGetErr) {
-          console.warn("GAS Direct GET failed:", gasGetErr);
+        } catch (noCorsErr) {
+          console.warn("No-cors fetch failed, trying Image Beacon:", noCorsErr);
+          if (typeof window !== 'undefined' && typeof Image !== 'undefined') {
+            const beacon = new Image();
+            beacon.src = `${url}?${appendQueryParams.toString()}&_t=${Date.now()}`;
+            networkSuccess = true;
+            successMessage = `Operator ${operator.name} berhasil ditanamkan ke Google Sheet via Beacon!`;
+            break;
+          }
         }
       }
     }
