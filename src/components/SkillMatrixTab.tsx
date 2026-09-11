@@ -25,8 +25,10 @@ import {
   HelpCircle,
   Table,
   Copy,
-  Check
+  Check,
+  FileDown
 } from 'lucide-react';
+import { ExportPDFModal } from './ExportPDFModal';
 import { Operator, GradeType, MachineCategory } from '../types';
 import { 
   getOperatorMultiSkillCount, 
@@ -118,6 +120,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
   const [isPlanting, setIsPlanting] = useState<boolean>(false);
   const [plantToast, setPlantToast] = useState<{ type: 'success' | 'warning' | 'error'; message: string } | null>(null);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState<boolean>(false);
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState<boolean>(false);
   const [hasCopiedFormula, setHasCopiedFormula] = useState<boolean>(false);
 
   const handleCopyPlantingFormula = () => {
@@ -772,6 +775,18 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
             >
               <Download className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">{t.matrix.exportCSV}</span>
+            </button>
+
+            {/* Export PDF Button */}
+            <button
+              type="button"
+              onClick={() => setIsPdfModalOpen(true)}
+              className="bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+              title={t.matrix.exportPdfDesc || "Export Laporan PDF Skill Matrix Resmi (A4 Landscape)"}
+            >
+              <FileDown className="w-3.5 h-3.5 text-rose-600" />
+              <span className="hidden sm:inline">{t.matrix.exportPDF || 'Export PDF'}</span>
+              <span className="text-[9px] bg-rose-200/80 text-rose-900 px-1.5 py-0.2 rounded font-bold uppercase tracking-wide">A4</span>
             </button>
 
             {/* Panduan Datasheet by_worker Button */}
@@ -2121,6 +2136,17 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
           </div>
         </div>
       )}
+
+      {/* Export PDF Modal */}
+      <ExportPDFModal
+        isOpen={isPdfModalOpen}
+        onClose={() => setIsPdfModalOpen(false)}
+        operators={operators}
+        selectedFactory={selectedFactory}
+        selectedLine={selectedLine}
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+      />
 
     </div>
   );

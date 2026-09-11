@@ -123,6 +123,8 @@ export interface Translations {
     searchPlaceholder: string;
     multiSkillOnly: string;
     exportCSV: string;
+    exportPDF: string;
+    exportPdfDesc: string;
     addOperator: string;
     category: string;
     allMachines: string;
@@ -509,6 +511,8 @@ export const translations: Record<Language, Translations> = {
       searchPlaceholder: 'Cari Operator (Nama atau NIK)...',
       multiSkillOnly: 'Multi-Skill Saja',
       exportCSV: 'Export CSV',
+      exportPDF: 'Export PDF',
+      exportPdfDesc: 'Unduh Laporan PDF Resmi A4 Landscape',
       addOperator: 'Tambah Operator',
       category: 'Kategori',
       allMachines: 'Semua Mesin',
@@ -875,6 +879,8 @@ export const translations: Record<Language, Translations> = {
       searchPlaceholder: 'Search Operator (Name or Worker ID)...',
       multiSkillOnly: 'Multi-Skill Only',
       exportCSV: 'Export CSV',
+      exportPDF: 'Export PDF',
+      exportPdfDesc: 'Download Official A4 Landscape PDF Report',
       addOperator: 'Add Operator',
       category: 'Category',
       allMachines: 'All Machines',

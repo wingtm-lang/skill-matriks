@@ -12,7 +12,6 @@ import {
   filterOperatorsByPointInTime,
   normalizeFactoryName,
   normalizeLineName,
-  MONTH_NAMES_ID,
   isOperatorResignedAtPeriod,
   getPointsFromEfficiency,
   fetchOperatorsFromGViz,
@@ -440,6 +439,8 @@ export default function App() {
               operators={displayedOperators}
               selectedLine={selectedLine}
               selectedFactory={selectedFactory}
+              selectedMonth={selectedMonth}
+              selectedYear={selectedYear}
             />
           )}
         </div>

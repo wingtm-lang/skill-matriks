@@ -13,25 +13,32 @@ import {
   Zap,
   GraduationCap,
   TrendingUp,
-  Cpu
+  Cpu,
+  FileDown
 } from 'lucide-react';
 import { Operator, MachineCategory } from '../types';
 import { getOperatorMultiSkillCount, getOperatorAvgRate } from '../utils/ieCalculations';
 import { getGradeFromRate } from '../data/mockData';
 import { useLanguage } from '../i18n/LanguageContext';
+import { ExportPDFModal } from './ExportPDFModal';
 
 interface MultiSkillDevelopmentTabProps {
   operators: Operator[];
   selectedLine: string;
   selectedFactory: string;
+  selectedMonth?: number;
+  selectedYear?: number;
 }
 
 export const MultiSkillDevelopmentTab: React.FC<MultiSkillDevelopmentTabProps> = ({
   operators,
   selectedLine,
   selectedFactory,
+  selectedMonth = new Date().getMonth() + 1,
+  selectedYear = new Date().getFullYear(),
 }) => {
   const { t } = useLanguage();
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   // Filter operator aktif di dalam fungsi kalkulasi/tabel frontend
   const activeOperators = operators.filter(row => {
     const isResigned = row.status?.toUpperCase() === "RESIGNED";
@@ -103,14 +110,26 @@ export const MultiSkillDevelopmentTab: React.FC<MultiSkillDevelopmentTabProps> =
       
       {/* 1. MACHINE COVERAGE & BOTTLENECK READINESS */}
       <div className="bg-white border border-[#E0E8E8] rounded-[20px] p-5 shadow-[0_8px_30px_rgba(48,72,72,0.06)]">
-        <div className="mb-4">
-          <h3 className="text-sm font-bold text-[#304848] flex items-center gap-2">
-            <Cpu className="w-5 h-5 text-[#2AAFA3]" />
-            <span>{t.multiSkill.machineCoverageTitle} ({selectedFactory} • {selectedLine})</span>
-          </h3>
-          <p className="text-xs text-[#788888]">
-            {t.multiSkill.machineCoverageSubtitle}
-          </p>
+        <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-bold text-[#304848] flex items-center gap-2">
+              <Cpu className="w-5 h-5 text-[#2AAFA3]" />
+              <span>{t.multiSkill.machineCoverageTitle} ({selectedFactory} • {selectedLine})</span>
+            </h3>
+            <p className="text-xs text-[#788888]">
+              {t.multiSkill.machineCoverageSubtitle}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsPdfModalOpen(true)}
+            className="self-start sm:self-auto bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+            title="Export Laporan PDF Skill Matrix & Evaluasi Kompetensi"
+          >
+            <FileDown className="w-3.5 h-3.5 text-rose-600" />
+            <span>Export PDF Laporan</span>
+            <span className="text-[9px] bg-rose-200/80 text-rose-900 px-1 py-0.2 rounded font-bold uppercase tracking-wide">A4</span>
+          </button>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -278,6 +297,17 @@ export const MultiSkillDevelopmentTab: React.FC<MultiSkillDevelopmentTabProps> =
         </div>
 
       </div>
+
+      {/* Export PDF Modal */}
+      <ExportPDFModal
+        isOpen={isPdfModalOpen}
+        onClose={() => setIsPdfModalOpen(false)}
+        operators={operators}
+        selectedFactory={selectedFactory}
+        selectedLine={selectedLine}
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+      />
 
     </div>
   );
