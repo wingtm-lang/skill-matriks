@@ -1,9 +1,7 @@
 import React from 'react';
 import { 
   TableProperties, 
-  Sparkles, 
   Target, 
-  BotMessageSquare, 
   Building2,
   X,
   Layers,
@@ -37,7 +35,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { language, setLanguage, t } = useLanguage();
 
-  const navItems = [
+  interface NavItem {
+    id: string;
+    label: string;
+    sublabel: string;
+    icon: React.ComponentType<{ className?: string }>;
+    badge?: string;
+  }
+
+  const navItems: NavItem[] = [
     {
       id: 'matrix',
       label: t.sidebar.navMatrix,
@@ -45,23 +51,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: TableProperties,
     },
     {
-      id: 'balancing',
-      label: t.sidebar.navBalancing,
-      sublabel: t.sidebar.navBalancingSub,
-      icon: Sparkles,
-      badge: 'Gemini AI',
-    },
-    {
       id: 'training',
       label: t.sidebar.navTraining,
       sublabel: t.sidebar.navTrainingSub,
       icon: Target,
-    },
-    {
-      id: 'chat',
-      label: t.sidebar.navChat,
-      sublabel: t.sidebar.navChatSub,
-      icon: BotMessageSquare,
     },
   ];
 

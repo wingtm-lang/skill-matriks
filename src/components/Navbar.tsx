@@ -4,9 +4,7 @@ import {
   GitFork, 
   UserCheck, 
   TableProperties, 
-  Sparkles, 
   Target, 
-  BotMessageSquare, 
   FileSpreadsheet,
   ShieldCheck,
   Calendar
@@ -183,18 +181,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           <button
-            onClick={() => onTabChange('balancing')}
-            className={`px-3.5 py-3 text-xs sm:text-sm font-semibold border-b-2 flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
-              activeTab === 'balancing'
-                ? 'border-purple-500 text-purple-400 bg-purple-500/10'
-                : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-            }`}
-          >
-            <Sparkles className="w-4 h-4 text-purple-400" />
-            <span>{t.sidebar.navBalancing}</span>
-          </button>
-
-          <button
             onClick={() => onTabChange('training')}
             className={`px-3.5 py-3 text-xs sm:text-sm font-semibold border-b-2 flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'training'
@@ -204,18 +190,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <Target className="w-4 h-4 text-emerald-400" />
             <span>{t.sidebar.navTraining}</span>
-          </button>
-
-          <button
-            onClick={() => onTabChange('chat')}
-            className={`px-3.5 py-3 text-xs sm:text-sm font-semibold border-b-2 flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
-              activeTab === 'chat'
-                ? 'border-amber-500 text-amber-400 bg-amber-500/10'
-                : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-            }`}
-          >
-            <BotMessageSquare className="w-4 h-4 text-amber-400" />
-            <span>{t.sidebar.navChat}</span>
           </button>
 
           <button

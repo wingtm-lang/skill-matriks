@@ -3,11 +3,9 @@ import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { MetricsOverview } from './components/MetricsOverview';
 import { SkillMatrixTab } from './components/SkillMatrixTab';
-import { LineBalancingTab } from './components/LineBalancingTab';
 import { MultiSkillDevelopmentTab } from './components/MultiSkillDevelopmentTab';
-import { IEChatAssistantTab } from './components/IEChatAssistantTab';
-import { INITIAL_STYLES, FACTORIES, LINES } from './data/mockData';
-import { Operator, GarmentStyle } from './types';
+import { FACTORIES, LINES } from './data/mockData';
+import { Operator } from './types';
 import { 
   sortLinesNumerically, 
   sortFactoriesNumerically, 
@@ -24,7 +22,6 @@ import { AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 
 export default function App() {
   const [operators, setOperators] = useState<Operator[]>([]);
-  const [styles, setStyles] = useState<GarmentStyle[]>(INITIAL_STYLES);
   const [selectedFactory, setSelectedFactory] = useState<string>('Factory 1');
   const [selectedLine, setSelectedLine] = useState<string>('Line 3');
   const [selectedMonth, setSelectedMonth] = useState<number>(9); // Default September 2026
@@ -358,10 +355,6 @@ export default function App() {
     setOperators((prev) => prev.filter((op) => op.id !== id));
   };
 
-  const handleAddCustomStyle = (newStyle: GarmentStyle) => {
-    setStyles((prev) => [...prev, newStyle]);
-  };
-
   return (
     <div className="min-h-screen bg-[#E0F0F0] text-[#304848] flex flex-col lg:flex-row antialiased selection:bg-[#2AAFA3] selection:text-white">
       
@@ -442,28 +435,9 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'balancing' && (
-            <LineBalancingTab
-              styles={styles}
-              operators={displayedOperators}
-              selectedLine={selectedLine}
-              selectedFactory={selectedFactory}
-              onAddCustomStyle={handleAddCustomStyle}
-            />
-          )}
-
           {activeTab === 'training' && (
             <MultiSkillDevelopmentTab
               operators={displayedOperators}
-              selectedLine={selectedLine}
-              selectedFactory={selectedFactory}
-            />
-          )}
-
-          {activeTab === 'chat' && (
-            <IEChatAssistantTab
-              operators={displayedOperators}
-              styles={styles}
               selectedLine={selectedLine}
               selectedFactory={selectedFactory}
             />
