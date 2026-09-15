@@ -47,6 +47,7 @@ export interface Operator {
   machineName?: string;
   styleNo?: string; // Kolom I: Style No
   process?: string; // Kolom J: Process
+  currentOperation?: string; // Kolom J: Process pada tanggal terakhir bulan aktif
   tableCode?: string | number; // Kolom C: Table / Style Code (e.g. "19", "1")
   table?: string | number;
   meta?: number; // Kolom K: SMV / Target Meta

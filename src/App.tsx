@@ -14,6 +14,7 @@ import {
   normalizeLineName,
   isOperatorResignedAtPeriod,
   getPointsFromEfficiency,
+  calculateWorkTimeMonths,
   fetchOperatorsFromGViz,
   getCustomAddedOperatorsFromStorage,
 } from './utils/ieCalculations';
@@ -22,9 +23,9 @@ import { AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 export default function App() {
   const [operators, setOperators] = useState<Operator[]>([]);
   const [selectedFactory, setSelectedFactory] = useState<string>('Factory 1');
-  const [selectedLine, setSelectedLine] = useState<string>('Line 3');
-  const [selectedMonth, setSelectedMonth] = useState<number>(9); // Default September 2026
-  const [selectedYear, setSelectedYear] = useState<number>(2026); // Default 2026
+  const [selectedLine, setSelectedLine] = useState<string>('Line 1');
+  const [selectedMonth, setSelectedMonth] = useState<number>(() => new Date().getMonth() + 1); // Current active month (1-12)
+  const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear()); // Current active year
   const [activeTab, setActiveTab] = useState<string>('matrix');
   const [userRole, setUserRole] = useState<'VIEWER' | 'EDITOR' | 'ADMIN'>('VIEWER');
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
@@ -37,237 +38,30 @@ export default function App() {
   const [availableFactories, setAvailableFactories] = useState<string[]>(FACTORIES);
   const [availableLines, setAvailableLines] = useState<string[]>(LINES);
 
-  // Fetch live operators directly from Google Apps Script Web App
+  // Fetch live operators directly from Google Sheets via backend proxy (/api/sheets/operators)
   const fetchLiveOperators = useCallback(async () => {
     setIsLoadingSheets(true);
     setSyncError(null);
 
     try {
-      // Masukkan URL Web App Google Apps Script kamu secara utuh di sini
-      const gasUrl = "https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Zj5fnKejoelvuKkHQ1fQV-8UA_lRhtuTPMcmUFBH-xqN-kCVr3Dw/exec";
-
-      const response = await fetch(gasUrl);
-      const textData = await response.text();
-
-      let result;
-      try {
-        result = JSON.parse(textData);
-      } catch (e) {
-        throw new Error("Respons dari Google Sheets bukan JSON yang valid. Periksa deployment GAS.");
-      }
-
-      if (result.status === "success" && Array.isArray(result.data)) {
-        const rows = result.data;
-        const headers: any[] = rows[0] || []; // Baris pertama adalah header spreadsheet
-        const dataRows = rows.slice(1); // Baris data operator setelah header
-
-        const findColIdx = (candidates: string[], fallbackIdx: number) => {
-          if (!Array.isArray(headers)) return fallbackIdx;
-          // 1. Exact match (case-insensitive)
-          for (const cand of candidates) {
-            const idx = headers.findIndex(
-              (h) => typeof h === "string" && h.trim().toUpperCase() === cand.toUpperCase()
-            );
-            if (idx !== -1) return idx;
-          }
-          // 2. Starts with / includes match
-          for (const cand of candidates) {
-            const idx = headers.findIndex(
-              (h) => typeof h === "string" && h.toUpperCase().includes(cand.toUpperCase())
-            );
-            if (idx !== -1) return idx;
-          }
-          return fallbackIdx;
-        };
-
-        const idxWorkerCode = findColIdx(["Worker Code", "NIK", "ID"], 4);
-        const idxWorker = findColIdx(["Worker", "Nama", "Operator"], 5);
-        const idxFactory = findColIdx(["Factory", "Pabrik"], 0);
-        const idxLine = findColIdx(["Line", "Jalur"], 1);
-        const idxStatus = findColIdx(["Status"], 17);
-        const idxDoj = findColIdx(["Date of Join", "D.O.J", "DOJ"], 6);
-        const idxDate = findColIdx(["Date", "Tanggal", "Tgl"], 3);
-        const idxRate = findColIdx(["Production Rate (%)", "Actual Rate", "Rate", "Efisiensi"], 12);
-        // Prioritaskan "POIN" (Kolom N di index 13) sebelum "point" umum agar tidak salah mendeteksi kolom kalkulasi lain di index 22
-        const idxPoints = findColIdx(["POIN", "POINT (KOLOM N)", "POIN MESIN"], 13);
-        const idxWorkMonth = findColIdx(["Work Month", "Masa Kerja"], 14);
-        const idxDateOfResign = findColIdx(["Date of Resign", "Resign"], 15);
-        const idxMachine = findColIdx(["Machine Category", "Kategori Mesin", "Category", "Kategori"], 16);
-        const idxMachineName = findColIdx(["Machine", "Mesin", "Nama Mesin"], 7);
-        const idxStyleNo = findColIdx(["Style No", "Style"], 8);
-        const idxProcess = findColIdx(["Process", "Proses", "Operasi"], 9);
-
-        // Mapping baris spreadsheet ke objek Operator
-        const normalizedOps: Operator[] = dataRows.map((row: any, index: number) => {
-          const rawProdRate = Number(row[idxRate] ?? row[12] ?? 0);
-          // Parse Kolom N / Indeks 13 (POINT) - Standar PT. Winners International: 0 - 3 Poin per mesin
-          const rawPointsStr = String(row[idxPoints] ?? row[13] ?? "").trim();
-          const rawPoints = parseFloat(rawPointsStr.replace(',', '.').replace(/[^0-9.]/g, ''));
-          let pointVal = !isNaN(rawPoints) ? Math.min(3, Math.max(0, Math.round(rawPoints))) : 0;
-          // Standar Sistem Poin IE: HANYA infer jika kolom POIN benar-benar KOSONG di sheet dan rawProdRate > 0 (jika tertulis 0, harus tetap 0)
-          if (rawPointsStr === "" && rawProdRate > 0) {
-            pointVal = getPointsFromEfficiency(rawProdRate);
-          }
-          const rawCat = String(row[idxMachine] ?? row[16] ?? "").toUpperCase();
-          const rawMachineName = String(row[idxMachineName] ?? row[7] ?? "").toUpperCase();
-
-          const isLockstitch = rawCat.includes("LOCKSTITCH") || rawCat.includes("SN") || rawCat.includes("SINGLE NEEDLE") ||
-            (!rawCat && (rawMachineName.includes("LOCKSTITCH") || rawMachineName.includes("1NEEDLE") || rawMachineName.includes("SN")));
-
-          const isOverlock = rawCat.includes("OVERLOCK") || rawCat.includes("OL") || rawCat.includes("OBRAS") ||
-            (!rawCat && (rawMachineName.includes("OVERLOCK") || rawMachineName.includes("OBRAS") || rawMachineName.includes("2NEEDLE OVERLOCK")));
-
-          const isFlatseam = rawCat.includes("FLATSEAM") || rawCat.includes("COVERSTITCH") || rawCat.includes("FS") || rawCat.includes("KAM") ||
-            (!rawCat && (rawMachineName.includes("FLAT SEAM") || rawMachineName.includes("COVERSTITCH") || rawMachineName.includes("FLATSEAM")));
-
-          const isSpecial = rawCat.includes("SPECIAL") || rawCat.includes("SP") || rawCat.includes("PRESS") || rawCat.includes("OTOMATIS") ||
-            (!rawCat && (rawMachineName.includes("PRESS") || rawMachineName.includes("HEAT TRANSFER") || rawMachineName.includes("SPECIAL")));
-
-          const isButtonHole = rawCat.includes("BUTTON HOLE") || rawCat.includes("BUTTON_HOLE") || rawCat.includes("BH") || rawCat.includes("LUBANG KANCING") ||
-            (!rawCat && (rawMachineName.includes("BUTTON HOLE") || rawMachineName.includes("LUBANG KANCING")));
-
-          const isButtonSet = rawCat.includes("BUTTON SET") || rawCat.includes("BUTTON_SET") || rawCat.includes("BS") || rawCat.includes("PASANG KANCING") ||
-            (!rawCat && (rawMachineName.includes("BUTTON SET") || rawMachineName.includes("PASANG KANCING")));
-
-          const isChainstitch = rawCat.includes("CHAINSTITCH") || rawCat.includes("CS") || rawCat.includes("KANSAI") ||
-            (!rawCat && (rawMachineName.includes("CHAINSTITCH") || rawMachineName.includes("KANSAI") || rawMachineName.includes("CHAIN STITCH")));
-
-          const isBartack = rawCat.includes("BARTACK") || rawCat.includes("BT") || rawCat.includes("BAR TACK") ||
-            (!rawCat && (rawMachineName.includes("BARTACK") || rawMachineName.includes("BAR TACK")));
-
-          const rawDate = row[idxDate] ?? row[3] ?? "";
-          const rowDateStr = rawDate ? String(rawDate).trim() : "";
-
-          return {
-            id: String(row[idxWorkerCode] ?? row[4] ?? index), // Kolom E: Worker Code
-            no: index + 1,
-            factory: normalizeFactoryName(String(row[idxFactory] ?? row[0] ?? "1")), // Kolom A: Factory
-            line: normalizeLineName(String(row[idxLine] ?? row[1] ?? "1")), // Kolom B: Line
-            nik: String(row[idxWorkerCode] ?? row[4] ?? ""), // Kolom E: Worker Code
-            name: String(row[idxWorker] ?? row[5] ?? "Unknown"), // Kolom F: Worker
-            date: rowDateStr, // Kolom D: Date
-            recordDate: rowDateStr,
-            machine: String(row[idxMachineName] ?? row[7] ?? ""), // Kolom H: Machine
-            styleNo: String(row[idxStyleNo] ?? row[8] ?? ""), // Kolom I: Style No
-            process: String(row[idxProcess] ?? row[9] ?? ""), // Kolom J: Process
-            productionRate: Number(row[idxRate] ?? row[12] ?? 0), // Kolom M: Production Rate (%)
-            points: pointVal, // Kolom N: POINT (0, 1, 2, 3)
-            workMonth: Number(row[idxWorkMonth] ?? row[14] ?? 1), // Kolom O: Work Month (langsung dari Sheets)
-            dateOfResign: String(row[idxDateOfResign] ?? row[15] ?? ""), // Kolom P: Date of Resign
-            machineCategory: rawCat, // Kolom Q: Machine Category
-            status: String(row[idxStatus] ?? row[17] ?? "ACTIVE"), // Kolom R: Status
-
-            // Kompatibilitas dengan fitur Skill Matrix & Line Balancing
-            doj: String(row[idxDoj] ?? row[6] ?? "-"),
-            workTimeMonths: Number(row[idxWorkMonth] ?? row[14] ?? 1),
-            resignDate: (row[idxDateOfResign] ?? row[15]) ? String(row[idxDateOfResign] ?? row[15]) : null,
-            lockstitch: isLockstitch ? pointVal : (!rawCat && !rawMachineName ? pointVal : null),
-            overlock: isOverlock ? pointVal : null,
-            flatseam: isFlatseam ? pointVal : null,
-            special: isSpecial ? pointVal : null,
-            buttonHole: isButtonHole ? pointVal : null,
-            buttonSet: isButtonSet ? pointVal : null,
-            chainstitch: isChainstitch ? pointVal : null,
-            bartack: isBartack ? pointVal : null,
-          };
-        });
-
-        let finalOps = normalizedOps;
-
-        // Gabungkan dengan operator yang baru ditambahkan dari LocalStorage agar tidak pernah hilang saat refresh
-        const localAdded = getCustomAddedOperatorsFromStorage();
-        if (localAdded.length > 0) {
-          const existingKeys = new Set(
-            finalOps.map((o) => `${String(o.nik || o.id).trim()}_${String(o.date || o.recordDate || '').trim()}_${String(o.line).trim()}`)
-          );
-          const newFromStorage = localAdded
-            .filter((o) => !existingKeys.has(`${String(o.nik || o.id).trim()}_${String(o.date || o.recordDate || '').trim()}_${String(o.line).trim()}`))
-            .map((o: any, idx: number) => ({
-              ...o,
-              id: o.id || `storage-${o.nik}-${idx}`,
-              factory: normalizeFactoryName(o.factory),
-              line: normalizeLineName(o.line),
-              status: o.status || 'ACTIVE',
-            }));
-          finalOps = [...newFromStorage, ...finalOps];
-        }
-
-        setOperators(finalOps);
-        setIsLiveFromSheets(true);
-        setSyncMessage(`Tersambung ke Google Sheets: ${finalOps.length} operator berhasil dimuat`);
-
-        // Dynamically update available factories & lines
-        const uniqueFactories = Array.from(new Set(finalOps.map((op) => op.factory).filter(Boolean)));
-        if (uniqueFactories.length > 0) {
-          setAvailableFactories(sortFactoriesNumerically(Array.from(new Set([...FACTORIES, ...uniqueFactories]))));
-        }
-        const uniqueLines = Array.from(new Set(finalOps.map((op) => op.line).filter(Boolean)));
-        if (uniqueLines.length > 0) {
-          setAvailableLines(sortLinesNumerically(Array.from(new Set([...LINES, ...uniqueLines]))));
-        }
-      } else {
-        throw new Error(result.message || "Gagal mengambil data dari Google Sheets.");
-      }
-    } catch (err: any) {
-      console.warn("GAS fetch gagal, mencoba GViz CSV fallback:", err);
-
-      // Fallback 1: Ambil langsung via GViz CSV (Tahan banting di Vercel/Produksi)
-      try {
-        const gvizRes = await fetchOperatorsFromGViz();
-        if (gvizRes.success && gvizRes.operators.length > 0) {
-          let gvizOps = gvizRes.operators;
-          const localAdded = getCustomAddedOperatorsFromStorage();
-          if (localAdded.length > 0) {
-            const existingKeys = new Set(
-              gvizOps.map((o) => `${String(o.nik || o.id).trim()}_${String(o.date || o.recordDate || '').trim()}_${String(o.line).trim()}`)
-            );
-            const newFromStorage = localAdded
-              .filter((o) => !existingKeys.has(`${String(o.nik || o.id).trim()}_${String(o.date || o.recordDate || '').trim()}_${String(o.line).trim()}`))
-              .map((o: any, idx: number) => ({
-                ...o,
-                id: o.id || `storage-${o.nik}-${idx}`,
-                factory: normalizeFactoryName(o.factory),
-                line: normalizeLineName(o.line),
-                status: o.status || 'ACTIVE',
-              }));
-            gvizOps = [...newFromStorage, ...gvizOps];
-          }
-
-          setOperators(gvizOps);
-          setIsLiveFromSheets(true);
-          setSyncMessage(`Tersambung ke Google Sheets (GViz CSV): ${gvizOps.length} operator berhasil dimuat`);
-          setSyncError(null);
-
-          const uniqueFactories = Array.from(new Set(gvizOps.map((op) => op.factory).filter(Boolean)));
-          if (uniqueFactories.length > 0) {
-            setAvailableFactories(sortFactoriesNumerically(Array.from(new Set([...FACTORIES, ...uniqueFactories]))));
-          }
-          const uniqueLines = Array.from(new Set(gvizOps.map((op) => op.line).filter(Boolean)));
-          if (uniqueLines.length > 0) {
-            setAvailableLines(sortLinesNumerically(Array.from(new Set([...LINES, ...uniqueLines]))));
-          }
-          return;
-        }
-      } catch (gvizErr) {
-        console.warn("GViz fetch failed:", gvizErr);
-      }
-
-      // Fallback 2: Proxy server backend
-      try {
-        const fallbackRes = await fetch("/api/sheets/operators");
-        const fallbackData = await fallbackRes.json();
-        if (fallbackRes.ok && fallbackData.success && Array.isArray(fallbackData.operators) && fallbackData.operators.length > 0) {
-          let fallbackOps = fallbackData.operators.map((op: Operator) => ({
+      // 1. Prioritas Utama: Backend proxy server (/api/sheets/operators?force=true)
+      // Menangani 24.000+ baris data dengan cepat, andal, tanpa terkena pemblokiran CORS browser
+      const proxyRes = await fetch("/api/sheets/operators?force=true");
+      if (proxyRes.ok) {
+        const proxyData = await proxyRes.json();
+        if (proxyData.success && Array.isArray(proxyData.operators) && proxyData.operators.length > 0) {
+          let loadedOps: Operator[] = proxyData.operators.map((op: Operator) => ({
             ...op,
             factory: normalizeFactoryName(op.factory),
             line: normalizeLineName(op.line),
             status: op.status || "ACTIVE",
           }));
 
+          // Gabungkan dengan operator yang baru ditambahkan dari LocalStorage
           const localAdded = getCustomAddedOperatorsFromStorage();
           if (localAdded.length > 0) {
             const existingKeys = new Set(
-              fallbackOps.map((o: any) => `${String(o.nik || o.id).trim()}_${String(o.date || o.recordDate || '').trim()}_${String(o.line).trim()}`)
+              loadedOps.map((o: any) => `${String(o.nik || o.id).trim()}_${String(o.date || o.recordDate || '').trim()}_${String(o.line).trim()}`)
             );
             const newFromStorage = localAdded
               .filter((o) => !existingKeys.has(`${String(o.nik || o.id).trim()}_${String(o.date || o.recordDate || '').trim()}_${String(o.line).trim()}`))
@@ -278,20 +72,214 @@ export default function App() {
                 line: normalizeLineName(o.line),
                 status: o.status || 'ACTIVE',
               }));
-            fallbackOps = [...newFromStorage, ...fallbackOps];
+            loadedOps = [...newFromStorage, ...loadedOps];
           }
 
-          setOperators(fallbackOps);
+          setOperators(loadedOps);
           setIsLiveFromSheets(true);
-          setSyncMessage(`Tersambung ke Google Sheets (Proxy): ${fallbackOps.length} operator berhasil dimuat`);
+          setSyncMessage(`Tersambung ke Google Sheets: ${loadedOps.length} data record operator berhasil disinkronkan`);
           setSyncError(null);
+
+          // Update daftar Factory & Line secara dinamis
+          if (Array.isArray(proxyData.factories) && proxyData.factories.length > 0) {
+            setAvailableFactories(sortFactoriesNumerically(Array.from(new Set([...FACTORIES, ...proxyData.factories]))));
+          } else {
+            const uniqueFactories = Array.from(new Set(loadedOps.map((op) => op.factory).filter(Boolean)));
+            if (uniqueFactories.length > 0) {
+              setAvailableFactories(sortFactoriesNumerically(Array.from(new Set([...FACTORIES, ...uniqueFactories]))));
+            }
+          }
+
+          if (Array.isArray(proxyData.lines) && proxyData.lines.length > 0) {
+            setAvailableLines(sortLinesNumerically(Array.from(new Set([...LINES, ...proxyData.lines]))));
+          } else {
+            const uniqueLines = Array.from(new Set(loadedOps.map((op) => op.line).filter(Boolean)));
+            if (uniqueLines.length > 0) {
+              setAvailableLines(sortLinesNumerically(Array.from(new Set([...LINES, ...uniqueLines]))));
+            }
+          }
           return;
         }
-      } catch (fallbackErr) {
-        console.warn("Backend proxy fallback failed:", fallbackErr);
+      }
+      throw new Error("Gagal mengambil data dari proxy backend server");
+    } catch (err: any) {
+      console.warn("Backend proxy fetch gagal, mencoba Google Apps Script / GViz fallback:", err);
+
+      // Fallback 1: Google Apps Script Web App dengan timeout aman agar tidak hanging
+      try {
+        const gasUrl = "https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Zj5fnKejoelvuKkHQ1fQV-8UA_lRhtuTPMcmUFBH-xqN-kCVr3Dw/exec";
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+        const response = await fetch(gasUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        const textData = await response.text();
+
+        let result;
+        try {
+          result = JSON.parse(textData);
+        } catch (e) {
+          throw new Error("Respons dari Google Sheets bukan JSON yang valid.");
+        }
+
+        if (result.status === "success" && Array.isArray(result.data)) {
+          const rows = result.data;
+          const headers: any[] = rows[0] || [];
+          const dataRows = rows.slice(1);
+
+          const findColIdx = (candidates: string[], fallbackIdx: number) => {
+            if (!Array.isArray(headers)) return fallbackIdx;
+            for (const cand of candidates) {
+              const idx = headers.findIndex(
+                (h) => typeof h === "string" && h.trim().toUpperCase() === cand.toUpperCase()
+              );
+              if (idx !== -1) return idx;
+            }
+            for (const cand of candidates) {
+              const idx = headers.findIndex(
+                (h) => typeof h === "string" && h.toUpperCase().includes(cand.toUpperCase())
+              );
+              if (idx !== -1) return idx;
+            }
+            return fallbackIdx;
+          };
+
+          const idxWorkerCode = findColIdx(["Worker Code", "NIK", "ID"], 4);
+          const idxWorker = findColIdx(["Worker", "Nama", "Operator"], 5);
+          const idxFactory = findColIdx(["Factory", "Pabrik"], 0);
+          const idxLine = findColIdx(["Line", "Jalur"], 1);
+          const idxStatus = findColIdx(["Status"], 17);
+          const idxDoj = findColIdx(["Date of Join", "D.O.J", "DOJ"], 6);
+          const idxDate = findColIdx(["Date", "Tanggal", "Tgl"], 3);
+          const idxRate = findColIdx(["Production Rate (%)", "Actual Rate", "Rate", "Efisiensi"], 12);
+          const idxPoints = findColIdx(["POIN", "POINT (KOLOM N)", "POIN MESIN"], 13);
+          const idxWorkMonth = findColIdx(["Work Month", "Masa Kerja"], 14);
+          const idxDateOfResign = findColIdx(["Date of Resign", "Resign"], 15);
+          const idxMachine = findColIdx(["Machine Category", "Kategori Mesin", "Category", "Kategori"], 16);
+          const idxMachineName = findColIdx(["Machine", "Mesin", "Nama Mesin"], 7);
+          const idxStyleNo = findColIdx(["Style No", "Style"], 8);
+          const idxProcess = findColIdx(["Process", "Proses", "Operasi"], 9);
+
+          const safeParseNumber = (val: any, fallback: number = 0): number => {
+            if (val === null || val === undefined || val === '') return fallback;
+            if (typeof val === 'number') return isNaN(val) ? fallback : val;
+            const cleaned = String(val).replace(',', '.').replace(/[^0-9.-]/g, '');
+            const parsed = parseFloat(cleaned);
+            return isNaN(parsed) ? fallback : parsed;
+          };
+
+          const normalizedOps: Operator[] = dataRows.map((row: any, index: number) => {
+            const rawProdRate = safeParseNumber(row[idxRate] ?? row[12], 0);
+            const rawPointsStr = String(row[idxPoints] ?? row[13] ?? "").trim();
+            const rawPoints = parseFloat(rawPointsStr.replace(',', '.').replace(/[^0-9.]/g, ''));
+            let pointVal = !isNaN(rawPoints) ? Math.min(3, Math.max(0, Math.round(rawPoints))) : 0;
+            if (rawPointsStr === "" && rawProdRate > 0) {
+              pointVal = getPointsFromEfficiency(rawProdRate);
+            }
+            const rawCat = String(row[idxMachine] ?? row[16] ?? "").toUpperCase();
+            const rawMachineName = String(row[idxMachineName] ?? row[7] ?? "").toUpperCase();
+
+            const isLockstitch = rawCat.includes("LOCKSTITCH") || rawCat.includes("SN") || rawCat.includes("SINGLE NEEDLE") ||
+              (!rawCat && (rawMachineName.includes("LOCKSTITCH") || rawMachineName.includes("1NEEDLE") || rawMachineName.includes("SN")));
+
+            const isOverlock = rawCat.includes("OVERLOCK") || rawCat.includes("OL") || rawCat.includes("OBRAS") ||
+              (!rawCat && (rawMachineName.includes("OVERLOCK") || rawMachineName.includes("OBRAS") || rawMachineName.includes("2NEEDLE OVERLOCK")));
+
+            const isFlatseam = rawCat.includes("FLATSEAM") || rawCat.includes("COVERSTITCH") || rawCat.includes("FS") || rawCat.includes("KAM") ||
+              (!rawCat && (rawMachineName.includes("FLAT SEAM") || rawMachineName.includes("COVERSTITCH") || rawMachineName.includes("FLATSEAM")));
+
+            const isSpecial = rawCat.includes("SPECIAL") || rawCat.includes("SP") || rawCat.includes("PRESS") || rawCat.includes("OTOMATIS") ||
+              (!rawCat && (rawMachineName.includes("PRESS") || rawMachineName.includes("HEAT TRANSFER") || rawMachineName.includes("SPECIAL")));
+
+            const isButtonHole = rawCat.includes("BUTTON HOLE") || rawCat.includes("BUTTON_HOLE") || rawCat.includes("BH") || rawCat.includes("LUBANG KANCING") ||
+              (!rawCat && (rawMachineName.includes("BUTTON HOLE") || rawMachineName.includes("LUBANG KANCING")));
+
+            const isButtonSet = rawCat.includes("BUTTON SET") || rawCat.includes("BUTTON_SET") || rawCat.includes("BS") || rawCat.includes("PASANG KANCING") ||
+              (!rawCat && (rawMachineName.includes("BUTTON SET") || rawMachineName.includes("PASANG KANCING")));
+
+            const isChainstitch = rawCat.includes("CHAINSTITCH") || rawCat.includes("CS") || rawCat.includes("KANSAI") ||
+              (!rawCat && (rawMachineName.includes("CHAINSTITCH") || rawMachineName.includes("KANSAI") || rawMachineName.includes("CHAIN STITCH")));
+
+            const isBartack = rawCat.includes("BARTACK") || rawCat.includes("BT") || rawCat.includes("BAR TACK") ||
+              (!rawCat && (rawMachineName.includes("BARTACK") || rawMachineName.includes("BAR TACK")));
+
+            const rawDate = row[idxDate] ?? row[3] ?? "";
+            const rowDateStr = rawDate ? String(rawDate).trim() : "";
+
+            const parsedWorkMonth = safeParseNumber(row[idxWorkMonth] ?? row[14], 0);
+            const rowDoj = String(row[idxDoj] ?? row[6] ?? "-");
+            const safeTenure = parsedWorkMonth > 0 ? parsedWorkMonth : (calculateWorkTimeMonths(rowDoj) || 0);
+
+            return {
+              id: String(row[idxWorkerCode] ?? row[4] ?? index),
+              no: index + 1,
+              factory: normalizeFactoryName(String(row[idxFactory] ?? row[0] ?? "1")),
+              line: normalizeLineName(String(row[idxLine] ?? row[1] ?? "1")),
+              nik: String(row[idxWorkerCode] ?? row[4] ?? ""),
+              name: String(row[idxWorker] ?? row[5] ?? "Unknown"),
+              date: rowDateStr,
+              recordDate: rowDateStr,
+              machine: String(row[idxMachineName] ?? row[7] ?? ""),
+              styleNo: String(row[idxStyleNo] ?? row[8] ?? ""),
+              process: String(row[idxProcess] ?? row[9] ?? ""),
+              currentOperation: String(row[idxProcess] ?? row[9] ?? ""),
+              productionRate: rawProdRate,
+              points: pointVal,
+              workMonth: safeTenure,
+              dateOfResign: String(row[idxDateOfResign] ?? row[15] ?? ""),
+              machineCategory: rawCat,
+              status: String(row[idxStatus] ?? row[17] ?? "ACTIVE"),
+              doj: rowDoj,
+              workTimeMonths: safeTenure,
+              resignDate: (row[idxDateOfResign] ?? row[15]) ? String(row[idxDateOfResign] ?? row[15]) : null,
+              lockstitch: isLockstitch ? pointVal : (!rawCat && !rawMachineName ? pointVal : null),
+              overlock: isOverlock ? pointVal : null,
+              flatseam: isFlatseam ? pointVal : null,
+              special: isSpecial ? pointVal : null,
+              buttonHole: isButtonHole ? pointVal : null,
+              buttonSet: isButtonSet ? pointVal : null,
+              chainstitch: isChainstitch ? pointVal : null,
+              bartack: isBartack ? pointVal : null,
+            };
+          });
+
+          let finalOps = normalizedOps;
+          const localAdded = getCustomAddedOperatorsFromStorage();
+          if (localAdded.length > 0) {
+            const existingKeys = new Set(
+              finalOps.map((o) => `${String(o.nik || o.id).trim()}_${String(o.date || o.recordDate || '').trim()}_${String(o.line).trim()}`)
+            );
+            const newFromStorage = localAdded
+              .filter((o) => !existingKeys.has(`${String(o.nik || o.id).trim()}_${String(o.date || o.recordDate || '').trim()}_${String(o.line).trim()}`))
+              .map((o: any, idx: number) => ({
+                ...o,
+                id: o.id || `storage-${o.nik}-${idx}`,
+                factory: normalizeFactoryName(o.factory),
+                line: normalizeLineName(o.line),
+                status: o.status || 'ACTIVE',
+              }));
+            finalOps = [...newFromStorage, ...finalOps];
+          }
+
+          setOperators(finalOps);
+          setIsLiveFromSheets(true);
+          setSyncMessage(`Tersambung ke Google Sheets (GAS): ${finalOps.length} operator berhasil dimuat`);
+
+          const uniqueFactories = Array.from(new Set(finalOps.map((op) => op.factory).filter(Boolean)));
+          if (uniqueFactories.length > 0) {
+            setAvailableFactories(sortFactoriesNumerically(Array.from(new Set([...FACTORIES, ...uniqueFactories]))));
+          }
+          const uniqueLines = Array.from(new Set(finalOps.map((op) => op.line).filter(Boolean)));
+          if (uniqueLines.length > 0) {
+            setAvailableLines(sortLinesNumerically(Array.from(new Set([...LINES, ...uniqueLines]))));
+          }
+          return;
+        }
+      } catch (gasErr) {
+        console.warn("GAS fetch fallback failed:", gasErr);
       }
 
-      // Jika semua koneksi online gagal, muat operator dari localStorage
+      // Fallback 2: Muat operator dari localStorage
       const localAdded = getCustomAddedOperatorsFromStorage();
       if (localAdded.length > 0) {
         setOperators(localAdded);
@@ -367,6 +355,8 @@ export default function App() {
         selectedLine={selectedLine}
         totalOperatorsCount={displayedOperators.length}
         totalActiveOperatorsCount={totalActiveOperatorsCount}
+        userRole={userRole}
+        onRoleChange={setUserRole}
       />
 
       {/* MAIN CONTENT AREA */}
@@ -383,8 +373,6 @@ export default function App() {
           onMonthChange={setSelectedMonth}
           selectedYear={selectedYear}
           onYearChange={setSelectedYear}
-          userRole={userRole}
-          onRoleChange={setUserRole}
           availableFactories={availableFactories}
           availableLines={availableLines}
           isLive={isLiveFromSheets}

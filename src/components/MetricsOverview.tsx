@@ -41,16 +41,21 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
   const totalCount = activeOperators.length;
   
   // Hitung rata-rata grade operator line dalam satuan poin (berdasarkan akumulasi poin tiap mesin)
-  const allPoints = activeOperators.map(op => getOperatorTotalPoints(op));
-  const lineAvgPoints = allPoints.length > 0
+  const allPoints = activeOperators.map(op => {
+    const p = getOperatorTotalPoints(op);
+    return isNaN(p) ? 0 : p;
+  });
+  const lineAvgPointsRaw = allPoints.length > 0
     ? (allPoints.reduce((a, b) => a + b, 0) / allPoints.length)
     : 0;
+  const lineAvgPoints = isNaN(lineAvgPointsRaw) ? 0 : lineAvgPointsRaw;
   const gradeInfo = getGradeFromTotalPoints(lineAvgPoints);
 
   // Multiskill count (operators mastering 2 or more machine types)
   const multiskillOps = activeOperators.filter(op => getOperatorMultiSkillCount(op) >= 2);
   const multiskillCount = multiskillOps.length;
-  const multiskillPct = totalCount > 0 ? ((multiskillCount / totalCount) * 100).toFixed(1) : '0';
+  const multiskillPctNum = totalCount > 0 ? ((multiskillCount / totalCount) * 100) : 0;
+  const multiskillPct = isNaN(multiskillPctNum) ? '0.0' : multiskillPctNum.toFixed(1);
 
   return (
     <div className="mb-6">

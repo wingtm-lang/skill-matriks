@@ -78,17 +78,20 @@ export const GRADE_BENCHMARKS: Array<{
 // Setiap mesin maksimal 3 poin dari Kolom N
 export const getOperatorTotalPoints = (op: Operator): number => {
   const machinePoints = [
-    op.lockstitch ?? 0,
-    op.overlock ?? 0,
-    op.flatseam ?? 0,
-    op.special ?? 0,
-    op.buttonHole ?? 0,
-    op.buttonSet ?? 0,
-    op.chainstitch ?? 0,
-    op.bartack ?? 0,
+    op.lockstitch,
+    op.overlock,
+    op.flatseam,
+    op.special,
+    op.buttonHole,
+    op.buttonSet,
+    op.chainstitch,
+    op.bartack,
   ];
-  // Poin valid tiap mesin adalah maksimal 3
-  const validMachinePoints = machinePoints.map(p => (p > 0 ? Math.min(3, p) : 0));
+  // Poin valid tiap mesin adalah maksimal 3 (dan minimal 0, buang NaN/undefined)
+  const validMachinePoints = machinePoints.map(p => {
+    if (p === null || p === undefined || typeof p !== 'number' || isNaN(p) || p <= 0) return 0;
+    return Math.min(3, Math.max(0, Math.round(p)));
+  });
   const sum = validMachinePoints.reduce((acc, current) => acc + current, 0);
 
   if (sum > 0) return sum;
@@ -100,16 +103,17 @@ export const getOperatorTotalPoints = (op: Operator): number => {
 
 // Menentukan grade berdasarkan total poin sesuai standarisasi PT. Winners International
 export const getGradeFromTotalPoints = (totalPoints: number, isHelper: boolean = false) => {
-  if (isHelper || totalPoints <= 0) {
+  const safePoints = (totalPoints === null || totalPoints === undefined || isNaN(totalPoints)) ? 0 : totalPoints;
+  if (isHelper || safePoints <= 0) {
     return { grade: 'HELPER' as GradeType, label: 'Helper', letter: 'H', cssBadge: 'bg-[#475569] text-white border border-[#334155]' };
   }
-  if (totalPoints > 13) {
+  if (safePoints > 13) {
     return { grade: 'S' as GradeType, label: 'Grade S', letter: 'S', cssBadge: 'bg-[#059669] text-white border border-[#047857]' };
   }
-  if (totalPoints >= 8) {
+  if (safePoints >= 8) {
     return { grade: 'A' as GradeType, label: 'Grade A', letter: 'A', cssBadge: 'bg-[#0d9488] text-white border border-[#0f766e]' };
   }
-  if (totalPoints >= 4) {
+  if (safePoints >= 4) {
     return { grade: 'B' as GradeType, label: 'Grade B', letter: 'B', cssBadge: 'bg-[#0284c7] text-white border border-[#0369a1]' };
   }
   return { grade: 'C' as GradeType, label: 'Grade C', letter: 'C', cssBadge: 'bg-[#d97706] text-white border border-[#b45309]' };

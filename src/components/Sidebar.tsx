@@ -4,10 +4,9 @@ import {
   Target, 
   Building2,
   X,
-  Layers,
   ChevronRight,
-  TrendingUp,
   Award,
+  ShieldCheck,
   Languages
 } from 'lucide-react';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -21,6 +20,8 @@ interface SidebarProps {
   selectedLine: string;
   totalOperatorsCount: number;
   totalActiveOperatorsCount?: number;
+  userRole: 'VIEWER' | 'EDITOR' | 'ADMIN';
+  onRoleChange: (role: 'VIEWER' | 'EDITOR' | 'ADMIN') => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -32,6 +33,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   selectedLine,
   totalOperatorsCount,
   totalActiveOperatorsCount = 0,
+  userRole,
+  onRoleChange,
 }) => {
   const { language, setLanguage, t } = useLanguage();
 
@@ -94,14 +97,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {/* Mobile close button */}
             <button
               onClick={onClose}
-              className="lg:hidden text-[#C8D8D8] hover:text-white p-1 rounded-lg hover:bg-white/10"
+              className="lg:hidden text-[#C8D8D8] hover:text-white p-1 rounded-lg hover:bg-white/10 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Active Context Card in Sidebar */}
-          <div className="mt-5 p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
+          <div className="mt-5 p-3 rounded-2xl bg-white/6 border border-white/10 flex items-center justify-between shadow-2xs">
             <div>
               <span className="text-[10px] uppercase font-semibold tracking-wider text-[#C8D8D8] block">
                 {t.sidebar.activeLine}
@@ -110,19 +113,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {selectedFactory} • {selectedLine}
               </div>
             </div>
-            <span className="text-[11px] font-bold bg-[#D0A018] text-white px-2 py-0.5 rounded-full shadow-xs">
+            <span className="text-[11px] font-bold bg-[#D0A018] text-white px-2.5 py-0.5 rounded-full shadow-xs">
               {totalOperatorsCount} Op
             </span>
           </div>
         </div>
 
-        {/* Bagian bawah Sidebar / di atas menu navigasi */}
-        <div className="p-4 mx-4 my-2 bg-slate-800/50 rounded-xl border border-slate-700/50">
-          <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">{t.sidebar.activeOpsLabel}</p>
-          <p className="text-2xl font-bold text-emerald-400 mt-1">
-            {totalActiveOperatorsCount} <span className="text-xs font-normal text-slate-300">{t.common.personnel}</span>
+        {/* Active Personnel Card */}
+        <div className="p-3.5 mx-4 my-1 bg-white/6 rounded-2xl border border-white/10 backdrop-blur-xs shadow-inner">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] text-[#C8D8D8] font-bold uppercase tracking-wider">{t.sidebar.activeOpsLabel}</p>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          </div>
+          <p className="text-2xl font-bold text-emerald-300 mt-1">
+            {totalActiveOperatorsCount} <span className="text-xs font-normal text-[#C8D8D8]">{t.common.personnel}</span>
           </p>
-          <p className="text-[10px] text-slate-400 mt-0.5">{t.sidebar.totalPopLabel}</p>
+          <p className="text-[10px] text-[#A0B5B5] mt-0.5">{t.sidebar.totalPopLabel}</p>
         </div>
 
         {/* Navigation Items */}
@@ -189,45 +195,94 @@ export const Sidebar: React.FC<SidebarProps> = ({
           })}
         </div>
 
-        {/* Sidebar Footer with Language Switcher */}
-        <div className="p-4 m-4 rounded-2xl bg-white/5 border border-white/10 text-xs space-y-3">
-          <div className="flex items-center justify-between">
+        {/* Sidebar Footer with Language Switcher & Role Selector */}
+        <div className="p-4 m-4 rounded-2xl bg-white/6 border border-white/10 text-xs space-y-3.5 shadow-inner">
+          
+          {/* Language Switcher */}
+          <div className="flex items-center justify-between pb-3 border-b border-white/10">
             <div className="flex items-center space-x-2 text-[#C8D8D8]">
-              <Languages className="w-3.5 h-3.5 text-[#D0A018]" />
-              <span className="font-semibold text-white text-[11px]">{t.header.language}</span>
+              <Languages className="w-4 h-4 text-[#2AAFA3]" />
+              <span className="font-bold text-white text-xs">{t.header.language}</span>
             </div>
-            <div className="flex items-center bg-black/25 rounded-lg p-0.5 border border-white/10">
-              <button
-                type="button"
-                onClick={() => setLanguage('id')}
-                className={`px-2.5 py-1 text-[11px] font-bold rounded-md cursor-pointer transition-all ${
-                  language === 'id' ? 'bg-[#2AAFA3] text-white shadow-xs' : 'text-[#C8D8D8] hover:text-white'
-                }`}
-                title="Bahasa Indonesia"
-              >
-                ID
-              </button>
+            <div className="flex items-center bg-black/30 rounded-xl p-0.5 border border-white/15">
               <button
                 type="button"
                 onClick={() => setLanguage('en')}
-                className={`px-2.5 py-1 text-[11px] font-bold rounded-md cursor-pointer transition-all ${
-                  language === 'en' ? 'bg-[#2AAFA3] text-white shadow-xs' : 'text-[#C8D8D8] hover:text-white'
+                className={`px-3 py-1 text-[11px] font-bold rounded-lg cursor-pointer transition-all ${
+                  language === 'en' 
+                    ? 'bg-[#2AAFA3] text-white shadow-xs' 
+                    : 'text-[#C8D8D8] hover:text-white'
                 }`}
                 title="English"
               >
                 EN
               </button>
+              <button
+                type="button"
+                onClick={() => setLanguage('id')}
+                className={`px-3 py-1 text-[11px] font-bold rounded-lg cursor-pointer transition-all ${
+                  language === 'id' 
+                    ? 'bg-[#2AAFA3] text-white shadow-xs' 
+                    : 'text-[#C8D8D8] hover:text-white'
+                }`}
+                title="Bahasa Indonesia"
+              >
+                ID
+              </button>
             </div>
           </div>
 
-          <div className="border-t border-white/10 pt-2">
+          {/* Role Access Selector */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 text-[#C8D8D8]">
+                <ShieldCheck className="w-4 h-4 text-[#D0A018]" />
+                <span className="font-bold text-white text-xs">{t.header.role} {language === 'en' ? 'Access' : 'Akses'}</span>
+              </div>
+              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                userRole === 'ADMIN'
+                  ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30'
+                  : userRole === 'EDITOR'
+                  ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/30'
+                  : 'bg-sky-400/20 text-sky-300 border border-sky-400/30'
+              }`}>
+                {userRole}
+              </span>
+            </div>
+
+            <div className="relative">
+              <select
+                value={userRole}
+                onChange={(e) => onRoleChange(e.target.value as any)}
+                className="w-full bg-black/30 hover:bg-black/40 text-white font-medium text-xs border border-white/15 focus:border-[#2AAFA3] rounded-xl px-3 py-2 outline-none cursor-pointer transition-colors shadow-2xs"
+              >
+                <option value="VIEWER" className="bg-[#2C3E3E] text-white">
+                  👁️ {t.header.roleViewer} ({language === 'en' ? 'View Only' : 'Hanya Lihat'})
+                </option>
+                <option value="EDITOR" className="bg-[#2C3E3E] text-white">
+                  ✏️ {t.header.roleEditor} ({language === 'en' ? 'Input & Edit' : 'Input & Edit'})
+                </option>
+                <option value="ADMIN" className="bg-[#2C3E3E] text-white">
+                  ⚡ {t.header.roleAdmin} ({language === 'en' ? 'Full Access' : 'Akses Penuh'})
+                </option>
+              </select>
+            </div>
+
+            <p className="text-[10px] text-[#A0B5B5] leading-relaxed">
+              {userRole === 'ADMIN' && (language === 'en' ? 'Full access: Add, edit, plant, & delete data.' : 'Akses penuh: Tambah, edit, tanam, & hapus data.')}
+              {userRole === 'EDITOR' && (language === 'en' ? 'Editor access: Add, edit scores & save data.' : 'Akses editor: Tambah, edit nilai & simpan data.')}
+              {userRole === 'VIEWER' && (language === 'en' ? 'Viewer mode: Visualizations & reports only.' : 'Mode pratinjau: Hanya dapat melihat visualisasi.')}
+            </p>
+          </div>
+
+          <div className="border-t border-white/10 pt-2.5">
             <div className="flex items-start space-x-2 text-[#C8D8D8]">
               <Award className="w-3.5 h-3.5 text-[#D0A018] shrink-0 mt-0.5" />
               <div>
                 <span className="font-semibold text-white text-[11px] block leading-tight">
                   Manufacturing Excellence Team
                 </span>
-                <span className="text-[10px] text-[#C8D8D8] block mt-0.5 font-medium">
+                <span className="text-[10px] text-[#A0B5B5] block mt-0.5 font-medium">
                   PT. Winners International
                 </span>
               </div>

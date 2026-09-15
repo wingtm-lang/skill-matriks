@@ -49,10 +49,10 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
     ? new Date(selectedYear, selectedMonth - 1).toLocaleString('en-US', { month: 'long' })
     : (MONTH_NAMES_ID[selectedMonth - 1]?.label || `Bulan ${selectedMonth}`);
 
-  // Page Dimensions
+  // Page Dimensions (Narrow Margins)
   const pageWidth = isPortrait ? 210 : 297;
   const pageHeight = isPortrait ? 297 : 210;
-  const margin = isPortrait ? 10 : 12;
+  const margin = isPortrait ? 4.5 : 5.5;
   const contentWidth = pageWidth - (margin * 2);
 
   const doc = new jsPDF({
@@ -122,7 +122,7 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(isPortrait ? 13.5 : 15);
   doc.setTextColor(30, 41, 59);
-  doc.text('PT. Winners International', margin, isPortrait ? 15 : 15.5);
+  doc.text('PT.WINNERS INTERNATIONAL', margin, isPortrait ? 15 : 15.5);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(isPortrait ? 10.5 : 12);
@@ -345,6 +345,7 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
       'NIK',
       isEn ? 'OPERATOR NAME' : 'NAMA OPERATOR',
       isEn ? 'TENURE' : 'MASA\nKERJA',
+      'CURRENT\nOPERATION',
       'SN\n(Lock)',
       'OL\n(Obras)',
       'FS\n(Flat)',
@@ -379,6 +380,7 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
       op.nik || '-',
       op.name || '-',
       tenureStr,
+      op.process || (op as any).currentOperation || '-',
       formatSkillVal(op.lockstitch),
       formatSkillVal(op.overlock),
       formatSkillVal(op.flatseam),
@@ -392,39 +394,41 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
     ];
   });
 
-  // Table Column Styles tailored for Portrait (190 mm) vs Landscape (273 mm)
+  // Table Column Styles tailored for Portrait (198 mm) vs Landscape (283 mm)
   const columnStylesPortrait: { [key: number]: any } = {
-    0: { cellWidth: 6, halign: 'center' }, // No
-    1: { cellWidth: 17, halign: 'center', fontStyle: 'bold' }, // NIK
-    2: { cellWidth: 39, halign: 'left', fontStyle: 'bold' }, // Name
-    3: { cellWidth: 14, halign: 'center' }, // Tenure
-    4: { cellWidth: 9.5, halign: 'center' }, // SN
-    5: { cellWidth: 9.5, halign: 'center' }, // OL
-    6: { cellWidth: 9.5, halign: 'center' }, // FS
-    7: { cellWidth: 9.5, halign: 'center' }, // SP
-    8: { cellWidth: 9.5, halign: 'center' }, // BTN Hole
-    9: { cellWidth: 9.5, halign: 'center' }, // BTN Set
-    10: { cellWidth: 14, halign: 'center' }, // Multi skill
-    11: { cellWidth: 13, halign: 'center', fontStyle: 'bold' }, // Total Points
-    12: { cellWidth: 14, halign: 'center', fontStyle: 'bold' }, // Grade
-    13: { cellWidth: 16, halign: 'center' } // Status
+    0: { cellWidth: 7, halign: 'center' }, // No
+    1: { cellWidth: 16, halign: 'center', fontStyle: 'bold' }, // NIK
+    2: { cellWidth: 36, halign: 'left', fontStyle: 'bold' }, // Name
+    3: { cellWidth: 12, halign: 'center' }, // Tenure
+    4: { cellWidth: 26, halign: 'left' }, // Current Operation
+    5: { cellWidth: 9, halign: 'center' }, // SN
+    6: { cellWidth: 9, halign: 'center' }, // OL
+    7: { cellWidth: 9, halign: 'center' }, // FS
+    8: { cellWidth: 9, halign: 'center' }, // SP
+    9: { cellWidth: 9, halign: 'center' }, // BTN Hole
+    10: { cellWidth: 9, halign: 'center' }, // BTN Set
+    11: { cellWidth: 13, halign: 'center' }, // Multi skill
+    12: { cellWidth: 12, halign: 'center', fontStyle: 'bold' }, // Total Points
+    13: { cellWidth: 12, halign: 'center', fontStyle: 'bold' }, // Grade
+    14: { cellWidth: 15, halign: 'center' } // Status
   };
 
   const columnStylesLandscape: { [key: number]: any } = {
-    0: { cellWidth: 8, halign: 'center' },
-    1: { cellWidth: 20, halign: 'center', fontStyle: 'bold' },
-    2: { cellWidth: 50, halign: 'left', fontStyle: 'bold' },
-    3: { cellWidth: 16, halign: 'center' },
-    4: { cellWidth: 14, halign: 'center' },
-    5: { cellWidth: 14, halign: 'center' },
-    6: { cellWidth: 14, halign: 'center' },
-    7: { cellWidth: 14, halign: 'center' },
-    8: { cellWidth: 14, halign: 'center' },
-    9: { cellWidth: 14, halign: 'center' },
-    10: { cellWidth: 18, halign: 'center' },
-    11: { cellWidth: 16, halign: 'center', fontStyle: 'bold' },
-    12: { cellWidth: 18, halign: 'center', fontStyle: 'bold' },
-    13: { cellWidth: 20, halign: 'center' }
+    0: { cellWidth: 7, halign: 'center' },
+    1: { cellWidth: 18, halign: 'center', fontStyle: 'bold' },
+    2: { cellWidth: 46, halign: 'left', fontStyle: 'bold' },
+    3: { cellWidth: 14, halign: 'center' },
+    4: { cellWidth: 42, halign: 'left' }, // Current Operation
+    5: { cellWidth: 13, halign: 'center' },
+    6: { cellWidth: 13, halign: 'center' },
+    7: { cellWidth: 13, halign: 'center' },
+    8: { cellWidth: 13, halign: 'center' },
+    9: { cellWidth: 13, halign: 'center' },
+    10: { cellWidth: 13, halign: 'center' },
+    11: { cellWidth: 17, halign: 'center' },
+    12: { cellWidth: 15, halign: 'center', fontStyle: 'bold' },
+    13: { cellWidth: 16, halign: 'center', fontStyle: 'bold' },
+    14: { cellWidth: 20, halign: 'center' }
   };
 
   // Run AutoTable
@@ -432,7 +436,7 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
     startY: currentY,
     head: headers,
     body: bodyData,
-    margin: { left: margin, right: margin, bottom: isPortrait ? 16 : 18 },
+    margin: { left: margin, right: margin, bottom: isPortrait ? 13 : 15 },
     theme: 'grid',
     styles: {
       font: 'helvetica',
@@ -521,9 +525,9 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
       sigY = 16;
     }
 
-    const boxW = isPortrait ? 56 : 55;
+    const boxW = isPortrait ? 60 : 85;
     const boxH = isPortrait ? 24 : 26;
-    const sigGap = isPortrait ? 11 : ((contentWidth - (boxW * 3)) / 2);
+    const sigGap = (contentWidth - (boxW * 3)) / 2;
 
     const signBoxes = [
       {
@@ -578,22 +582,22 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
 
     doc.setDrawColor(220, 230, 230);
     doc.setLineWidth(0.3);
-    doc.line(margin, pageHeight - 9, pageWidth - margin, pageHeight - 9);
+    doc.line(margin, pageHeight - 7.5, pageWidth - margin, pageHeight - 7.5);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(isPortrait ? 5.8 : 6.5);
+    doc.setFontSize(isPortrait ? 6.5 : 7.2);
     doc.setTextColor(120, 136, 136);
     doc.text(
-      'PT. WINNERS INTERNATIONAL — INDUSTRIAL ENGINEERING SYSTEM | DOKUMEN INTERNAL & RAHASIA',
+      'PT.WINNERS INTERNATIONAL',
       margin,
-      pageHeight - 5.5
+      pageHeight - 4.2
     );
 
     doc.setFont('helvetica', 'bold');
     doc.text(
       isEn ? `Page ${p} of ${totalPages}` : `Halaman ${p} dari ${totalPages}`,
       pageWidth - margin,
-      pageHeight - 5.5,
+      pageHeight - 4.2,
       { align: 'right' }
     );
   }

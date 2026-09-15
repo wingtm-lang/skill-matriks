@@ -72,7 +72,7 @@ export const POINT_SYSTEM_RULES = [
 ];
 
 export function getPointsFromEfficiency(eff: number): number {
-  if (eff <= 0) return 0;
+  if (eff === null || eff === undefined || isNaN(eff) || eff <= 0) return 0;
   if (eff <= 60) return 1;
   if (eff <= 89) return 2;
   return 3;
@@ -114,7 +114,7 @@ export function getOperatorMultiSkillCount(operator: Operator): number {
     operator.bartack
   ];
   for (const r of rates) {
-    if (r !== null && r !== undefined && r > 0) {
+    if (r !== null && r !== undefined && !isNaN(r) && r > 0) {
       count++;
     }
   }
@@ -133,12 +133,13 @@ export function getOperatorAvgRate(operator: Operator): number {
     operator.chainstitch,
     operator.bartack
   ].forEach(r => {
-    if (r !== null && r !== undefined && r > 0) {
+    if (r !== null && r !== undefined && !isNaN(r) && r > 0) {
       rates.push(r);
     }
   });
   if (rates.length === 0) return 0;
-  return rates.reduce((a, b) => a + b, 0) / rates.length;
+  const avg = rates.reduce((a, b) => a + b, 0) / rates.length;
+  return isNaN(avg) ? 0 : avg;
 }
 
 export interface BalanceOptions {
@@ -684,6 +685,10 @@ export function filterOperatorsByPointInTime(
   // 2. Agregasi per NIK: Ambil MAX PEAK PERFORMANCE untuk setiap kategori mesin & poin
   const workerMap: { [nik: string]: Operator } = {};
   const workerLatestDates: { [nik: string]: number } = {};
+  const workerActiveMonthLatestDates: { [nik: string]: number } = {};
+  const workerActiveMonthProcess: { [nik: string]: string } = {};
+  const workerLatestOverallDates: { [nik: string]: number } = {};
+  const workerLatestOverallProcess: { [nik: string]: string } = {};
 
   filteredByMonth.forEach((op: any) => {
     const rawNik = op.nik || op.id;
@@ -698,6 +703,41 @@ export function filterOperatorsByPointInTime(
       if (parsed) currentRowDate = parsed.getTime();
     }
     if (isNaN(currentRowDate)) currentRowDate = 0;
+
+    // Evaluasi apakah baris ini berada pada bulan & tahun aktif yang dipilih
+    let isCurrentMonth = false;
+    const extracted = extractMonthAndYear(dataSource);
+    if (extracted) {
+      if (extracted.year === selYearNum && extracted.month === selMonthNum) {
+        isCurrentMonth = true;
+      }
+    } else {
+      const parsed = parseFlexibleDate(dataSource);
+      if (parsed && !isNaN(parsed.getTime())) {
+        if (parsed.getFullYear() === selYearNum && (parsed.getMonth() + 1) === selMonthNum) {
+          isCurrentMonth = true;
+        }
+      }
+    }
+
+    const rowProcess = (op.process || (op as any).currentOperation || '').trim();
+
+    // Catat nama process yang dijalankan oleh NIK tersebut pada tanggal terakhir bulan aktif (Kolom J: Process)
+    if (isCurrentMonth && rowProcess && rowProcess !== '-') {
+      const prevActiveDate = workerActiveMonthLatestDates[nik] ?? -1;
+      if (currentRowDate >= prevActiveDate) {
+        workerActiveMonthLatestDates[nik] = currentRowDate;
+        workerActiveMonthProcess[nik] = rowProcess;
+      }
+    }
+
+    if (rowProcess && rowProcess !== '-') {
+      const prevOverallDate = workerLatestOverallDates[nik] ?? -1;
+      if (currentRowDate >= prevOverallDate) {
+        workerLatestOverallDates[nik] = currentRowDate;
+        workerLatestOverallProcess[nik] = rowProcess;
+      }
+    }
 
     if (!workerMap[nik]) {
       workerMap[nik] = { ...op };
@@ -729,6 +769,9 @@ export function filterOperatorsByPointInTime(
         existing.recordDate = op.recordDate || existing.recordDate;
         existing.date = op.date || existing.date;
         if (op.doj && op.doj !== '-') existing.doj = op.doj;
+        if (op.styleNo) existing.styleNo = op.styleNo;
+        if (op.machine) existing.machine = op.machine;
+        if (op.machineCategory) existing.machineCategory = op.machineCategory;
       }
 
       // Preservasi tanggal resign dan status jika tercatat
@@ -752,12 +795,22 @@ export function filterOperatorsByPointInTime(
       ? 'RESIGNED'
       : (op.status?.toUpperCase() === 'RESIGNED' ? 'ACTIVE' : (op.status || 'ACTIVE'));
 
+    const rawTenure = Number(op.workTimeMonths);
+    const safeTenure = (!isNaN(rawTenure) && rawTenure > 0)
+      ? rawTenure
+      : (calculateWorkTimeMonths(op.doj) || 0);
+
+    const finalProcess = workerActiveMonthProcess[op.nik] || workerLatestOverallProcess[op.nik] || (op.process && op.process.trim() !== '' ? op.process.trim() : '-');
+
     return {
       ...op,
       status: effectiveStatus,
-      points: totalPts,
+      workTimeMonths: safeTenure,
+      points: isNaN(totalPts) ? 0 : totalPts,
       grade: gradeObj.grade,
       overallGrade: gradeObj.grade,
+      process: finalProcess,
+      currentOperation: finalProcess,
     };
   });
 
@@ -1063,7 +1116,8 @@ export function calculateWorkTimeMonths(dojStr: string | null | undefined): numb
     months--;
   }
 
-  return Math.max(0, months);
+  if (isNaN(months) || months < 0) return 0;
+  return months;
 }
 
 /**
@@ -1587,7 +1641,10 @@ export async function fetchOperatorsFromGViz(sheetId: string = "1tA8YyHxFr1xwGWv
       const nik = (cols[idxWorkerCode] ?? cols[4] ?? "").trim();
       if (!nik || nik.toLowerCase() === "worker code" || nik.toLowerCase() === "nik") continue;
 
-      const rawRate = Number(cols[idxRate] ?? cols[12] ?? 0);
+      const rawRateClean = String(cols[idxRate] ?? cols[12] ?? "0").replace(',', '.').replace(/[^0-9.-]/g, '');
+      const rawRateNum = parseFloat(rawRateClean);
+      const rawRate = isNaN(rawRateNum) ? 0 : rawRateNum;
+
       const rawPointsStr = String(cols[idxPoints] ?? cols[13] ?? "").trim();
       const rawPoints = parseFloat(rawPointsStr.replace(',', '.').replace(/[^0-9.]/g, ''));
       let pointVal = !isNaN(rawPoints) ? Math.min(3, Math.max(0, Math.round(rawPoints))) : 0;
@@ -1618,6 +1675,11 @@ export async function fetchOperatorsFromGViz(sheetId: string = "1tA8YyHxFr1xwGWv
       const rawDate = cols[idxDate] ?? cols[3] ?? "";
       const rowDateStr = rawDate ? String(rawDate).trim() : "";
 
+      const parsedWorkMonthStr = String(cols[idxWorkMonth] ?? cols[14] ?? "").replace(/[^0-9]/g, '');
+      const parsedWorkMonth = parseInt(parsedWorkMonthStr, 10);
+      const rowDoj = String(cols[idxDoj] ?? cols[6] ?? "-");
+      const safeTenure = (!isNaN(parsedWorkMonth) && parsedWorkMonth > 0) ? parsedWorkMonth : (calculateWorkTimeMonths(rowDoj) || 0);
+
       parsedOps.push({
         id: String(nik || i),
         no: i,
@@ -1632,12 +1694,12 @@ export async function fetchOperatorsFromGViz(sheetId: string = "1tA8YyHxFr1xwGWv
         process: String(cols[idxProcess] ?? cols[9] ?? ""),
         productionRate: rawRate,
         points: pointVal,
-        workMonth: Number(cols[idxWorkMonth] ?? cols[14] ?? 1),
+        workMonth: safeTenure,
         dateOfResign: String(cols[idxDateOfResign] ?? cols[15] ?? ""),
         machineCategory: rawCat,
         status: String(cols[idxStatus] ?? cols[17] ?? "ACTIVE"),
-        doj: String(cols[idxDoj] ?? cols[6] ?? "-"),
-        workTimeMonths: Number(cols[idxWorkMonth] ?? cols[14] ?? 1),
+        doj: rowDoj,
+        workTimeMonths: safeTenure,
         resignDate: (cols[idxDateOfResign] ?? cols[15]) ? String(cols[idxDateOfResign] ?? cols[15]) : null,
         lockstitch: isLockstitch ? pointVal : (!rawCat && !rawMachineName ? pointVal : null),
         overlock: isOverlock ? pointVal : null,

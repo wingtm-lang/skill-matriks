@@ -55,8 +55,8 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
   selectedMonth,
   selectedYear
 }) => {
-  const { language, getMonthName } = useLanguage();
-  const isEn = language === 'en';
+  const { language, getMonthName, t } = useLanguage();
+  const pdfT = t.exportPdfModal;
 
   // Export & Display Options (Default to Portrait A4 as requested)
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
@@ -242,14 +242,14 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-base leading-tight">
-                  {isEn ? 'Skill Matrix PDF Export & Live Document Sheet' : 'Pratinjau & Ekspor PDF Skill Matrix'}
+                  {pdfT.modalTitle}
                 </h3>
                 <span className="bg-amber-400 text-teal-950 text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full tracking-wider shadow-xs">
-                  {orientation === 'portrait' ? 'A4 Portrait' : 'A4 Landscape'}
+                  {orientation === 'portrait' ? pdfT.portraitBadge : pdfT.landscapeBadge}
                 </span>
               </div>
               <p className="text-xs text-teal-200/80">
-                PT. Winners International — Industrial Engineering Standard
+                {pdfT.modalSubtitle}
               </p>
             </div>
           </div>
@@ -264,7 +264,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                   mobileTab === 'preview' ? 'bg-white text-[#244646]' : 'text-teal-200'
                 }`}
               >
-                {isEn ? 'Preview' : 'Pratinjau'}
+                {pdfT.tabPreview}
               </button>
               <button
                 type="button"
@@ -273,14 +273,14 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                   mobileTab === 'options' ? 'bg-white text-[#244646]' : 'text-teal-200'
                 }`}
               >
-                {isEn ? 'Options' : 'Opsi'}
+                {pdfT.tabOptions}
               </button>
             </div>
 
             <button
               onClick={onClose}
               className="text-teal-200 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-              aria-label="Tutup"
+              aria-label={pdfT.closeTooltip}
             >
               <X className="w-5 h-5" />
             </button>
@@ -300,10 +300,10 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
             <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs space-y-2.5">
               <div className="flex items-center justify-between text-xs font-bold text-slate-700 border-b border-slate-100 pb-2">
                 <span className="uppercase tracking-wider text-[10px] text-slate-500">
-                  {isEn ? 'Target Line & Period' : 'Target Lini & Periode'}
+                  {pdfT.targetSectionTitle}
                 </span>
                 <span className="text-[11px] font-mono text-teal-800 bg-teal-50 px-2 py-0.5 rounded font-semibold">
-                  {filteredOperators.length} {isEn ? 'Records' : 'Operator'}
+                  {filteredOperators.length} {pdfT.recordsCount}
                 </span>
               </div>
 
@@ -311,7 +311,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                 <div className="flex items-center gap-2">
                   <Building2 className="w-3.5 h-3.5 text-teal-600 shrink-0" />
                   <div className="truncate">
-                    <span className="text-slate-400 block text-[9px] uppercase font-semibold">{isEn ? 'Location' : 'Lokasi'}</span>
+                    <span className="text-slate-400 block text-[9px] uppercase font-semibold">{pdfT.locationLabel}</span>
                     <span className="font-semibold text-slate-800 truncate block">{selectedFactory} • {selectedLine}</span>
                   </div>
                 </div>
@@ -319,7 +319,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                 <div className="flex items-center gap-2">
                   <Calendar className="w-3.5 h-3.5 text-teal-600 shrink-0" />
                   <div>
-                    <span className="text-slate-400 block text-[9px] uppercase font-semibold">{isEn ? 'Period' : 'Periode'}</span>
+                    <span className="text-slate-400 block text-[9px] uppercase font-semibold">{pdfT.periodLabel}</span>
                     <span className="font-semibold text-slate-800">{monthName} {selectedYear}</span>
                   </div>
                 </div>
@@ -327,16 +327,16 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                 <div className="flex items-center gap-2">
                   <Users className="w-3.5 h-3.5 text-teal-600 shrink-0" />
                   <div>
-                    <span className="text-slate-400 block text-[9px] uppercase font-semibold">{isEn ? 'Manpower' : 'Manpower'}</span>
-                    <span className="font-semibold text-slate-800">{stats.totalActive} Aktif ({stats.totalResigned} Resign)</span>
+                    <span className="text-slate-400 block text-[9px] uppercase font-semibold">{pdfT.manpowerLabel}</span>
+                    <span className="font-semibold text-slate-800">{stats.totalActive} {pdfT.activeText} ({stats.totalResigned} {pdfT.resignedText})</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <Award className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                   <div>
-                    <span className="text-slate-400 block text-[9px] uppercase font-semibold">{isEn ? 'Multi-Skill' : 'Multi-Skill'}</span>
-                    <span className="font-semibold text-slate-800">{stats.multiSkillCount} org ({stats.multiSkillPercent}%)</span>
+                    <span className="text-slate-400 block text-[9px] uppercase font-semibold">{pdfT.multiSkillLabel}</span>
+                    <span className="font-semibold text-slate-800">{stats.multiSkillCount} {pdfT.personsUnit} ({stats.multiSkillPercent}%)</span>
                   </div>
                 </div>
               </div>
@@ -345,7 +345,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
             {/* ORIENTATION SELECTOR (PORTRAIT IS DEFAULT) */}
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-                {isEn ? 'Page Orientation' : 'Orientasi Halaman'}
+                {pdfT.orientationLabel}
               </label>
               <div className="grid grid-cols-2 gap-2 bg-slate-200/80 p-1 rounded-xl">
                 <button
@@ -361,7 +361,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                   }`}
                 >
                   <div className="w-3 h-4 border-2 border-current rounded-xs shrink-0" />
-                  <span>Portrait (A4)</span>
+                  <span>{pdfT.portraitOption}</span>
                 </button>
                 <button
                   type="button"
@@ -376,7 +376,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                   }`}
                 >
                   <div className="w-4 h-3 border-2 border-current rounded-xs shrink-0" />
-                  <span>Landscape</span>
+                  <span>{pdfT.landscapeOption}</span>
                 </button>
               </div>
             </div>
@@ -385,7 +385,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
             <div className="space-y-2 pt-1">
               <div className="flex items-center justify-between">
                 <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                  {isEn ? 'Include Sections' : 'Komponen & Saringan Data'}
+                  {pdfT.includeSectionsLabel}
                 </label>
               </div>
 
@@ -403,10 +403,10 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                 </div>
                 <div className="text-xs">
                   <p className="font-semibold text-slate-800 leading-tight">
-                    {isEn ? 'Executive KPI Summary' : 'Ringkasan KPI Eksekutif'}
+                    {pdfT.summaryCheckboxTitle}
                   </p>
                   <p className="text-slate-500 text-[10px] mt-0.5">
-                    {isEn ? 'Total MP, Multi-Skill %, Grade & Machine cards' : 'Kartu Manpower, Rasio Multi-Skill, Grade & Mesin'}
+                    {pdfT.summaryCheckboxDesc}
                   </p>
                 </div>
               </div>
@@ -425,10 +425,10 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                 </div>
                 <div className="text-xs">
                   <p className="font-semibold text-slate-800 leading-tight">
-                    {isEn ? 'Include Resigned Operators' : 'Sertakan Operator Resigned'}
+                    {pdfT.resignedCheckboxTitle}
                   </p>
                   <p className="text-slate-500 text-[10px] mt-0.5">
-                    {isEn ? `Show ${stats.totalResigned} resigned records with status badge` : `Menampilkan ${stats.totalResigned} data operator keluar`}
+                    {pdfT.resignedCheckboxDesc}
                   </p>
                 </div>
               </div>
@@ -447,10 +447,10 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                 </div>
                 <div className="text-xs">
                   <p className="font-semibold text-slate-800 leading-tight">
-                    {isEn ? 'Official Validation Signatures' : 'Lembar Pengesahan Tanda Tangan'}
+                    {pdfT.signaturesCheckboxTitle}
                   </p>
                   <p className="text-slate-500 text-[10px] mt-0.5">
-                    {isEn ? 'IE Specialist, Supervisor, and Factory Manager' : 'Kolom IE Specialist, Spv Sewing, & Factory Manager'}
+                    {pdfT.signaturesCheckboxDesc}
                   </p>
                 </div>
               </div>
@@ -469,10 +469,10 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                 </div>
                 <div className="text-xs">
                   <p className="font-semibold text-slate-800 leading-tight">
-                    {isEn ? 'Multi-Skilled Operators Only' : 'Saring: Hanya Multi-Skill (>=2)'}
+                    {pdfT.multiSkillOnlyTitle}
                   </p>
                   <p className="text-slate-500 text-[10px] mt-0.5">
-                    {isEn ? 'Only operators who master 2 or more machines' : 'Hanya mencetak operator dengan 2+ jenis mesin'}
+                    {pdfT.multiSkillOnlyDesc}
                   </p>
                 </div>
               </div>
@@ -482,10 +482,10 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] text-amber-900 mt-auto">
               <div className="flex items-center gap-1.5 font-bold mb-1">
                 <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                <span>Standar IE & MOST Terakreditasi</span>
+                <span>{pdfT.auditBannerTitle}</span>
               </div>
               <p className="text-[10px] leading-relaxed text-amber-800/90">
-                Format dokumen A4 Portrait beresolusi tajam, siap cetak untuk papan pengumuman lini jahit, binder dokumen IE, dan audit kepatuhan buyer internasional.
+                {pdfT.auditBannerDesc}
               </p>
             </div>
           </div>
@@ -501,7 +501,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1 bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md text-[11px] font-semibold">
                   <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                  <span>Pratinjau Lembar A4 Asli</span>
+                  <span>{pdfT.realA4PreviewBadge}</span>
                 </div>
                 <span className="text-[11px] text-slate-500 hidden sm:inline">
                   • {orientation === 'portrait' ? 'A4 Portrait (210 × 297 mm)' : 'A4 Landscape (297 × 210 mm)'}
@@ -517,19 +517,19 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                       onClick={() => setActivePageIndex(prev => Math.max(0, prev - 1))}
                       disabled={safePageIndex === 0}
                       className="p-1 hover:bg-slate-200 rounded disabled:opacity-40 cursor-pointer"
-                      title="Halaman Sebelumnya"
+                      title={pdfT.prevPageTooltip}
                     >
                       <ChevronLeft className="w-3.5 h-3.5" />
                     </button>
                     <span className="px-1 text-[11px]">
-                      Hal {safePageIndex + 1} / {pagesData.length}
+                      {pdfT.pageIndicator} {safePageIndex + 1} {pdfT.ofText} {pagesData.length}
                     </span>
                     <button
                       type="button"
                       onClick={() => setActivePageIndex(prev => Math.min(pagesData.length - 1, prev + 1))}
                       disabled={safePageIndex === pagesData.length - 1}
                       className="p-1 hover:bg-slate-200 rounded disabled:opacity-40 cursor-pointer"
-                      title="Halaman Berikutnya"
+                      title={pdfT.nextPageTooltip}
                     >
                       <ChevronRight className="w-3.5 h-3.5" />
                     </button>
@@ -542,7 +542,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                     type="button"
                     onClick={() => setZoomLevel(prev => Math.max(60, prev - 15))}
                     className="p-1 text-slate-600 hover:text-slate-900 rounded hover:bg-slate-200 cursor-pointer"
-                    title="Perkecil (-)"
+                    title={pdfT.zoomOutTooltip}
                   >
                     <ZoomOut className="w-3.5 h-3.5" />
                   </button>
@@ -553,7 +553,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                     type="button"
                     onClick={() => setZoomLevel(prev => Math.min(140, prev + 15))}
                     className="p-1 text-slate-600 hover:text-slate-900 rounded hover:bg-slate-200 cursor-pointer"
-                    title="Perbesar (+)"
+                    title={pdfT.zoomInTooltip}
                   >
                     <ZoomIn className="w-3.5 h-3.5" />
                   </button>
@@ -561,7 +561,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                     type="button"
                     onClick={() => setZoomLevel(100)}
                     className="px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 hover:text-slate-900 rounded hover:bg-slate-200 cursor-pointer border-l border-slate-300"
-                    title="Reset 100%"
+                    title={pdfT.resetZoomTooltip}
                   >
                     Reset
                   </button>
@@ -572,10 +572,10 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                   type="button"
                   onClick={handleOpenFullTab}
                   className="flex items-center gap-1 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg border border-slate-300 transition-colors cursor-pointer"
-                  title="Buka PDF di tab baru browser"
+                  title={pdfT.openPdfTabTooltip}
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
-                  <span className="hidden lg:inline">{isEn ? 'Open PDF' : 'Buka Tab Baru'}</span>
+                  <span className="hidden lg:inline">{pdfT.openPdfTabBtn}</span>
                 </button>
               </div>
             </div>
@@ -592,54 +592,42 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                 }}
                 className={`bg-white shadow-2xl border border-slate-300 text-slate-900 rounded-sm relative flex flex-col justify-between select-text shrink-0 my-2 ${
                   orientation === 'portrait' 
-                    ? 'w-[794px] min-h-[1123px] p-[38px]' 
-                    : 'w-[1123px] min-h-[794px] p-[42px]'
+                    ? 'w-[794px] min-h-[1123px] p-[16px]' 
+                    : 'w-[1123px] min-h-[794px] p-[18px]'
                 }`}
               >
-                {/* TOP ACCENT STRIPES */}
-                <div className="absolute top-0 left-0 right-0 h-[6px] bg-[#244646]" />
-                <div className="absolute top-[6px] left-0 right-0 h-[2px] bg-[#C48E14]" />
-
                 {/* SHEET MAIN CONTENT */}
                 <div className="space-y-4">
                   
                   {/* HEADER & METADATA SECTION */}
                   <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-3">
                     <div>
-                      <h1 className="text-lg font-black text-[#244646] tracking-tight">
-                        PT. WINNERS INTERNATIONAL
+                      <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                        {pdfT.companyTitle}
                       </h1>
-                      <p className="text-[10px] font-bold text-slate-500 tracking-wider uppercase">
-                        INDUSTRIAL ENGINEERING & LEAN MANUFACTURING SYSTEM
-                      </p>
-                      <h2 className="text-xs font-bold text-slate-800 mt-1 uppercase">
-                        {isEn 
-                          ? 'Sewing Operator Skill Matrix & Competency Report' 
-                          : 'Laporan Matriks Keterampilan & Kompetensi Operator Jahit'}
+                      <h2 className="text-sm font-extrabold text-[#244646] mt-1 tracking-wide uppercase">
+                        {pdfT.documentTitle}
                       </h2>
-                      <p className="text-[9.5px] italic text-slate-400">
-                        Standar: General Sewing Data (GSD) & Metodologi Evaluasi MOST
-                      </p>
                     </div>
 
                     {/* Metadata Card Box */}
                     <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 text-[10px] min-w-[210px] space-y-1">
                       <div className="flex justify-between">
-                        <span className="text-slate-500">{isEn ? 'Factory / Line' : 'Pabrik / Lini'}:</span>
+                        <span className="text-slate-500">{pdfT.factoryLineLabel}:</span>
                         <span className="font-bold text-slate-800">{selectedFactory} • {selectedLine}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-500">{isEn ? 'Period' : 'Periode'}:</span>
+                        <span className="text-slate-500">{pdfT.periodLabel}:</span>
                         <span className="font-bold text-slate-800">{monthName} {selectedYear}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-500">{isEn ? 'Generated' : 'Dicetak'}:</span>
+                        <span className="text-slate-500">{pdfT.generatedLabel}:</span>
                         <span className="font-semibold text-slate-700">
-                          {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {new Date().toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </span>
                       </div>
                       <div className="flex justify-between pt-0.5 border-t border-slate-200">
-                        <span className="text-slate-500">Doc ID:</span>
+                        <span className="text-slate-500">{pdfT.docIdLabel}:</span>
                         <span className="font-mono font-bold text-[#C48E14]">{docIdStr}</span>
                       </div>
                     </div>
@@ -651,46 +639,46 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                       {/* Card 1: Manpower */}
                       <div className="bg-[#f1f8f8] border border-[#bedada] rounded-lg p-2.5">
                         <span className="text-[9px] font-bold text-[#465f5f] uppercase tracking-wider block">
-                          {isEn ? 'TOTAL MANPOWER' : 'TOTAL OPERATOR (MP)'}
+                          {pdfT.kpiTotalManpower}
                         </span>
                         <div className="text-base font-extrabold text-[#244646] mt-0.5">
-                          {stats.totalActive} {isEn ? 'Active' : 'Aktif'}
+                          {stats.totalActive} {pdfT.kpiActiveLabel}
                         </div>
                         <span className="text-[9.5px] text-[#8c6464] block">
-                          ({stats.totalResigned} {isEn ? 'Resigned/Inactive' : 'Resigned'})
+                          ({stats.totalResigned} {pdfT.kpiResignedLabel})
                         </span>
                       </div>
 
                       {/* Card 2: Multi-Skill */}
                       <div className="bg-[#ecfdf5] border border-[#a7f3d0] rounded-lg p-2.5">
                         <span className="text-[9px] font-bold text-[#166534] uppercase tracking-wider block">
-                          {isEn ? 'MULTI-SKILL RATIO (>=2 MACHINES)' : 'RASIO MULTI-SKILL (>=2 MESIN)'}
+                          {pdfT.kpiMultiSkillRatio}
                         </span>
                         <div className="text-base font-extrabold text-[#166534] mt-0.5">
                           {stats.multiSkillPercent}%
                         </div>
                         <span className="text-[9.5px] text-[#4a725e] block">
-                          {stats.multiSkillCount} / {stats.totalActive} {isEn ? 'qualified' : 'operator kompeten'}
+                          {stats.multiSkillCount} / {stats.totalActive} {pdfT.kpiQualifiedCount}
                         </span>
                       </div>
 
                       {/* Card 3: Grade Distribution */}
                       <div className="bg-[#fefce8] border border-[#fef08a] rounded-lg p-2.5">
                         <span className="text-[9px] font-bold text-[#854d0e] uppercase tracking-wider block">
-                          {isEn ? 'GRADE DISTRIBUTION' : 'DISTRIBUSI GRADE (S / A / B / C)'}
+                          {pdfT.kpiGradeDistribution}
                         </span>
                         <div className="text-sm font-extrabold text-[#713f12] mt-0.5">
                           S:{stats.gradeCounts.S} • A:{stats.gradeCounts.A} • B:{stats.gradeCounts.B} • C:{stats.gradeCounts.C}
                         </div>
                         <span className="text-[9.5px] text-[#8c6e32] block">
-                          Helper: {stats.gradeCounts.HELPER} | Rata Poin: {stats.avgPoints}
+                          {pdfT.kpiHelperAvg.replace('{helper}', String(stats.gradeCounts.HELPER)).replace('{avg}', String(stats.avgPoints))}
                         </span>
                       </div>
 
                       {/* Card 4: Machine Coverage */}
                       <div className="bg-[#f0f9ff] border border-[#bae6fd] rounded-lg p-2.5">
                         <span className="text-[9px] font-bold text-[#0369a1] uppercase tracking-wider block">
-                          {isEn ? 'MACHINE POPULATION' : 'POPULASI MESIN'}
+                          {pdfT.kpiMachinePopulation}
                         </span>
                         <div className="text-xs font-extrabold text-[#0369a1] mt-0.5">
                           SN:{stats.machineCounts.lockstitch} | OL:{stats.machineCounts.overlock} | FS:{stats.machineCounts.flatseam}
@@ -707,20 +695,21 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                     <table className="w-full border-collapse">
                       <thead>
                         <tr className="bg-[#244646] text-white font-bold text-center">
-                          <th className="py-1.5 px-1 w-6 border-r border-teal-800">NO</th>
-                          <th className="py-1.5 px-1.5 w-16 border-r border-teal-800">NIK</th>
-                          <th className="py-1.5 px-2 text-left border-r border-teal-800">{isEn ? 'OPERATOR NAME' : 'NAMA OPERATOR'}</th>
-                          <th className="py-1.5 px-1 w-14 border-r border-teal-800">{isEn ? 'TENURE' : 'MASA KERJA'}</th>
-                          <th className="py-1 px-1 w-8 border-r border-teal-800 leading-tight">SN<br/><span className="text-[8px] font-normal">Lock</span></th>
-                          <th className="py-1 px-1 w-8 border-r border-teal-800 leading-tight">OL<br/><span className="text-[8px] font-normal">Obras</span></th>
-                          <th className="py-1 px-1 w-8 border-r border-teal-800 leading-tight">FS<br/><span className="text-[8px] font-normal">Flat</span></th>
-                          <th className="py-1 px-1 w-8 border-r border-teal-800 leading-tight">SP<br/><span className="text-[8px] font-normal">Special</span></th>
-                          <th className="py-1 px-1 w-8 border-r border-teal-800 leading-tight">BTN<br/><span className="text-[8px] font-normal">Hole</span></th>
-                          <th className="py-1 px-1 w-8 border-r border-teal-800 leading-tight">BTN<br/><span className="text-[8px] font-normal">Set</span></th>
-                          <th className="py-1.5 px-1 w-12 border-r border-teal-800">{isEn ? 'MULTI' : 'MULTI'}</th>
-                          <th className="py-1.5 px-1 w-12 border-r border-teal-800">{isEn ? 'TOTAL' : 'TOTAL'}</th>
-                          <th className="py-1.5 px-1 w-14 border-r border-teal-800">GRADE</th>
-                          <th className="py-1.5 px-1.5 w-16">STATUS</th>
+                          <th className="py-1.5 px-1 w-6 border-r border-teal-800">{pdfT.thNo}</th>
+                          <th className="py-1.5 px-1.5 w-16 border-r border-teal-800">{pdfT.thNik}</th>
+                          <th className="py-1.5 px-2 text-left border-r border-teal-800">{pdfT.thOperatorName}</th>
+                          <th className="py-1.5 px-1 w-14 border-r border-teal-800">{pdfT.thTenure}</th>
+                          <th className="py-1.5 px-1.5 w-24 border-r border-teal-800 text-left">Current Operation</th>
+                          <th className="py-1 px-1 w-8 border-r border-teal-800 leading-tight">SN<br/><span className="text-[8px] font-normal">{pdfT.thLockstitch}</span></th>
+                          <th className="py-1 px-1 w-8 border-r border-teal-800 leading-tight">OL<br/><span className="text-[8px] font-normal">{pdfT.thOverlock}</span></th>
+                          <th className="py-1 px-1 w-8 border-r border-teal-800 leading-tight">FS<br/><span className="text-[8px] font-normal">{pdfT.thFlatseam}</span></th>
+                          <th className="py-1 px-1 w-8 border-r border-teal-800 leading-tight">SP<br/><span className="text-[8px] font-normal">{pdfT.thSpecial}</span></th>
+                          <th className="py-1 px-1 w-8 border-r border-teal-800 leading-tight">BTN<br/><span className="text-[8px] font-normal">{pdfT.thButtonHole}</span></th>
+                          <th className="py-1 px-1 w-8 border-r border-teal-800 leading-tight">BTN<br/><span className="text-[8px] font-normal">{pdfT.thButtonSet}</span></th>
+                          <th className="py-1.5 px-1 w-12 border-r border-teal-800">{pdfT.thMulti}</th>
+                          <th className="py-1.5 px-1 w-12 border-r border-teal-800">{pdfT.thTotal}</th>
+                          <th className="py-1.5 px-1 w-14 border-r border-teal-800">{pdfT.thGrade}</th>
+                          <th className="py-1.5 px-1.5 w-16">{pdfT.thStatus}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
@@ -754,7 +743,10 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                                 <td className="py-1 px-1 font-mono text-[9px] border-r border-slate-200">{globalIdx}</td>
                                 <td className="py-1 px-1.5 font-mono font-semibold text-[9.5px] border-r border-slate-200">{op.nik}</td>
                                 <td className="py-1 px-2 text-left font-bold border-r border-slate-200 truncate max-w-[170px]">{op.name}</td>
-                                <td className="py-1 px-1 text-[9px] border-r border-slate-200">{op.workTimeMonths ? `${op.workTimeMonths} bln` : '-'}</td>
+                                <td className="py-1 px-1 text-[9px] border-r border-slate-200">{op.workTimeMonths ? `${op.workTimeMonths} ${pdfT.tenureMonthUnit}` : '-'}</td>
+                                <td className="py-1 px-1.5 text-left text-[8px] font-medium border-r border-slate-200 truncate max-w-[120px]" title={op.process || op.currentOperation}>
+                                  {op.process || op.currentOperation || '-'}
+                                </td>
                                 <td className="py-1 px-1 border-r border-slate-200">{renderVal(op.lockstitch)}</td>
                                 <td className="py-1 px-1 border-r border-slate-200">{renderVal(op.overlock)}</td>
                                 <td className="py-1 px-1 border-r border-slate-200">{renderVal(op.flatseam)}</td>
@@ -762,7 +754,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                                 <td className="py-1 px-1 border-r border-slate-200">{renderVal(op.buttonHole)}</td>
                                 <td className="py-1 px-1 border-r border-slate-200">{renderVal(op.buttonSet)}</td>
                                 <td className={`py-1 px-1 font-bold border-r border-slate-200 ${msCount >= 2 ? 'text-emerald-700' : 'text-slate-400'}`}>
-                                  {msCount > 0 ? `${msCount} Msn` : '-'}
+                                  {msCount > 0 ? `${msCount} ${pdfT.machineUnit}` : '-'}
                                 </td>
                                 <td className="py-1 px-1 font-extrabold border-r border-slate-200">{totalPts}</td>
                                 <td className="py-1 px-1 border-r border-slate-200">
@@ -772,9 +764,9 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                                 </td>
                                 <td className="py-1 px-1.5 font-bold text-[9px]">
                                   {isResigned ? (
-                                    <span className="text-red-700 bg-red-100 px-1.5 py-0.5 rounded">Resign</span>
+                                    <span className="text-red-700 bg-red-100 px-1.5 py-0.5 rounded">{pdfT.statusResigned}</span>
                                   ) : (
-                                    <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">Aktif</span>
+                                    <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">{pdfT.statusActive}</span>
                                   )}
                                 </td>
                               </tr>
@@ -786,10 +778,10 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                               <div className="flex flex-col items-center justify-center gap-1">
                                 <Users className="w-6 h-6 text-slate-300" />
                                 <span className="font-semibold text-xs text-slate-500">
-                                  {isEn ? 'No operator records found for this line.' : 'Tidak ada data operator untuk lini ini pada periode terpilih.'}
+                                  {pdfT.noOperatorsFound}
                                 </span>
                                 <span className="text-[10px] text-slate-400">
-                                  Pastikan lini dan pabrik memiliki operator aktif, atau periksa filter yang sedang aktif.
+                                  {pdfT.noOperatorsHint}
                                 </span>
                               </div>
                             </td>
@@ -805,26 +797,26 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                       <div className="grid grid-cols-3 gap-4 text-center">
                         {/* Box 1 */}
                         <div className="border border-slate-200 rounded-lg p-2.5 bg-slate-50/50">
-                          <p className="text-[9px] font-bold text-[#244646] uppercase">DIBUAT OLEH (IE OFFICER)</p>
-                          <p className="text-[8px] text-slate-400 mb-6">Industrial Engineering Dept.</p>
+                          <p className="text-[9px] font-bold text-[#244646] uppercase">{pdfT.sigCreatedBy}</p>
+                          <p className="text-[8px] text-slate-400 mb-6">{pdfT.sigCreatedDept}</p>
                           <div className="border-b border-dashed border-slate-300 mx-3 mb-1" />
-                          <p className="text-[9px] font-bold text-slate-700">( IE Specialist )</p>
+                          <p className="text-[9px] font-bold text-slate-700">{pdfT.sigCreatedRole}</p>
                         </div>
 
                         {/* Box 2 */}
                         <div className="border border-slate-200 rounded-lg p-2.5 bg-slate-50/50">
-                          <p className="text-[9px] font-bold text-[#244646] uppercase">DIVERIFIKASI (SPV SEWING)</p>
-                          <p className="text-[8px] text-slate-400 mb-6">Sewing Production Line</p>
+                          <p className="text-[9px] font-bold text-[#244646] uppercase">{pdfT.sigVerifiedBy}</p>
+                          <p className="text-[8px] text-slate-400 mb-6">{pdfT.sigVerifiedDept}</p>
                           <div className="border-b border-dashed border-slate-300 mx-3 mb-1" />
-                          <p className="text-[9px] font-bold text-slate-700">( {selectedLine} Supervisor )</p>
+                          <p className="text-[9px] font-bold text-slate-700">{pdfT.sigVerifiedRole.replace('{line}', selectedLine)}</p>
                         </div>
 
                         {/* Box 3 */}
                         <div className="border border-slate-200 rounded-lg p-2.5 bg-slate-50/50">
-                          <p className="text-[9px] font-bold text-[#244646] uppercase">DISETUJUI (PABRIK / IE MGR)</p>
-                          <p className="text-[8px] text-slate-400 mb-6">Factory & IE Management</p>
+                          <p className="text-[9px] font-bold text-[#244646] uppercase">{pdfT.sigApprovedBy}</p>
+                          <p className="text-[8px] text-slate-400 mb-6">{pdfT.sigApprovedDept}</p>
                           <div className="border-b border-dashed border-slate-300 mx-3 mb-1" />
-                          <p className="text-[9px] font-bold text-slate-700">( {selectedFactory} Management )</p>
+                          <p className="text-[9px] font-bold text-slate-700">{pdfT.sigApprovedRole.replace('{factory}', selectedFactory)}</p>
                         </div>
                       </div>
                     </div>
@@ -833,10 +825,10 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                 </div>
 
                 {/* BOTTOM FOOTER ON PAPER */}
-                <div className="pt-4 border-t border-slate-200 flex items-center justify-between text-[8.5px] text-slate-400">
-                  <span>PT. WINNERS INTERNATIONAL — INDUSTRIAL ENGINEERING SYSTEM | DOKUMEN INTERNAL & RAHASIA</span>
+                <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-[9px] text-slate-400">
+                  <span className="font-semibold text-slate-500">{pdfT.paperFooterCompany}</span>
                   <span className="font-bold text-slate-600">
-                    Halaman {safePageIndex + 1} dari {pagesData.length}
+                    {pdfT.pageIndicator} {safePageIndex + 1} {pdfT.ofText} {pagesData.length}
                   </span>
                 </div>
 
@@ -852,9 +844,9 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
           <div className="text-xs text-slate-500 hidden sm:flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>
-              {isEn 
-                ? `Ready to export ${filteredOperators.length} operator records in ${orientation} format`
-                : `Siap mengekspor ${filteredOperators.length} data operator dalam format ${orientation}`}
+              {pdfT.readyExportMessage
+                .replace('{count}', String(filteredOperators.length))
+                .replace('{orientation}', orientation)}
             </span>
           </div>
 
@@ -865,7 +857,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
               disabled={isDownloading}
               className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200/70 rounded-xl transition-colors cursor-pointer"
             >
-              {isEn ? 'Close' : 'Tutup'}
+              {pdfT.closeBtn}
             </button>
 
             <button
@@ -877,12 +869,12 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
               {isDownloading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin text-amber-300" />
-                  <span>{isEn ? 'Generating & Downloading...' : 'Membuat & Mengunduh PDF...'}</span>
+                  <span>{pdfT.downloadingBtn}</span>
                 </>
               ) : (
                 <>
                   <Download className="w-4 h-4 text-amber-300" />
-                  <span>{isEn ? 'Download PDF Report' : 'Unduh Laporan PDF'}</span>
+                  <span>{pdfT.downloadBtn}</span>
                 </>
               )}
             </button>

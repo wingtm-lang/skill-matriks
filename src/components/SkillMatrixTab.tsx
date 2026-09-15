@@ -20,7 +20,6 @@ import {
   Info,
   Lock,
   Database,
-  FileSpreadsheet,
   ExternalLink,
   HelpCircle,
   Table,
@@ -86,12 +85,13 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
   selectedMonth = 9,
   selectedYear = 2026,
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const addOpT = t.addOperatorModal;
   const [searchTerm, setSearchTerm] = useState('');
   const [machineFilter, setMachineFilter] = useState<string>('ALL');
   const [selectedGrade, setSelectedGrade] = useState<string>('ALL');
   const [multiskillOnly, setMultiskillOnly] = useState(false);
-  const [sortField, setSortField] = useState<'no' | 'name' | 'avgRate' | 'workTime' | 'multiskill'>('no');
+  const [sortField, setSortField] = useState<'no' | 'name' | 'avgRate' | 'workTime' | 'multiskill' | 'currentOperation'>('no');
   const [sortAsc, setSortAsc] = useState(true);
 
   // Modals state
@@ -119,7 +119,6 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
   const [plantToByWorker, setPlantToByWorker] = useState<boolean>(true);
   const [isPlanting, setIsPlanting] = useState<boolean>(false);
   const [plantToast, setPlantToast] = useState<{ type: 'success' | 'warning' | 'error'; message: string } | null>(null);
-  const [isGuideModalOpen, setIsGuideModalOpen] = useState<boolean>(false);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState<boolean>(false);
   const [hasCopiedFormula, setHasCopiedFormula] = useState<boolean>(false);
 
@@ -235,8 +234,15 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
         let valB: any = b.no;
         if (sortField === 'name') { valA = a.name; valB = b.name; }
         else if (sortField === 'avgRate') { valA = getOperatorTotalPoints(a); valB = getOperatorTotalPoints(b); }
-        else if (sortField === 'workTime') { valA = a.workTimeMonths; valB = b.workTimeMonths; }
+        else if (sortField === 'workTime') { 
+          valA = (!isNaN(Number(a.workTimeMonths)) && a.workTimeMonths !== null && a.workTimeMonths !== undefined) ? Number(a.workTimeMonths) : 0; 
+          valB = (!isNaN(Number(b.workTimeMonths)) && b.workTimeMonths !== null && b.workTimeMonths !== undefined) ? Number(b.workTimeMonths) : 0; 
+        }
         else if (sortField === 'multiskill') { valA = getOperatorMultiSkillCount(a); valB = getOperatorMultiSkillCount(b); }
+        else if (sortField === 'currentOperation') {
+          valA = (a.process || a.currentOperation || '').toLowerCase();
+          valB = (b.process || b.currentOperation || '').toLowerCase();
+        }
 
         if (valA < valB) return sortAsc ? -1 : 1;
         if (valA > valB) return sortAsc ? 1 : -1;
@@ -263,7 +269,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
     return counts;
   }, [operators, selectedMonth, selectedYear]);
 
-  const handleSort = (field: 'no' | 'name' | 'avgRate' | 'workTime' | 'multiskill') => {
+  const handleSort = (field: 'no' | 'name' | 'avgRate' | 'workTime' | 'multiskill' | 'currentOperation') => {
     if (sortField === field) {
       setSortAsc(!sortAsc);
     } else {
@@ -488,25 +494,29 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
         if (res.success) {
           setPlantToast({
             type: 'success',
-            message: `Operator ${newOp.name} (${newOp.nik}) berhasil ditanamkan ke by_worker! [Pabrik: ${facClean}, Line: ${lineClean}, Mesin: ${machineName}, Poin: ${finalPoint}]`,
+            message: addOpT.toastSuccessPlant
+              .replace('{name}', newOp.name)
+              .replace('{nik}', newOp.nik) + ` [${facClean} / ${lineClean} - ${machineName} - Pts: ${finalPoint}]`,
           });
         } else {
           setPlantToast({
             type: 'warning',
-            message: `Operator ditambahkan ke sistem. Status penanaman: ${res.message}`,
+            message: addOpT.toastWarningPlant.replace('{msg}', res.message),
           });
         }
       } catch (err: any) {
         console.warn("Gagal menanamkan ke by_worker:", err);
         setPlantToast({
           type: 'warning',
-          message: `Operator ditambahkan ke sistem lokal. Catatan sinkronisasi: ${err.message || 'Tertunda'}`,
+          message: addOpT.toastWarningPlant.replace('{msg}', err.message || 'Offline'),
         });
       }
     } else {
       setPlantToast({
         type: 'success',
-        message: `Operator ${newOp.name} (${newOp.nik}) berhasil ditambahkan ke Skill Matrix (Status: ACTIVE).`,
+        message: addOpT.toastSuccessAdd
+          .replace('{name}', newOp.name)
+          .replace('{nik}', newOp.nik),
       });
     }
 
@@ -522,6 +532,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
       'NIK',
       'Nama Operator',
       'Masa Kerja (Bulan)',
+      'Current Operation',
       'Lockstitch (Poin)',
       'Overlock (Poin)',
       'Flatseam (Poin)',
@@ -537,11 +548,13 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
       const totalPts = getOperatorTotalPoints(op);
       const isHelper = op.status?.toUpperCase() === 'HELPER' || (op as any).grade === 'HELPER';
       const grade = getGradeFromTotalPoints(totalPts, isHelper);
+      const curOp = (op.process || op.currentOperation || '-').replace(/"/g, '""');
       return [
         idx + 1,
         `"${op.nik}"`,
         `"${op.name}"`,
         op.workTimeMonths,
+        `"${curOp}"`,
         op.lockstitch ?? '-',
         op.overlock ?? '-',
         op.flatseam ?? '-',
@@ -566,10 +579,13 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
 
   // Render cell point badge (Maksimal 3 Poin per mesin sesuai standarisasi Kolom N)
   const renderCellPointBadge = (val: number | null | undefined) => {
-    if (val === null || val === undefined || val <= 0) {
+    if (val === null || val === undefined || typeof val !== 'number' || isNaN(val) || val <= 0) {
       return <span className="text-[#98A8A8] font-mono text-xs">-</span>;
     }
     const cappedPoint = Math.min(3, Math.max(1, Math.round(val)));
+    if (isNaN(cappedPoint)) {
+      return <span className="text-[#98A8A8] font-mono text-xs">-</span>;
+    }
     return (
       <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#E0F0F0] text-[#2AAFA3] border border-[#C8D8D8] shadow-2xs tracking-tight font-mono">
         {cappedPoint} {t.common.points}
@@ -789,17 +805,6 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
               <span className="text-[9px] bg-rose-200/80 text-rose-900 px-1.5 py-0.2 rounded font-bold uppercase tracking-wide">A4</span>
             </button>
 
-            {/* Panduan Datasheet by_worker Button */}
-            <button
-              type="button"
-              onClick={() => setIsGuideModalOpen(true)}
-              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-              title="Tata Cara Manual & Panduan Datasheet by_worker"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="hidden md:inline">Panduan by_worker</span>
-            </button>
-
             {/* Add Operator (Visible for Editor and Admin) */}
             {(userRole === 'EDITOR' || userRole === 'ADMIN') && (
               <button
@@ -884,6 +889,17 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                     <ArrowUpDown className="w-3 h-3 text-[#98A8A8]" />
                   </div>
                 </th>
+
+                {/* Current Operation Column */}
+                <th 
+                  onClick={() => handleSort('currentOperation')}
+                  className="py-3 px-3.5 text-left cursor-pointer hover:text-[#2AAFA3] min-w-[200px]"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>{t.matrix.thCurrentOperation || 'Current Operation'}</span>
+                    <ArrowUpDown className="w-3 h-3 text-[#98A8A8]" />
+                  </div>
+                </th>
                 
                 {/* Machine Columns - Note: Machine names are kept untranslated per user instruction */}
                 <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-x border-[#E0E8E8] w-28">Lockstitch</th>
@@ -922,7 +938,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
             <tbody className="divide-y divide-[#E0E8E8]">
               {filteredOperators.length === 0 ? (
                 <tr>
-                  <td colSpan={13} className="py-12 text-center text-[#788888]">
+                  <td colSpan={14} className="py-12 text-center text-[#788888]">
                     <div className="flex flex-col items-center justify-center">
                       <User className="w-10 h-10 text-[#C8D8D8] mb-2" />
                       <p className="font-semibold text-sm text-[#304848]">{t.matrix.noOperators}</p>
@@ -975,7 +991,22 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
 
                       {/* Masa Kerja */}
                       <td className="py-3 px-3 text-center text-xs font-mono text-[#506868]">
-                        {op.workTimeMonths}
+                        {!isNaN(Number(op.workTimeMonths)) && op.workTimeMonths !== null && op.workTimeMonths !== undefined && Number(op.workTimeMonths) > 0 
+                          ? op.workTimeMonths 
+                          : (calculateWorkTimeMonths(op.doj) || 0)}
+                      </td>
+
+                      {/* Current Operation */}
+                      <td className="py-2.5 px-3.5 text-xs text-[#304848] font-medium min-w-[200px]">
+                        {(op.process && op.process !== '-') || (op.currentOperation && op.currentOperation !== '-') ? (
+                          <div className="flex items-center gap-1.5" title={op.process || op.currentOperation}>
+                            <span className="font-semibold text-[#203838] group-hover:text-[#2AAFA3] transition-colors leading-snug">
+                              {op.process || op.currentOperation}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-[#98A8A8] font-mono text-xs">-</span>
+                        )}
                       </td>
 
                       {/* Machine Rates */}
@@ -1078,11 +1109,11 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-[#304848]">
-                    {isAddModalOpen ? 'Tambah Operator Baru' : t.matrix.editTitle}
+                    {isAddModalOpen ? addOpT.modalAddTitle : (addOpT.modalEditTitle || t.matrix.editTitle)}
                   </h3>
                   {isAddModalOpen && (
                     <p className="text-[11px] text-[#788888]">
-                      Validasi otomatis via sheet <strong className="text-[#2AAFA3]">"date_of_join"</strong>
+                      {addOpT.subtitleDoj}
                     </p>
                   )}
                 </div>
@@ -1103,9 +1134,9 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
               <div className="mb-4 p-3 bg-[#D9F1EF]/50 border border-[#BDE5E2] rounded-2xl flex items-start gap-2.5 text-xs text-[#247F77]">
                 <Info className="w-4 h-4 text-[#2AAFA3] shrink-0 mt-0.5" />
                 <div className="space-y-0.5">
-                  <p className="font-bold text-[#206A63]">Validasi Master Data (Sheet date_of_join)</p>
+                  <p className="font-bold text-[#206A63]">{addOpT.infoBannerTitle}</p>
                   <p className="text-[11px] text-[#405858] leading-relaxed">
-                    Untuk menjamin keabsahan data, <strong>kolom aktif masukan hanya NIK Operator</strong>. Nama Lengkap dan Date of Join (DOJ) akan diambil secara otomatis dari master sheet <code>date_of_join</code>.
+                    {addOpT.infoBannerDesc}
                   </p>
                 </div>
               </div>
@@ -1116,10 +1147,10 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
               {/* NIK & SEARCH BAR */}
               <div>
                 <label className="block text-xs font-semibold text-[#506868] mb-1">
-                  {t.matrix.nikLabel} <span className="text-[#e11d48]">*</span>
+                  {addOpT.nikLabel} <span className="text-[#e11d48]">*</span>
                   {isAddModalOpen && (
                     <span className="text-[10px] text-[#2AAFA3] font-normal ml-1">
-                      (Satu-satunya kolom aktif masukan)
+                      {addOpT.nikActiveOnlyNote}
                     </span>
                   )}:
                 </label>
@@ -1129,7 +1160,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                       type="text"
                       required
                       autoFocus={isAddModalOpen}
-                      placeholder={isAddModalOpen ? "Masukkan NIK operator (contoh: 260123)..." : "NIK"}
+                      placeholder={isAddModalOpen ? addOpT.nikPlaceholderAdd : addOpT.nikPlaceholderEdit}
                       value={formData.nik || ''}
                       onChange={(e) => {
                         const val = e.target.value.trim();
@@ -1161,7 +1192,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                       className="bg-[#2AAFA3] hover:bg-[#208E84] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 shrink-0"
                     >
                       {isSearchingDoj ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-                      <span>Cari NIK</span>
+                      <span>{isSearchingDoj ? addOpT.searchingNik : addOpT.searchNikBtn}</span>
                     </button>
                   )}
                 </div>
@@ -1172,9 +1203,9 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start gap-2.5 text-xs text-emerald-900 animate-fade-in">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                   <div className="space-y-0.5">
-                    <p className="font-bold text-emerald-800">✓ Data Ditemukan di Sheet "date_of_join"</p>
+                    <p className="font-bold text-emerald-800">{addOpT.dataFoundTitle}</p>
                     <p className="text-[11px] text-emerald-700">
-                      <strong>{formData.name}</strong> • Tanggal Masuk: <strong>{formData.doj || '-'}</strong> (Masa Kerja: <strong>{formData.workTimeMonths || 0} Bulan</strong>)
+                      <strong>{formData.name}</strong> • {addOpT.joinDateLabel}: <strong>{formData.doj || '-'}</strong> ({addOpT.tenureLabel}: <strong>{formData.workTimeMonths || 0} {addOpT.monthsUnit}</strong>)
                     </p>
                   </div>
                 </div>
@@ -1185,24 +1216,24 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                   <div className="flex items-start gap-2.5">
                     <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                     <div className="space-y-0.5 flex-1">
-                      <p className="font-bold text-rose-800">NIK Tidak Ditemukan di Sheet "date_of_join"</p>
+                      <p className="font-bold text-rose-800">{addOpT.notFoundTitle}</p>
                       <p className="text-[11px] text-rose-700">
-                        {dojLookupMessage || `NIK "${formData.nik}" belum terdaftar di sheet date_of_join.`}
+                        {dojLookupMessage || addOpT.notFoundDefaultMsg.replace('{nik}', formData.nik || '')}
                       </p>
                     </div>
                   </div>
                   <div className="pt-1 flex items-center justify-between border-t border-rose-200/60">
-                    <span className="text-[11px] text-rose-800">Operator baru belum diinput HRD?</span>
+                    <span className="text-[11px] text-rose-800">{addOpT.hrdQuestion}</span>
                     <button
                       type="button"
                       onClick={() => {
                         setAllowManualInput(!allowManualInput);
                         setDojLookupStatus('found');
-                        setDojLookupMessage('Mode input manual diaktifkan.');
+                        setDojLookupMessage(addOpT.manualModeActivatedMsg);
                       }}
                       className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
                     >
-                      {allowManualInput ? "Gunakan Cari NIK" : "Izinkan Input Manual"}
+                      {allowManualInput ? addOpT.useLookupBtn : addOpT.enableManualBtn}
                     </button>
                   </div>
                 </div>
@@ -1218,13 +1249,13 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                       setAllowManualInput(next);
                       if (next) {
                         setDojLookupStatus('found');
-                        setDojLookupMessage('Mode input manual diaktifkan.');
+                        setDojLookupMessage(addOpT.manualModeActivatedMsg);
                       }
                     }}
                     className="text-[11px] text-[#2AAFA3] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
                   >
                     <Edit3 className="w-3 h-3" />
-                    <span>{allowManualInput ? "Kunci Input (Gunakan Lookup)" : "Input NIK / Nama Manual"}</span>
+                    <span>{allowManualInput ? addOpT.switchLookupBtn : addOpT.switchManualBtn}</span>
                   </button>
                 </div>
               )}
@@ -1232,15 +1263,15 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
               {/* KOLOM NAMA LENGKAP */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-[#506868]">{t.matrix.nameLabel}:</label>
+                  <label className="block text-xs font-semibold text-[#506868]">{addOpT.fullNameLabel}:</label>
                   {isAddModalOpen && !allowManualInput && (
                     <span className="text-[10px] text-[#788888] flex items-center gap-1 font-medium bg-[#F0F5F5] px-2 py-0.5 rounded-md border border-[#E0E8E8]">
-                      <Lock className="w-3 h-3 text-[#2AAFA3]" /> Otomatis dari date_of_join
+                      <Lock className="w-3 h-3 text-[#2AAFA3]" /> {addOpT.autoFromDojBadge}
                     </span>
                   )}
                   {allowManualInput && (
                     <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
-                      Mode Input Manual
+                      {addOpT.manualInputBadge}
                     </span>
                   )}
                 </div>
@@ -1249,7 +1280,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                   required
                   readOnly={isAddModalOpen && !allowManualInput}
                   disabled={isAddModalOpen && !allowManualInput}
-                  placeholder={isAddModalOpen && !allowManualInput ? "Otomatis terisi saat NIK ditemukan di date_of_join..." : "Nama Lengkap"}
+                  placeholder={isAddModalOpen && !allowManualInput ? addOpT.namePlaceholderAuto : addOpT.namePlaceholderManual}
                   value={formData.name || ''}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value.toUpperCase() })}
                   className={`w-full rounded-xl px-3.5 py-2.5 text-xs uppercase font-bold focus:outline-none ${
@@ -1264,10 +1295,10 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-semibold text-[#506868]">{t.matrix.tenureLabel}:</label>
+                    <label className="block text-xs font-semibold text-[#506868]">{addOpT.workTenureLabel}:</label>
                     {isAddModalOpen && !allowManualInput && (
                       <span className="text-[10px] text-[#788888] flex items-center gap-1 font-medium">
-                        <Lock className="w-2.5 h-2.5 text-[#2AAFA3]" /> Auto
+                        <Lock className="w-2.5 h-2.5 text-[#2AAFA3]" /> {addOpT.autoBadge}
                       </span>
                     )}
                   </div>
@@ -1288,10 +1319,10 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-semibold text-[#506868]">{t.matrix.dojLabel}:</label>
+                    <label className="block text-xs font-semibold text-[#506868]">{addOpT.dojLabel}:</label>
                     {isAddModalOpen && !allowManualInput && (
                       <span className="text-[10px] text-[#788888] flex items-center gap-1 font-medium">
-                        <Lock className="w-2.5 h-2.5 text-[#2AAFA3]" /> Auto
+                        <Lock className="w-2.5 h-2.5 text-[#2AAFA3]" /> {addOpT.autoBadge}
                       </span>
                     )}
                   </div>
@@ -1316,16 +1347,16 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-[#304848] flex items-center gap-1.5">
                     <SlidersHorizontal className="w-3.5 h-3.5 text-[#2AAFA3]" />
-                    Lokasi Penempatan Datasheet (Kolom A & B):
+                    {addOpT.placementSectionTitle}:
                   </span>
                   <span className="text-[10px] font-mono px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-bold">
-                    Status: ACTIVE
+                    Status: {addOpT.statusActiveBadge}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] text-[#788888] mb-1 font-semibold">
-                      Pabrik / Factory (Kolom A):
+                      {addOpT.factoryLabel}:
                     </label>
                     <input
                       type="text"
@@ -1335,11 +1366,11 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                       onChange={(e) => setFormData({ ...formData, factory: e.target.value })}
                       className="w-full bg-white border border-[#D5E2E2] rounded-xl px-3 py-2 text-xs font-bold text-[#304848] focus:border-[#2AAFA3] focus:outline-none"
                     />
-                    <span className="text-[10px] text-[#809090] mt-0.5 block">Format Sheets: Angka (cth: 1 atau 2)</span>
+                    <span className="text-[10px] text-[#809090] mt-0.5 block">{addOpT.factoryHint}</span>
                   </div>
                   <div>
                     <label className="block text-[11px] text-[#788888] mb-1 font-semibold">
-                      Line / Jalur (Kolom B):
+                      {addOpT.lineLabel}:
                     </label>
                     <input
                       type="text"
@@ -1349,7 +1380,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                       onChange={(e) => setFormData({ ...formData, line: e.target.value })}
                       className="w-full bg-white border border-[#D5E2E2] rounded-xl px-3 py-2 text-xs font-bold text-[#304848] focus:border-[#2AAFA3] focus:outline-none"
                     />
-                    <span className="text-[10px] text-[#809090] mt-0.5 block">Format Sheets: Nomor (cth: 28 atau 1)</span>
+                    <span className="text-[10px] text-[#809090] mt-0.5 block">{addOpT.lineHint}</span>
                   </div>
                 </div>
               </div>
@@ -1358,14 +1389,14 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
               <div className="p-3 bg-slate-50/80 border border-slate-200 rounded-xl space-y-2.5 text-xs">
                 <h4 className="font-bold text-[#304848] flex items-center gap-1.5">
                   <Table className="w-3.5 h-3.5 text-[#2AAFA3]" />
-                  Spesifikasi Mesin & Proses Garmen (Datasheet by_worker):
+                  {addOpT.specsSectionTitle}:
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {/* Style No (Kolom I) */}
                   <div>
                     <label className="block text-[11px] text-[#607070] mb-1 font-semibold">
-                      Style No (Kolom I):
+                      {addOpT.styleNoLabel}:
                     </label>
                     <input
                       type="text"
@@ -1379,7 +1410,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                   {/* Table / Style Code (Kolom C) */}
                   <div>
                     <label className="block text-[11px] text-[#607070] mb-1 font-semibold">
-                      Table / Style Code (Kolom C):
+                      {addOpT.tableCodeLabel}:
                     </label>
                     <input
                       type="text"
@@ -1395,7 +1426,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                   {/* Nama Mesin (Kolom H) */}
                   <div>
                     <label className="block text-[11px] text-[#607070] mb-1 font-semibold">
-                      Nama Mesin (Kolom H):
+                      {addOpT.machineNameLabel}:
                     </label>
                     <input
                       type="text"
@@ -1436,7 +1467,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                   {/* Kategori Mesin (Kolom Q) */}
                   <div>
                     <label className="block text-[11px] text-[#607070] mb-1 font-semibold">
-                      Kategori Mesin (Kolom Q):
+                      {addOpT.machineCatLabel}:
                     </label>
                     <select
                       value={formData.machineCategory ?? 'LOCKSTITCH'}
@@ -1456,7 +1487,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 {/* Proses (Kolom J) */}
                 <div>
                   <label className="block text-[11px] text-[#607070] mb-1 font-semibold">
-                    Nama Proses (Kolom J):
+                    {addOpT.processLabel}:
                   </label>
                   <input
                     type="text"
@@ -1473,24 +1504,24 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 <div className="flex items-center justify-between">
                   <h4 className="font-bold text-emerald-950 flex items-center gap-1.5">
                     <Award className="w-4 h-4 text-emerald-600" />
-                    Poin Evaluasi Mesin (Kolom N):
+                    {addOpT.pointsSectionTitle}:
                   </h4>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                     (formData.points ?? 0) === 0 
                       ? 'bg-amber-100 text-amber-900 border-amber-300' 
                       : 'bg-emerald-100 text-emerald-800 border-emerald-300'
                   }`}>
-                    {(formData.points ?? 0) === 0 ? 'Nilai: 0 Poin (Helper)' : `Nilai: ${formData.points} Poin`}
+                    {(formData.points ?? 0) === 0 ? addOpT.helperBadgeText : addOpT.pointsBadgeText.replace('{points}', String(formData.points))}
                   </span>
                 </div>
 
                 {/* Selector 4 Pilihan Cepat: 0, 1, 2, 3 */}
                 <div className="grid grid-cols-4 gap-2">
                   {[
-                    { pt: 0, label: '0 Poin', desc: 'Helper / 0%' },
-                    { pt: 1, label: '1 Poin', desc: 'Dasar (1-60%)' },
-                    { pt: 2, label: '2 Poin', desc: 'Mahir (61-89%)' },
-                    { pt: 3, label: '3 Poin', desc: 'Spesialis (>90%)' },
+                    { pt: 0, label: addOpT.p0Label, desc: addOpT.p0Desc },
+                    { pt: 1, label: addOpT.p1Label, desc: addOpT.p1Desc },
+                    { pt: 2, label: addOpT.p2Label, desc: addOpT.p2Desc },
+                    { pt: 3, label: addOpT.p3Label, desc: addOpT.p3Desc },
                   ].map((item) => {
                     const isSelected = (formData.points ?? 0) === item.pt;
                     return (
@@ -1523,7 +1554,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 {/* Input Angka Langsung (Mendukung ketik '0') */}
                 <div className="pt-1 flex items-center justify-between gap-3">
                   <label className="text-[11px] text-emerald-900 font-medium">
-                    Atau ketik angka poin langsung (0 s/d 3):
+                    {addOpT.directInputLabel}:
                   </label>
                   <input
                     type="number"
@@ -1561,21 +1592,21 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                         className="w-4 h-4 rounded text-[#2AAFA3] focus:ring-[#2AAFA3] border-emerald-300 cursor-pointer"
                       />
                       <Database className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>Tanamkan Operator ke Datasheet 'by_worker'</span>
+                      <span>{addOpT.plantCheckboxLabel}</span>
                     </label>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                      Kolom R: ACTIVE
+                      {addOpT.columnRBadge}
                     </span>
                   </div>
                   <p className="text-[11px] text-emerald-700 leading-relaxed pl-6">
-                    Data operator baru (NIK, Nama, DOJ, Masa Kerja, Pabrik, Line, Poin Mesin, dan Status <strong>ACTIVE</strong>) akan langsung ditanamkan secara permanen ke tab <strong>by_worker</strong> di Google Sheets.
+                    {addOpT.plantDesc}
                   </p>
                   
                   {/* Pratinjau Baris Lengkap yang akan ditanamkan */}
                   <div className="mt-2 pl-6 pt-2 border-t border-emerald-200/60 space-y-2 text-[11px] font-mono text-emerald-900">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-[10px] text-emerald-800 uppercase tracking-wide">
-                        Pratinjau Format 18 Kolom 'by_worker' + Rumus Otomatis:
+                        {addOpT.preview18ColTitle}:
                       </span>
                       <button
                         type="button"
@@ -1586,12 +1617,12 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                         {hasCopiedFormula ? (
                           <>
                             <Check className="w-3.5 h-3.5 text-emerald-600" />
-                            <span className="text-emerald-700">18 Kolom & Rumus Disalin!</span>
+                            <span className="text-emerald-700">{addOpT.copiedFormulaBtn}</span>
                           </>
                         ) : (
                           <>
                             <Copy className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>Salin Rumus Baris Sheets</span>
+                            <span>{addOpT.copyFormulaBtn}</span>
                           </>
                         )}
                       </button>
@@ -1667,232 +1698,25 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                   type="submit"
                   disabled={isAddModalOpen && (isSearchingDoj || isPlanting || (dojLookupStatus !== 'found' && !allowManualInput) || !formData.name || !formData.nik)}
                   className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#2AAFA3] hover:bg-[#208C82] text-white shadow-sm transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
-                  title={isAddModalOpen && dojLookupStatus !== 'found' && !allowManualInput ? "Cari dan validasi NIK di sheet date_of_join terlebih dahulu atau aktifkan input manual" : ""}
+                  title={isAddModalOpen && dojLookupStatus !== 'found' && !allowManualInput ? addOpT.disabledSubmitTooltip : ""}
                 >
                   {isPlanting ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Menanamkan ke by_worker...</span>
+                      <span>{addOpT.submitPlanting}</span>
                     </>
                   ) : isAddModalOpen && plantToByWorker ? (
                     <>
                       <Database className="w-3.5 h-3.5" />
-                      <span>Simpan & Tanamkan ke by_worker</span>
+                      <span>{addOpT.submitPlantAndSave}</span>
                     </>
                   ) : (
-                    <span>{t.common.save}</span>
+                    <span>{addOpT.submitSave}</span>
                   )}
                 </button>
               </div>
 
             </form>
-
-          </div>
-        </div>
-      )}
-
-      {/* MODAL PANDUAN DATASHEET BY_WORKER & TATA CARA INPUT MANUAL */}
-      {isGuideModalOpen && (
-        <div className="fixed inset-0 bg-[#304848]/50 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white border border-[#E0E8E8] rounded-[24px] max-w-3xl w-full p-5 sm:p-6 shadow-2xl animate-fade-in my-8 max-h-[90vh] flex flex-col">
-            
-            {/* Header Modal */}
-            <div className="flex items-center justify-between pb-4 border-b border-[#E0E8E8]">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
-                  <FileSpreadsheet className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-[#304848]">Panduan Datasheet 'by_worker'</h3>
-                  <p className="text-xs text-[#788888]">Struktur standar 18 kolom & tata cara penanaman data operator</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsGuideModalOpen(false)}
-                className="text-[#788888] hover:text-[#304848] p-1.5 rounded-xl hover:bg-[#F8F8F8] transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Content Scrollable */}
-            <div className="overflow-y-auto pr-1 py-4 space-y-6 text-xs text-[#405858]">
-              
-              {/* Bagian 1: Mengapa Status Operator Sangat Krusial */}
-              <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-2">
-                <div className="flex items-center gap-2 font-bold text-emerald-950">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Solusi: Penanaman Status Operator ke Tab 'by_worker'</span>
-                </div>
-                <p className="text-[#304848] leading-relaxed">
-                  Ketika Anda menambahkan operator baru dari sheet <code>date_of_join</code>, sistem sekarang <strong>secara otomatis menanamkan baris data baru ke datasheet <code>by_worker</code> dengan Status: <code>ACTIVE</code> (Kolom R)</strong>. 
-                  Dengan begitu, data operator baru akan tetap tersimpan secara permanen dan tidak hilang saat halaman disegarkan atau saat disinkronisasi ulang dengan Google Sheets.
-                </p>
-              </div>
-
-              {/* Bagian 2: Tata Cara & Struktur Kolom Pengisian Manual di Google Sheets */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 font-bold text-sm text-[#304848]">
-                  <Table className="w-4 h-4 text-[#2AAFA3]" />
-                  <span>Struktur 18 Kolom Tab 'by_worker' (Jika Mengisi/Merubah Manual)</span>
-                </div>
-                <p className="text-xs text-[#788888]">
-                  Jika tim IE atau Supervisor ingin menginput baris operator baru secara langsung di Google Spreadsheet pada tab <strong>by_worker</strong>, pastikan seluruh 18 kolom berikut terisi dengan benar:
-                </p>
-
-                <div className="border border-[#E0E8E8] rounded-xl overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-[11px]">
-                      <thead>
-                        <tr className="bg-[#F0F5F5] text-[#304848] font-bold border-b border-[#E0E8E8]">
-                          <th className="py-2.5 px-3">Kolom</th>
-                          <th className="py-2.5 px-3">Header Kolom</th>
-                          <th className="py-2.5 px-3">Wajib</th>
-                          <th className="py-2.5 px-3">Format / Contoh Isi</th>
-                          <th className="py-2.5 px-3">Keterangan IE</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#E0E8E8] font-mono">
-                        <tr className="hover:bg-slate-50">
-                          <td className="py-2 px-3 font-bold text-teal-700">A</td>
-                          <td className="py-2 px-3 font-bold">Factory</td>
-                          <td className="py-2 px-3 text-emerald-700 font-bold">Ya</td>
-                          <td className="py-2 px-3 text-slate-700">Factory 1</td>
-                          <td className="py-2 px-3 font-sans text-slate-600">Nomor pabrik operator</td>
-                        </tr>
-                        <tr className="hover:bg-slate-50">
-                          <td className="py-2 px-3 font-bold text-teal-700">B</td>
-                          <td className="py-2 px-3 font-bold">Line</td>
-                          <td className="py-2 px-3 text-emerald-700 font-bold">Ya</td>
-                          <td className="py-2 px-3 text-slate-700">Line 1</td>
-                          <td className="py-2 px-3 font-sans text-slate-600">Jalur sewing penempatan</td>
-                        </tr>
-                        <tr className="hover:bg-slate-50">
-                          <td className="py-2 px-3 font-bold text-teal-700">C</td>
-                          <td className="py-2 px-3 font-bold">Style</td>
-                          <td className="py-2 px-3 text-slate-400">Opsional</td>
-                          <td className="py-2 px-3 text-slate-700">BASIC</td>
-                          <td className="py-2 px-3 font-sans text-slate-600">Style garmen yang sedang berjalan</td>
-                        </tr>
-                        <tr className="hover:bg-slate-50">
-                          <td className="py-2 px-3 font-bold text-teal-700">D</td>
-                          <td className="py-2 px-3 font-bold">Date</td>
-                          <td className="py-2 px-3 text-emerald-700 font-bold">Ya</td>
-                          <td className="py-2 px-3 text-slate-700">09-09-2026</td>
-                          <td className="py-2 px-3 font-sans text-slate-600">Format tanggal penilaian DD-MM-YYYY</td>
-                        </tr>
-                        <tr className="hover:bg-slate-50 bg-amber-50/50">
-                          <td className="py-2 px-3 font-bold text-teal-700">E</td>
-                          <td className="py-2 px-3 font-bold">Worker Code</td>
-                          <td className="py-2 px-3 text-emerald-700 font-bold">KUNCI</td>
-                          <td className="py-2 px-3 text-slate-900 font-bold">260123</td>
-                          <td className="py-2 px-3 font-sans text-slate-600">NIK Karyawan (kunci validasi)</td>
-                        </tr>
-                        <tr className="hover:bg-slate-50">
-                          <td className="py-2 px-3 font-bold text-teal-700">F</td>
-                          <td className="py-2 px-3 font-bold">Worker</td>
-                          <td className="py-2 px-3 text-emerald-700 font-bold">Ya</td>
-                          <td className="py-2 px-3 text-slate-700">SITI NURHALIZA</td>
-                          <td className="py-2 px-3 font-sans text-slate-600">Nama lengkap operator (kapital)</td>
-                        </tr>
-                        <tr className="hover:bg-slate-50 bg-amber-50/30">
-                          <td className="py-2 px-3 font-bold text-teal-700">G</td>
-                          <td className="py-2 px-3 font-bold">Date of Join</td>
-                          <td className="py-2 px-3 text-emerald-700 font-bold">Rumus Otomatis</td>
-                          <td className="py-2 px-3 text-slate-800 text-[10px] break-all font-mono">
-                            =XLOOKUP(E{'{row}'},date_of_join!$A$2:$A$19392,date_of_join!$C$2:$C$19392)
-                          </td>
-                          <td className="py-2 px-3 font-sans text-slate-600">Ambil tanggal masuk otomatis dari sheet date_of_join</td>
-                        </tr>
-                        <tr className="hover:bg-slate-50">
-                          <td className="py-2 px-3 font-bold text-teal-700">H</td>
-                          <td className="py-2 px-3 font-bold">Machine</td>
-                          <td className="py-2 px-3 text-emerald-700 font-bold">Ya</td>
-                          <td className="py-2 px-3 text-slate-700">1Needle Lockstitch Auto Trim</td>
-                          <td className="py-2 px-3 font-sans text-slate-600">Nama spesifik mesin yang dioperasikan</td>
-                        </tr>
-                        <tr className="hover:bg-slate-50">
-                          <td className="py-2 px-3 font-bold text-teal-700">I</td>
-                          <td className="py-2 px-3 font-bold">Style No</td>
-                          <td className="py-2 px-3 text-slate-600">Ya</td>
-                          <td className="py-2 px-3 text-slate-700">NB17HQ271140</td>
-                          <td className="py-2 px-3 font-sans text-slate-600">Kode style garmen yang sedang dikerjakan</td>
-                        </tr>
-                        <tr className="hover:bg-slate-50">
-                          <td className="py-2 px-3 font-bold text-teal-700">J</td>
-                          <td className="py-2 px-3 font-bold">Process</td>
-                          <td className="py-2 px-3 text-slate-600">Ya</td>
-                          <td className="py-2 px-3 text-slate-700">SEWING</td>
-                          <td className="py-2 px-3 font-sans text-slate-600">Nama proses sewing atau stasiun kerja</td>
-                        </tr>
-                        <tr className="hover:bg-slate-50">
-                          <td className="py-2 px-3 font-bold text-teal-700">K - M</td>
-                          <td className="py-2 px-3 font-bold">Meta / Prod / Rate(%)</td>
-                          <td className="py-2 px-3 text-slate-600">Ya</td>
-                          <td className="py-2 px-3 text-slate-700">0 / 0 / 0% (Untuk Helper)</td>
-                          <td className="py-2 px-3 font-sans text-slate-600">K: Target, L: Output, M: % Efisiensi</td>
-                        </tr>
-                        <tr className="hover:bg-slate-50 bg-teal-50/50">
-                          <td className="py-2 px-3 font-bold text-teal-700">N</td>
-                          <td className="py-2 px-3 font-bold">POINT</td>
-                          <td className="py-2 px-3 text-emerald-700 font-bold">Ya</td>
-                          <td className="py-2 px-3 text-teal-800 font-bold">0 (Helper) / 1 / 2 / 3</td>
-                          <td className="py-2 px-3 font-sans text-slate-600">
-                            Poin kompetensi IE. <strong>0 untuk Helper</strong>. Rumus: =IFS(M{'{row}'}&lt;=0,0,M{'{row}'}&lt;=60.99,1,AND(M{'{row}'}&gt;=61,M{'{row}'}&lt;=89.99),2,M{'{row}'}&gt;=90,3)
-                          </td>
-                        </tr>
-                        <tr className="hover:bg-slate-50 bg-amber-50/30">
-                          <td className="py-2 px-3 font-bold text-teal-700">O</td>
-                          <td className="py-2 px-3 font-bold">Work Month</td>
-                          <td className="py-2 px-3 text-emerald-700 font-bold">Rumus Otomatis</td>
-                          <td className="py-2 px-3 text-slate-800 text-[10px] break-all font-mono">
-                            =DATEDIF(G{'{row}'}, D{'{row}'}, "M")
-                          </td>
-                          <td className="py-2 px-3 font-sans text-slate-600">Masa kerja dalam satuan bulan dari DOJ ke Tanggal</td>
-                        </tr>
-                        <tr className="hover:bg-slate-50 bg-amber-50/30">
-                          <td className="py-2 px-3 font-bold text-teal-700">P</td>
-                          <td className="py-2 px-3 font-bold">Date of Resign</td>
-                          <td className="py-2 px-3 text-slate-600 font-bold">Rumus Otomatis</td>
-                          <td className="py-2 px-3 text-slate-800 text-[10px] break-all font-mono">
-                            =XLOOKUP(E{'{row}'},date_of_join!$A$2:$A$9996,date_of_join!$D$2:$D$9996)
-                          </td>
-                          <td className="py-2 px-3 font-sans text-slate-600">Otomatis kosong / tanggal resign dari date_of_join</td>
-                        </tr>
-                        <tr className="hover:bg-slate-50 bg-amber-50/30">
-                          <td className="py-2 px-3 font-bold text-teal-700">Q</td>
-                          <td className="py-2 px-3 font-bold">Machine Category</td>
-                          <td className="py-2 px-3 text-emerald-700 font-bold">Rumus Otomatis</td>
-                          <td className="py-2 px-3 text-slate-800 text-[10px] break-all font-mono">
-                            =INDEX($Y$2:$Y$74,MATCH(H{'{row}'},$Z$2:$Z$74,))
-                          </td>
-                          <td className="py-2 px-3 font-sans text-slate-600">Pencocokan kategori mesin ke tabel referensi Y-Z</td>
-                        </tr>
-                        <tr className="hover:bg-emerald-50 bg-emerald-100/60 font-bold text-emerald-950">
-                          <td className="py-2.5 px-3 text-emerald-800">R</td>
-                          <td className="py-2.5 px-3">Status</td>
-                          <td className="py-2.5 px-3 text-emerald-700">WAJIB MUTLAK</td>
-                          <td className="py-2.5 px-3 text-emerald-800 font-mono">ACTIVE</td>
-                          <td className="py-2.5 px-3 font-sans text-emerald-900">Harus bertuliskan ACTIVE agar terbaca oleh sistem</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Footer Modal */}
-            <div className="pt-3 border-t border-[#E0E8E8] flex justify-end">
-              <button
-                type="button"
-                onClick={() => setIsGuideModalOpen(false)}
-                className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#2AAFA3] hover:bg-[#208C82] text-white transition-colors cursor-pointer"
-              >
-                Tutup Panduan
-              </button>
-            </div>
 
           </div>
         </div>

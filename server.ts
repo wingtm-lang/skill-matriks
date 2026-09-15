@@ -16,16 +16,6 @@ process.on("uncaughtException", (error) => {
   console.error("Uncaught Exception thrown:", error);
 });
 
-process.on("SIGTERM", () => {
-  console.log("SIGTERM received, exiting gracefully");
-  process.exit(0);
-});
-
-process.on("SIGINT", () => {
-  console.log("SIGINT received, exiting gracefully");
-  process.exit(0);
-});
-
 const app = express();
 const PORT = 3000;
 
@@ -111,29 +101,115 @@ function calculateWorkTimeMonths(dojStr: string | null | undefined): number {
   return Math.max(0, months);
 }
 
+// In-memory cache for operators data to ensure high-performance response
+interface CachedOperatorsData {
+  timestamp: number;
+  count: number;
+  factories: string[];
+  lines: string[];
+  operators: any[];
+}
+let cachedOperatorsData: CachedOperatorsData | null = null;
+const CACHE_TTL_MS = 60 * 1000; // 60 seconds TTL
+
+function parseCsvLine(line: string): string[] {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === "," && !inQuotes) {
+      result.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  result.push(current);
+  return result;
+}
+
 // Endpoint untuk menarik data dari Google Sheets tab 'by_worker' dan mengagregasikannya per-operator
 app.get("/api/sheets/operators", async (req, res) => {
   try {
-    const apiKey = process.env.GOOGLE_SHEETS_API_KEY;
-    const spreadsheetId = process.env.SPREADSHEET_ID || "1tA8YyHxFr1xwGWvdwHLOXaF9q8SjgbDuxDinzuH6kag";
-
-    if (!apiKey) {
-      return res.status(400).json({
-        success: false,
-        error: "GOOGLE_SHEETS_API_KEY belum dikonfigurasi di file .env",
+    const forceRefresh = req.query.force === "true" || req.query.refresh === "true";
+    
+    // Return cached data if available and fresh
+    if (!forceRefresh && cachedOperatorsData && (Date.now() - cachedOperatorsData.timestamp < CACHE_TTL_MS)) {
+      return res.json({
+        success: true,
+        count: cachedOperatorsData.count,
+        factories: cachedOperatorsData.factories,
+        lines: cachedOperatorsData.lines,
+        operators: cachedOperatorsData.operators,
+        cached: true,
+        timestamp: new Date(cachedOperatorsData.timestamp).toISOString(),
       });
     }
 
-    const sheets = google.sheets({ version: "v4", auth: apiKey });
+    const apiKey = process.env.GOOGLE_SHEETS_API_KEY;
+    const spreadsheetId = process.env.SPREADSHEET_ID || "1tA8YyHxFr1xwGWvdwHLOXaF9q8SjgbDuxDinzuH6kag";
 
-    // Ambil baris dari tab sheet 'by_worker'
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: "by_worker!A2:Q2000", // Diperbarui sampai kolom Q (A-Q)
-    });
+    let rows: any[][] | null = null;
 
-    const rows = response.data.values;
+    // 1. Coba ambil via Google Sheets API v4 (Resmi & Tercepat)
+    if (apiKey) {
+      try {
+        const sheets = google.sheets({ version: "v4", auth: apiKey });
+        const response = await sheets.spreadsheets.values.get({
+          spreadsheetId,
+          range: "by_worker!A2:R", // Ambil seluruh baris data sampai Kolom R (Status) tanpa batasan 2000
+        });
+        if (response.data.values && response.data.values.length > 0) {
+          rows = response.data.values;
+        }
+      } catch (apiErr: any) {
+        console.warn("Google Sheets API get failed, will try server-side GViz CSV fallback:", apiErr.message);
+      }
+    }
+
+    // 2. Fallback ke GViz CSV di sisi server jika API Key kosong atau limit kuota
     if (!rows || rows.length === 0) {
+      try {
+        const gvizUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=by_worker`;
+        const gvizResp = await fetch(gvizUrl, {
+          headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
+        });
+        if (gvizResp.ok) {
+          const csvText = await gvizResp.text();
+          const csvLines = csvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
+          if (csvLines.length > 1) {
+            // Baris 0 adalah header, ambil baris data 1 ke bawah
+            rows = csvLines.slice(1).map((l) => parseCsvLine(l));
+          }
+        }
+      } catch (gvizErr: any) {
+        console.error("Server GViz CSV fetch failed:", gvizErr.message);
+      }
+    }
+
+    if (!rows || rows.length === 0) {
+      // Jika ada cache lama, gunakan sebagai proteksi degradasi layanan
+      if (cachedOperatorsData) {
+        return res.json({
+          success: true,
+          count: cachedOperatorsData.count,
+          factories: cachedOperatorsData.factories,
+          lines: cachedOperatorsData.lines,
+          operators: cachedOperatorsData.operators,
+          cached: true,
+          stale: true,
+          timestamp: new Date(cachedOperatorsData.timestamp).toISOString(),
+        });
+      }
+
       return res.status(404).json({ 
         success: false, 
         message: "Tidak ada baris data ditemukan di tab 'by_worker' Google Sheets" 
@@ -150,6 +226,13 @@ app.get("/api/sheets/operators", async (req, res) => {
       status: string;
       dateOfResign?: string;
       recordDate?: string;
+      workMonth?: number;
+      styleNo?: string;
+      process?: string;
+      machine?: string;
+      machineCategory?: string;
+      table?: string;
+      productionRate?: number;
       pointsRates: number[];
       lockstitchRates: number[];
       overlockRates: number[];
@@ -204,6 +287,7 @@ app.get("/api/sheets/operators", async (req, res) => {
       // Normalisasi Kolom A (Factory) & Kolom B (Line)
       const rawFactory = (row[0] !== undefined && row[0] !== null) ? row[0].toString().trim() : "";
       const rawLine = (row[1] !== undefined && row[1] !== null) ? row[1].toString().trim() : "";
+      const rawTable = (row[2] !== undefined && row[2] !== null) ? row[2].toString().trim() : "";
       const nik = (row[4] || "").toString().trim(); // Kolom E (Worker Code)
       const name = (row[5] || "").toString().trim(); // Kolom F (Worker)
       const doj = (row[6] || "").toString().trim(); // Kolom G (DOJ / Date of Join)
@@ -235,16 +319,30 @@ app.get("/api/sheets/operators", async (req, res) => {
       const rawPointVal = (row[13] !== undefined && row[13] !== "") ? row[13] : "";
       const parsedPoint = parseFloat(rawPointVal.toString().replace(',', '.').replace(/[^0-9.]/g, '').trim()) || 0;
       // Nilai poin per mesin di kolom N murni berkisar 1 - 3 (maksimal 3 poin per mesin)
-      const pointVal = parsedPoint > 0 ? Math.min(3, Math.max(1, Math.round(parsedPoint))) : 0;
+      let pointVal = parsedPoint > 0 ? Math.min(3, Math.max(1, Math.round(parsedPoint))) : 0;
+      // Jika kolom point kosong di sheet tetapi prodRate ada, estimasi 1-3
+      if (rawPointVal === "" && prodRate > 0) {
+        if (prodRate >= 100) pointVal = 3;
+        else if (prodRate >= 70) pointVal = 2;
+        else pointVal = 1;
+      }
       
-      // Normalisasi Kolom Q / Indeks 16 (Machine Category) dengan fallback ke Kolom H / Indeks 7 (Machine)
-      const rawCatVal = (row[16] && row[16].toString().trim()) || "";
+      // Parse Kolom H (Machine), Kolom I (Style No), Kolom J (Process)
       const rawMachineName = (row[7] && row[7].toString().trim()) || "";
-      const machineCategory = rawCatVal.toUpperCase();
-      const machineName = rawMachineName.toUpperCase();
+      const rawStyleNo = (row[8] && row[8].toString().trim()) || "";
+      const rawProcess = (row[9] && row[9].toString().trim()) || "";
+
+      // Parse Kolom O / Indeks 14 (Work Month)
+      const rawWorkMonth = (row[14] !== undefined && row[14] !== null) ? row[14].toString().trim() : "";
+      const parsedWorkMonth = parseInt(rawWorkMonth, 10);
 
       // Parse Kolom P / Indeks 15 (Date of Resign)
       const rawDateOfResign = (row[15] !== undefined && row[15] !== null) ? row[15].toString().trim() : "";
+
+      // Normalisasi Kolom Q / Indeks 16 (Machine Category) dengan fallback ke Kolom H / Indeks 7 (Machine)
+      const rawCatVal = (row[16] && row[16].toString().trim()) || "";
+      const machineCategory = rawCatVal.toUpperCase();
+      const machineName = rawMachineName.toUpperCase();
 
       // Parse Kolom R / Indeks 17 (Status: ACTIVE, INACTIVE, RESIGNED, TRANSFERRED, dll.)
       const rawStatusVal = (row[17] !== undefined && row[17] !== null) ? row[17].toString().trim() : "";
@@ -266,6 +364,13 @@ app.get("/api/sheets/operators", async (req, res) => {
           status,
           dateOfResign: rawDateOfResign || undefined,
           recordDate: rowDate || undefined,
+          workMonth: (!isNaN(parsedWorkMonth) && parsedWorkMonth > 0) ? parsedWorkMonth : undefined,
+          styleNo: rawStyleNo || undefined,
+          process: rawProcess || undefined,
+          machine: rawMachineName || undefined,
+          machineCategory: rawCatVal || undefined,
+          table: rawTable || undefined,
+          productionRate: prodRate || undefined,
           pointsRates: [],
           lockstitchRates: [],
           overlockRates: [],
@@ -291,6 +396,15 @@ app.get("/api/sheets/operators", async (req, res) => {
       if (rawDateOfResign && !op.dateOfResign) op.dateOfResign = rawDateOfResign;
       if (rowDate && !op.recordDate) op.recordDate = rowDate;
       if (name && !op.name) op.name = name;
+      if (rawStyleNo) op.styleNo = rawStyleNo;
+      if (rawProcess) op.process = rawProcess;
+      if (rawMachineName && !op.machine) op.machine = rawMachineName;
+      if (rawCatVal && !op.machineCategory) op.machineCategory = rawCatVal;
+      if (rawTable && !op.table) op.table = rawTable;
+      if (prodRate > 0 && !op.productionRate) op.productionRate = prodRate;
+      if (!isNaN(parsedWorkMonth) && parsedWorkMonth > 0 && !op.workMonth) {
+        op.workMonth = parsedWorkMonth;
+      }
 
       // Kelompokkan nilai poin dari Kolom N per Machine Category (bukan nilai production rate)
       if (pointVal > 0) {
@@ -379,13 +493,16 @@ app.get("/api/sheets/operators", async (req, res) => {
         else overallGrade = "C";
       }
 
+      const tenureMonths = op.workMonth || calculateWorkTimeMonths(op.doj) || 0;
+
       return {
         no: idx + 1,
         id: op.recordDate ? `op-${op.nik}-${op.recordDate}` : `op-${op.nik}-${idx}`,
         nik: op.nik,
         name: op.name,
         doj: op.doj || "-",
-        workTimeMonths: calculateWorkTimeMonths(op.doj),
+        workTimeMonths: tenureMonths,
+        workMonth: tenureMonths,
         factory: op.factory,
         line: op.line,
         status: (op.status && op.status.trim()) ? op.status.trim() : 'ACTIVE',
@@ -393,6 +510,13 @@ app.get("/api/sheets/operators", async (req, res) => {
         resignDate: op.dateOfResign || undefined,
         recordDate: op.recordDate || undefined,
         date: op.recordDate || undefined,
+        styleNo: op.styleNo || undefined,
+        process: op.process || undefined,
+        currentOperation: op.process || undefined,
+        machine: op.machine || undefined,
+        machineCategory: op.machineCategory || undefined,
+        table: op.table || undefined,
+        productionRate: op.productionRate || undefined,
         lockstitch,
         overlock,
         flatseam,
@@ -433,6 +557,15 @@ app.get("/api/sheets/operators", async (req, res) => {
         return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
       });
 
+    // Update in-memory cache
+    cachedOperatorsData = {
+      timestamp: Date.now(),
+      count: formattedOperators.length,
+      factories: uniqueFactories,
+      lines: uniqueLines,
+      operators: formattedOperators,
+    };
+
     res.json({ 
       success: true, 
       count: formattedOperators.length, 
@@ -443,6 +576,18 @@ app.get("/api/sheets/operators", async (req, res) => {
     });
   } catch (error: any) {
     console.error("Error fetching Google Sheets:", error);
+    if (cachedOperatorsData) {
+      return res.json({
+        success: true,
+        count: cachedOperatorsData.count,
+        factories: cachedOperatorsData.factories,
+        lines: cachedOperatorsData.lines,
+        operators: cachedOperatorsData.operators,
+        cached: true,
+        stale: true,
+        timestamp: new Date(cachedOperatorsData.timestamp).toISOString(),
+      });
+    }
     res.status(500).json({ 
       success: false, 
       error: error.message || "Failed to fetch from Google Sheets" 
@@ -932,6 +1077,8 @@ async function startServer() {
     (typeof __filename !== "undefined" && (__filename.endsWith(".cjs") || __filename.includes("dist"))) ||
     (typeof process.argv[1] === "string" && !process.argv[1].endsWith(".ts") && !process.argv[1].includes("tsx"));
 
+  let viteServer: any = null;
+
   if (isProduction) {
     const candidatePaths = [
       typeof __dirname !== "undefined" ? __dirname : null,
@@ -956,38 +1103,75 @@ async function startServer() {
     console.log(`[Development] Initializing Vite middleware...`);
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: false,
+        ws: false,
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);
+    viteServer = vite;
   }
 
-  // Port 3000 wajib selalu aktif untuk dev server dan reverse proxy container
-  const mainServer = app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://0.0.0.0:${PORT} (Mode: ${isProduction ? "Production" : "Development"})`);
+  // Port configuration:
+  // In development, the dev server must bind strictly to port 3000.
+  // In production (Cloud Run), Cloud Run provides process.env.PORT (typically 8080).
+  const primaryPort = isProduction && process.env.PORT
+    ? parseInt(process.env.PORT, 10)
+    : 3000;
+
+  const servers: any[] = [];
+
+  const mainServer = app.listen(primaryPort, "0.0.0.0", () => {
+    console.log(`Server running on http://0.0.0.0:${primaryPort} (Mode: ${isProduction ? "Production" : "Development"})`);
   });
+  servers.push(mainServer);
 
   mainServer.on("error", (err: any) => {
-    console.error(`Error on port ${PORT}:`, err.message);
+    if (err.code === "EADDRINUSE") {
+      console.error(`Port ${primaryPort} is already in use.`);
+    } else {
+      console.error(`Server error on port ${primaryPort}:`, err);
+    }
   });
 
-  // Untuk live Cloud Run di mana Cloud Run menentukan PORT via environment variable (misal 8080)
-  // Dengarkan juga port tersebut agar container health check probe Cloud Run langsung sukses
-  if (isProduction && process.env.PORT) {
-    const cloudRunPort = parseInt(process.env.PORT, 10);
-    if (!isNaN(cloudRunPort) && cloudRunPort !== PORT) {
-      try {
-        const altServer = app.listen(cloudRunPort, "0.0.0.0", () => {
-          console.log(`Cloud Run container port listening on http://0.0.0.0:${cloudRunPort}`);
-        });
-        altServer.on("error", (err: any) => {
-          console.warn(`Additional port ${cloudRunPort} bind notice: ${err.message}`);
-        });
-      } catch (err: any) {
-        console.warn(`Could not listen on secondary port ${cloudRunPort}:`, err.message);
-      }
+  // In production, if primaryPort is not 3000, also listen on 3000 as a fallback
+  if (isProduction && primaryPort !== 3000) {
+    try {
+      const fallbackServer = app.listen(3000, "0.0.0.0", () => {
+        console.log(`Fallback listener active on http://0.0.0.0:3000`);
+      });
+      fallbackServer.on("error", (err: any) => {
+        console.warn(`Fallback port 3000 notice: ${err.message}`);
+      });
+      servers.push(fallbackServer);
+    } catch (err: any) {
+      console.warn(`Could not bind fallback port 3000: ${err.message}`);
     }
   }
+
+  const shutdown = async () => {
+    console.log("Shutting down server...");
+    if (viteServer) {
+      try {
+        await viteServer.close();
+      } catch (err) {
+        // ignore
+      }
+    }
+    for (const s of servers) {
+      try {
+        s.close();
+      } catch (err) {
+        // ignore
+      }
+    }
+    process.exit(0);
+  };
+
+  process.once("SIGTERM", shutdown);
+  process.once("SIGINT", shutdown);
 }
 
 startServer().catch((err) => {

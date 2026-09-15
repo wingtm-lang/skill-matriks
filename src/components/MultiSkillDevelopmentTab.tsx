@@ -187,11 +187,15 @@ export const MultiSkillDevelopmentTab: React.FC<MultiSkillDevelopmentTabProps> =
               {operators.length === 0 ? (
                 <option value="">{t.multiSkill.noOperatorsInLine}</option>
               ) : (
-                operators.map((op) => (
-                  <option key={op.id} value={op.id}>
-                    {op.nik} - {op.name} ({getOperatorMultiSkillCount(op)} Skill, Avg: {getOperatorAvgRate(op).toFixed(1)}%)
-                  </option>
-                ))
+                operators.map((op) => {
+                  const avg = getOperatorAvgRate(op);
+                  const safeAvg = isNaN(avg) ? 0 : avg;
+                  return (
+                    <option key={op.id} value={op.id}>
+                      {op.nik} - {op.name} ({getOperatorMultiSkillCount(op)} Skill, Avg: {safeAvg.toFixed(1)}%)
+                    </option>
+                  );
+                })
               )}
             </select>
           </div>
@@ -202,18 +206,28 @@ export const MultiSkillDevelopmentTab: React.FC<MultiSkillDevelopmentTabProps> =
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-[#304848]">{selectedOp.name}</span>
                 <span className="text-[10px] bg-[#E0F0F0] text-[#405858] font-bold px-2 py-0.5 rounded-full border border-[#C8D8D8]">
-                  {t.multiSkill.operatorTenure}: {selectedOp.workTimeMonths} {t.common.months}
+                  {t.multiSkill.operatorTenure}: {!isNaN(Number(selectedOp.workTimeMonths)) && selectedOp.workTimeMonths !== null && selectedOp.workTimeMonths !== undefined ? selectedOp.workTimeMonths : 0} {t.common.months}
                 </span>
               </div>
               
               <div className="text-[11px] text-[#788888] space-y-1">
                 <div>{t.multiSkill.currentSkillsLabel}:</div>
                 <div className="flex flex-wrap gap-1.5 pt-0.5">
-                  {selectedOp.lockstitch && <span className="badge-teal text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#BDE5E2]">Lockstitch ({selectedOp.lockstitch}%)</span>}
-                  {selectedOp.overlock && <span className="badge-teal text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#BDE5E2]">Overlock ({selectedOp.overlock}%)</span>}
-                  {selectedOp.flatseam && <span className="badge-gold text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#E8D499]">Flatseam ({selectedOp.flatseam}%)</span>}
-                  {selectedOp.special && <span className="badge-gold text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#E8D499]">Special ({selectedOp.special}%)</span>}
-                  {selectedOp.buttonHole && <span className="badge-neutral text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#D5E1E1]">Button Hole ({selectedOp.buttonHole}%)</span>}
+                  {Boolean(selectedOp.lockstitch && !isNaN(selectedOp.lockstitch) && selectedOp.lockstitch > 0) && (
+                    <span className="badge-teal text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#BDE5E2]">Lockstitch ({selectedOp.lockstitch}%)</span>
+                  )}
+                  {Boolean(selectedOp.overlock && !isNaN(selectedOp.overlock) && selectedOp.overlock > 0) && (
+                    <span className="badge-teal text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#BDE5E2]">Overlock ({selectedOp.overlock}%)</span>
+                  )}
+                  {Boolean(selectedOp.flatseam && !isNaN(selectedOp.flatseam) && selectedOp.flatseam > 0) && (
+                    <span className="badge-gold text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#E8D499]">Flatseam ({selectedOp.flatseam}%)</span>
+                  )}
+                  {Boolean(selectedOp.special && !isNaN(selectedOp.special) && selectedOp.special > 0) && (
+                    <span className="badge-gold text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#E8D499]">Special ({selectedOp.special}%)</span>
+                  )}
+                  {Boolean(selectedOp.buttonHole && !isNaN(selectedOp.buttonHole) && selectedOp.buttonHole > 0) && (
+                    <span className="badge-neutral text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#D5E1E1]">Button Hole ({selectedOp.buttonHole}%)</span>
+                  )}
                 </div>
               </div>
             </div>

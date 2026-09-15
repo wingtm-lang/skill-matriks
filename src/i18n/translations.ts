@@ -135,6 +135,7 @@ export interface Translations {
     thNik: string;
     thName: string;
     thTenure: string;
+    thCurrentOperation?: string;
     thSkill: string;
     thGrade: string;
     thAction: string;
@@ -210,6 +211,169 @@ export interface Translations {
     detailSummary: string;
     detailCompetencies: string;
     detailRadarTitle: string;
+  };
+
+  // Export PDF Modal
+  exportPdfModal: {
+    modalTitle: string;
+    modalSubtitle: string;
+    portraitBadge: string;
+    landscapeBadge: string;
+    tabPreview: string;
+    tabOptions: string;
+    closeTooltip: string;
+    targetSectionTitle: string;
+    recordsCount: string;
+    locationLabel: string;
+    periodLabel: string;
+    manpowerLabel: string;
+    activeText: string;
+    resignedText: string;
+    multiSkillLabel: string;
+    personsUnit: string;
+    orientationLabel: string;
+    portraitOption: string;
+    landscapeOption: string;
+    includeSectionsLabel: string;
+    summaryCheckboxTitle: string;
+    summaryCheckboxDesc: string;
+    resignedCheckboxTitle: string;
+    resignedCheckboxDesc: string;
+    signaturesCheckboxTitle: string;
+    signaturesCheckboxDesc: string;
+    multiSkillOnlyTitle: string;
+    multiSkillOnlyDesc: string;
+    auditBannerTitle: string;
+    auditBannerDesc: string;
+    realA4PreviewBadge: string;
+    pageIndicator: string;
+    ofText: string;
+    prevPageTooltip: string;
+    nextPageTooltip: string;
+    zoomOutTooltip: string;
+    zoomInTooltip: string;
+    resetZoomTooltip: string;
+    openPdfTabBtn: string;
+    openPdfTabTooltip: string;
+    companyTitle: string;
+    documentTitle: string;
+    factoryLineLabel: string;
+    generatedLabel: string;
+    docIdLabel: string;
+    kpiTotalManpower: string;
+    kpiActiveLabel: string;
+    kpiResignedLabel: string;
+    kpiMultiSkillRatio: string;
+    kpiQualifiedCount: string;
+    kpiGradeDistribution: string;
+    kpiHelperAvg: string;
+    kpiMachinePopulation: string;
+    thNo: string;
+    thNik: string;
+    thOperatorName: string;
+    thTenure: string;
+    thLockstitch: string;
+    thOverlock: string;
+    thFlatseam: string;
+    thSpecial: string;
+    thButtonHole: string;
+    thButtonSet: string;
+    thMulti: string;
+    thTotal: string;
+    thGrade: string;
+    thStatus: string;
+    tenureMonthUnit: string;
+    machineUnit: string;
+    statusActive: string;
+    statusResigned: string;
+    noOperatorsFound: string;
+    noOperatorsHint: string;
+    sigCreatedBy: string;
+    sigCreatedDept: string;
+    sigCreatedRole: string;
+    sigVerifiedBy: string;
+    sigVerifiedDept: string;
+    sigVerifiedRole: string;
+    sigApprovedBy: string;
+    sigApprovedDept: string;
+    sigApprovedRole: string;
+    paperFooterCompany: string;
+    readyExportMessage: string;
+    closeBtn: string;
+    downloadBtn: string;
+    downloadingBtn: string;
+  };
+
+  // Add & Edit Operator Modal
+  addOperatorModal: {
+    modalAddTitle: string;
+    modalEditTitle: string;
+    subtitleDoj: string;
+    infoBannerTitle: string;
+    infoBannerDesc: string;
+    nikLabel: string;
+    nikActiveOnlyNote: string;
+    nikPlaceholderAdd: string;
+    nikPlaceholderEdit: string;
+    searchNikBtn: string;
+    searchingNik: string;
+    dataFoundTitle: string;
+    joinDateLabel: string;
+    tenureLabel: string;
+    monthsUnit: string;
+    notFoundTitle: string;
+    notFoundDefaultMsg: string;
+    hrdQuestion: string;
+    enableManualBtn: string;
+    useLookupBtn: string;
+    manualModeActivatedMsg: string;
+    switchManualBtn: string;
+    switchLookupBtn: string;
+    fullNameLabel: string;
+    autoFromDojBadge: string;
+    manualInputBadge: string;
+    namePlaceholderAuto: string;
+    namePlaceholderManual: string;
+    workTenureLabel: string;
+    dojLabel: string;
+    autoBadge: string;
+    placementSectionTitle: string;
+    statusActiveBadge: string;
+    factoryLabel: string;
+    factoryHint: string;
+    lineLabel: string;
+    lineHint: string;
+    specsSectionTitle: string;
+    styleNoLabel: string;
+    tableCodeLabel: string;
+    machineNameLabel: string;
+    machineCatLabel: string;
+    processLabel: string;
+    pointsSectionTitle: string;
+    helperBadgeText: string;
+    pointsBadgeText: string;
+    p0Label: string;
+    p0Desc: string;
+    p1Label: string;
+    p1Desc: string;
+    p2Label: string;
+    p2Desc: string;
+    p3Label: string;
+    p3Desc: string;
+    directInputLabel: string;
+    plantCheckboxLabel: string;
+    plantDesc: string;
+    columnRBadge: string;
+    preview18ColTitle: string;
+    copyFormulaBtn: string;
+    copiedFormulaBtn: string;
+    submitPlanting: string;
+    submitPlantAndSave: string;
+    submitSave: string;
+    disabledSubmitTooltip: string;
+    toastSuccessPlant: string;
+    toastWarningPlant: string;
+    toastSuccessAdd: string;
   };
 
   // Line Balancing Tab
@@ -523,6 +687,7 @@ export const translations: Record<Language, Translations> = {
       thNik: 'NIK',
       thName: 'Nama Operator',
       thTenure: 'Masa (Bln)',
+      thCurrentOperation: 'Current Operation',
       thSkill: 'Skill',
       thGrade: 'Grade (Poin)',
       thAction: 'Aksi',
@@ -592,6 +757,165 @@ export const translations: Record<Language, Translations> = {
       detailSummary: 'Ringkasan Kinerja & Evaluasi IE',
       detailCompetencies: 'Daftar Penguasaan Mesin Jahit',
       detailRadarTitle: 'Distribusi Kemampuan Multi-Mesin',
+    },
+    exportPdfModal: {
+      modalTitle: 'Pratinjau & Ekspor PDF Skill Matrix',
+      modalSubtitle: 'PT. Winners International — Standar Industrial Engineering',
+      portraitBadge: 'A4 Portrait',
+      landscapeBadge: 'A4 Landscape',
+      tabPreview: 'Pratinjau',
+      tabOptions: 'Opsi',
+      closeTooltip: 'Tutup',
+      targetSectionTitle: 'Target Lini & Periode',
+      recordsCount: 'Operator',
+      locationLabel: 'Lokasi',
+      periodLabel: 'Periode',
+      manpowerLabel: 'Manpower',
+      activeText: 'Aktif',
+      resignedText: 'Resign',
+      multiSkillLabel: 'Multi-Skill',
+      personsUnit: 'org',
+      orientationLabel: 'Orientasi Halaman',
+      portraitOption: 'Portrait (A4)',
+      landscapeOption: 'Landscape',
+      includeSectionsLabel: 'Komponen & Saringan Data',
+      summaryCheckboxTitle: 'Ringkasan KPI Eksekutif',
+      summaryCheckboxDesc: 'Kartu Manpower, Rasio Multi-Skill, Grade & Mesin',
+      resignedCheckboxTitle: 'Sertakan Operator Resigned',
+      resignedCheckboxDesc: 'Menampilkan data operator keluar dengan badge status',
+      signaturesCheckboxTitle: 'Lembar Pengesahan Tanda Tangan',
+      signaturesCheckboxDesc: 'Kolom IE Specialist, Spv Sewing, & Factory Manager',
+      multiSkillOnlyTitle: 'Saring: Hanya Multi-Skill (≥2)',
+      multiSkillOnlyDesc: 'Hanya mencetak operator dengan 2+ jenis mesin',
+      auditBannerTitle: 'Standar IE & MOST Terakreditasi',
+      auditBannerDesc: 'Format dokumen A4 beresolusi tajam, siap cetak untuk papan pengumuman lini jahit, binder dokumen IE, dan audit kepatuhan buyer internasional.',
+      realA4PreviewBadge: 'Pratinjau Lembar A4 Asli',
+      pageIndicator: 'Hal',
+      ofText: 'dari',
+      prevPageTooltip: 'Halaman Sebelumnya',
+      nextPageTooltip: 'Halaman Berikutnya',
+      zoomOutTooltip: 'Perkecil (-)',
+      zoomInTooltip: 'Perbesar (+)',
+      resetZoomTooltip: 'Reset 100%',
+      openPdfTabBtn: 'Buka Tab Baru',
+      openPdfTabTooltip: 'Buka PDF di tab baru browser',
+      companyTitle: 'PT.WINNERS INTERNATIONAL',
+      documentTitle: 'MULTI SKILL OPERATOR DEVELOPMENT',
+      factoryLineLabel: 'Pabrik / Lini',
+      generatedLabel: 'Dicetak',
+      docIdLabel: 'Doc ID',
+      kpiTotalManpower: 'TOTAL OPERATOR (MP)',
+      kpiActiveLabel: 'Aktif',
+      kpiResignedLabel: 'Resigned',
+      kpiMultiSkillRatio: 'RASIO MULTI-SKILL (≥2 MESIN)',
+      kpiQualifiedCount: 'operator kompeten',
+      kpiGradeDistribution: 'DISTRIBUSI GRADE (S / A / B / C)',
+      kpiHelperAvg: 'Helper: {helper} | Rata Poin: {avg}',
+      kpiMachinePopulation: 'POPULASI MESIN',
+      thNo: 'NO',
+      thNik: 'NIK',
+      thOperatorName: 'NAMA OPERATOR',
+      thTenure: 'MASA KERJA',
+      thLockstitch: 'Lock',
+      thOverlock: 'Obras',
+      thFlatseam: 'Flat',
+      thSpecial: 'Special',
+      thButtonHole: 'Hole',
+      thButtonSet: 'Set',
+      thMulti: 'MULTI',
+      thTotal: 'TOTAL',
+      thGrade: 'GRADE',
+      thStatus: 'STATUS',
+      tenureMonthUnit: 'bln',
+      machineUnit: 'Msn',
+      statusActive: 'Aktif',
+      statusResigned: 'Resign',
+      noOperatorsFound: 'Tidak ada data operator untuk lini ini pada periode terpilih.',
+      noOperatorsHint: 'Pastikan lini dan pabrik memiliki operator aktif, atau periksa filter yang sedang aktif.',
+      sigCreatedBy: 'DIBUAT OLEH (IE OFFICER)',
+      sigCreatedDept: 'Industrial Engineering Dept.',
+      sigCreatedRole: '( IE Specialist )',
+      sigVerifiedBy: 'DIVERIFIKASI (SPV SEWING)',
+      sigVerifiedDept: 'Sewing Production Line',
+      sigVerifiedRole: '( Supervisor Lini )',
+      sigApprovedBy: 'DISETUJUI (PABRIK / IE MGR)',
+      sigApprovedDept: 'Factory & IE Management',
+      sigApprovedRole: '( Manajemen Pabrik )',
+      paperFooterCompany: 'PT.WINNERS INTERNATIONAL',
+      readyExportMessage: 'Siap mengekspor {count} data operator dalam format {orientation}',
+      closeBtn: 'Tutup',
+      downloadBtn: 'Unduh Laporan PDF',
+      downloadingBtn: 'Membuat & Mengunduh PDF...',
+    },
+    addOperatorModal: {
+      modalAddTitle: 'Tambah Operator Baru',
+      modalEditTitle: 'Edit Data Operator',
+      subtitleDoj: 'Validasi otomatis via sheet date_of_join',
+      infoBannerTitle: 'Validasi Master Data (Sheet date_of_join)',
+      infoBannerDesc: 'Untuk menjamin keabsahan data, kolom aktif masukan hanya NIK Operator. Nama Lengkap dan Date of Join (DOJ) akan diambil secara otomatis dari master sheet date_of_join.',
+      nikLabel: 'NIK Operator',
+      nikActiveOnlyNote: '(Satu-satunya kolom aktif masukan)',
+      nikPlaceholderAdd: 'Masukkan NIK operator (contoh: 260123)...',
+      nikPlaceholderEdit: 'NIK',
+      searchNikBtn: 'Cari NIK',
+      searchingNik: 'Mencari...',
+      dataFoundTitle: '✓ Data Ditemukan di Sheet "date_of_join"',
+      joinDateLabel: 'Tanggal Masuk:',
+      tenureLabel: 'Masa Kerja:',
+      monthsUnit: 'Bulan',
+      notFoundTitle: 'NIK Tidak Ditemukan di Sheet "date_of_join"',
+      notFoundDefaultMsg: 'NIK "{nik}" belum terdaftar di sheet date_of_join.',
+      hrdQuestion: 'Operator baru belum diinput HRD?',
+      enableManualBtn: 'Izinkan Input Manual',
+      useLookupBtn: 'Gunakan Cari NIK',
+      manualModeActivatedMsg: 'Mode input manual diaktifkan.',
+      switchManualBtn: 'Input NIK / Nama Manual',
+      switchLookupBtn: 'Kunci Input (Gunakan Lookup)',
+      fullNameLabel: 'Nama Lengkap',
+      autoFromDojBadge: 'Otomatis dari date_of_join',
+      manualInputBadge: 'Mode Input Manual',
+      namePlaceholderAuto: 'Otomatis terisi saat NIK ditemukan di date_of_join...',
+      namePlaceholderManual: 'Nama Lengkap',
+      workTenureLabel: 'Masa Kerja (Bulan)',
+      dojLabel: 'Date of Joining (DOJ)',
+      autoBadge: 'Auto',
+      placementSectionTitle: 'Lokasi Penempatan Datasheet (Kolom A & B):',
+      statusActiveBadge: 'Status: ACTIVE',
+      factoryLabel: 'Pabrik / Factory (Kolom A):',
+      factoryHint: 'Format Sheets: Angka (cth: 1 atau 2)',
+      lineLabel: 'Line / Jalur (Kolom B):',
+      lineHint: 'Format Sheets: Nomor (cth: 28 atau 1)',
+      specsSectionTitle: 'Spesifikasi Mesin & Proses Garmen (Datasheet by_worker):',
+      styleNoLabel: 'Style No (Kolom I):',
+      tableCodeLabel: 'Table / Style Code (Kolom C):',
+      machineNameLabel: 'Nama Mesin (Kolom H):',
+      machineCatLabel: 'Kategori Mesin (Kolom Q):',
+      processLabel: 'Nama Proses (Kolom J):',
+      pointsSectionTitle: 'Poin Evaluasi Mesin (Kolom N):',
+      helperBadgeText: 'Nilai: 0 Poin (Helper)',
+      pointsBadgeText: 'Nilai: {points} Poin',
+      p0Label: '0 Poin',
+      p0Desc: 'Helper / 0%',
+      p1Label: '1 Poin',
+      p1Desc: 'Dasar (1-60%)',
+      p2Label: '2 Poin',
+      p2Desc: 'Mahir (61-89%)',
+      p3Label: '3 Poin',
+      p3Desc: 'Spesialis (>90%)',
+      directInputLabel: 'Atau ketik angka poin langsung (0 s/d 3):',
+      plantCheckboxLabel: "Tanamkan Operator ke Datasheet 'by_worker'",
+      plantDesc: 'Data operator baru (NIK, Nama, DOJ, Masa Kerja, Pabrik, Line, Poin Mesin, dan Status ACTIVE) akan langsung ditanamkan secara permanen ke tab by_worker di Google Sheets.',
+      columnRBadge: 'Kolom R: ACTIVE',
+      preview18ColTitle: "Pratinjau Format 18 Kolom 'by_worker' + Rumus Otomatis:",
+      copyFormulaBtn: 'Salin Rumus Baris Sheets',
+      copiedFormulaBtn: '18 Kolom & Rumus Disalin!',
+      submitPlanting: 'Menanamkan ke by_worker...',
+      submitPlantAndSave: 'Simpan & Tanamkan ke by_worker',
+      submitSave: 'Simpan Data Operator',
+      disabledSubmitTooltip: 'Cari dan validasi NIK di sheet date_of_join terlebih dahulu atau aktifkan input manual',
+      toastSuccessPlant: 'Operator {name} ({nik}) berhasil ditanamkan ke by_worker!',
+      toastWarningPlant: 'Operator ditambahkan ke sistem. Status penanaman: {msg}',
+      toastSuccessAdd: 'Operator {name} ({nik}) berhasil ditambahkan ke Skill Matrix (Status: ACTIVE).',
     },
     lineBalancing: {
       selectStyle: 'Pilih Style Garment (Standard Production):',
@@ -891,6 +1215,7 @@ export const translations: Record<Language, Translations> = {
       thNik: 'NIK',
       thName: 'Operator Name',
       thTenure: 'Tenure (Mo)',
+      thCurrentOperation: 'Current Operation',
       thSkill: 'Skill',
       thGrade: 'Grade (Points)',
       thAction: 'Action',
@@ -960,6 +1285,165 @@ export const translations: Record<Language, Translations> = {
       detailSummary: 'IE Performance & Assessment Summary',
       detailCompetencies: 'Sewing Machine Proficiency Matrix',
       detailRadarTitle: 'Multi-Machine Competency Distribution',
+    },
+    exportPdfModal: {
+      modalTitle: 'Skill Matrix PDF Export & Live Document Sheet',
+      modalSubtitle: 'PT. Winners International — Industrial Engineering Standard',
+      portraitBadge: 'A4 Portrait',
+      landscapeBadge: 'A4 Landscape',
+      tabPreview: 'Preview',
+      tabOptions: 'Options',
+      closeTooltip: 'Close',
+      targetSectionTitle: 'Target Line & Period',
+      recordsCount: 'Records',
+      locationLabel: 'Location',
+      periodLabel: 'Period',
+      manpowerLabel: 'Manpower',
+      activeText: 'Active',
+      resignedText: 'Resigned',
+      multiSkillLabel: 'Multi-Skill',
+      personsUnit: 'ops',
+      orientationLabel: 'Page Orientation',
+      portraitOption: 'Portrait (A4)',
+      landscapeOption: 'Landscape',
+      includeSectionsLabel: 'Include Sections & Filters',
+      summaryCheckboxTitle: 'Executive KPI Summary',
+      summaryCheckboxDesc: 'Total MP, Multi-Skill %, Grade & Machine cards',
+      resignedCheckboxTitle: 'Include Resigned Operators',
+      resignedCheckboxDesc: 'Show inactive/resigned operator records with status badges',
+      signaturesCheckboxTitle: 'Official Validation Signatures',
+      signaturesCheckboxDesc: 'IE Specialist, Sewing Supervisor, and Factory Manager',
+      multiSkillOnlyTitle: 'Multi-Skilled Operators Only (≥2)',
+      multiSkillOnlyDesc: 'Only export operators who master 2 or more machine types',
+      auditBannerTitle: 'Accredited IE & MOST Standard',
+      auditBannerDesc: 'High-resolution A4 document format, ready to print for sewing floor notice boards, IE documentation binders, and buyer audit compliance.',
+      realA4PreviewBadge: 'Authentic A4 Sheet Preview',
+      pageIndicator: 'Page',
+      ofText: 'of',
+      prevPageTooltip: 'Previous Page',
+      nextPageTooltip: 'Next Page',
+      zoomOutTooltip: 'Zoom Out (-)',
+      zoomInTooltip: 'Zoom In (+)',
+      resetZoomTooltip: 'Reset 100%',
+      openPdfTabBtn: 'Open PDF',
+      openPdfTabTooltip: 'Open PDF in a new browser tab',
+      companyTitle: 'PT.WINNERS INTERNATIONAL',
+      documentTitle: 'MULTI SKILL OPERATOR DEVELOPMENT',
+      factoryLineLabel: 'Factory / Line',
+      generatedLabel: 'Generated',
+      docIdLabel: 'Doc ID',
+      kpiTotalManpower: 'TOTAL MANPOWER (MP)',
+      kpiActiveLabel: 'Active',
+      kpiResignedLabel: 'Resigned',
+      kpiMultiSkillRatio: 'MULTI-SKILL RATIO (≥2 MACHINES)',
+      kpiQualifiedCount: 'qualified operators',
+      kpiGradeDistribution: 'GRADE DISTRIBUTION (S / A / B / C)',
+      kpiHelperAvg: 'Helper: {helper} | Avg Points: {avg}',
+      kpiMachinePopulation: 'MACHINE POPULATION',
+      thNo: 'NO',
+      thNik: 'NIK',
+      thOperatorName: 'OPERATOR NAME',
+      thTenure: 'TENURE',
+      thLockstitch: 'Lock',
+      thOverlock: 'Overlock',
+      thFlatseam: 'Flat',
+      thSpecial: 'Special',
+      thButtonHole: 'Hole',
+      thButtonSet: 'Set',
+      thMulti: 'MULTI',
+      thTotal: 'TOTAL',
+      thGrade: 'GRADE',
+      thStatus: 'STATUS',
+      tenureMonthUnit: 'mos',
+      machineUnit: 'Mch',
+      statusActive: 'Active',
+      statusResigned: 'Resign',
+      noOperatorsFound: 'No operator records found for this line in the selected period.',
+      noOperatorsHint: 'Please verify that the selected factory and line have active operators, or adjust active filters.',
+      sigCreatedBy: 'PREPARED BY (IE OFFICER)',
+      sigCreatedDept: 'Industrial Engineering Dept.',
+      sigCreatedRole: '( IE Specialist )',
+      sigVerifiedBy: 'VERIFIED BY (SEWING SPV)',
+      sigVerifiedDept: 'Sewing Production Line',
+      sigVerifiedRole: '( Sewing Line Supervisor )',
+      sigApprovedBy: 'APPROVED BY (FACTORY / IE MGR)',
+      sigApprovedDept: 'Factory & IE Management',
+      sigApprovedRole: '( Factory Management )',
+      paperFooterCompany: 'PT.WINNERS INTERNATIONAL',
+      readyExportMessage: 'Ready to export {count} operator records in {orientation} format',
+      closeBtn: 'Close',
+      downloadBtn: 'Download PDF Report',
+      downloadingBtn: 'Generating & Downloading PDF...',
+    },
+    addOperatorModal: {
+      modalAddTitle: 'Add New Operator',
+      modalEditTitle: 'Edit Operator Data',
+      subtitleDoj: 'Automatic validation via "date_of_join" sheet',
+      infoBannerTitle: 'Master Data Validation ("date_of_join" sheet)',
+      infoBannerDesc: 'To ensure data integrity, the primary active input field is Operator ID (NIK). Full Name and Date of Join (DOJ) will be automatically fetched from the master date_of_join sheet.',
+      nikLabel: 'Operator ID (NIK)',
+      nikActiveOnlyNote: '(Primary active input field)',
+      nikPlaceholderAdd: 'Enter operator ID (e.g., 260123)...',
+      nikPlaceholderEdit: 'NIK',
+      searchNikBtn: 'Lookup ID',
+      searchingNik: 'Searching...',
+      dataFoundTitle: '✓ Record Found in "date_of_join" Sheet',
+      joinDateLabel: 'Join Date:',
+      tenureLabel: 'Tenure:',
+      monthsUnit: 'Months',
+      notFoundTitle: 'Operator ID Not Found in "date_of_join" Sheet',
+      notFoundDefaultMsg: 'Operator ID "{nik}" is not yet registered in date_of_join sheet.',
+      hrdQuestion: 'New operator not yet registered by HR?',
+      enableManualBtn: 'Enable Manual Input',
+      useLookupBtn: 'Use ID Lookup',
+      manualModeActivatedMsg: 'Manual entry mode enabled.',
+      switchManualBtn: 'Manual ID / Name Entry',
+      switchLookupBtn: 'Lock Input (Use Lookup)',
+      fullNameLabel: 'Full Name',
+      autoFromDojBadge: 'Auto from date_of_join',
+      manualInputBadge: 'Manual Entry Mode',
+      namePlaceholderAuto: 'Auto-filled once ID is found in date_of_join...',
+      namePlaceholderManual: 'Full Name',
+      workTenureLabel: 'Work Tenure (Months)',
+      dojLabel: 'Date of Join (DOJ)',
+      autoBadge: 'Auto',
+      placementSectionTitle: 'Datasheet Placement Location (Columns A & B):',
+      statusActiveBadge: 'Status: ACTIVE',
+      factoryLabel: 'Factory (Column A):',
+      factoryHint: 'Sheets format: Number (e.g., 1 or 2)',
+      lineLabel: 'Line (Column B):',
+      lineHint: 'Sheets format: Number (e.g., 28 or 1)',
+      specsSectionTitle: 'Machine Specifications & Garment Process (by_worker datasheet):',
+      styleNoLabel: 'Style No (Column I):',
+      tableCodeLabel: 'Table / Style Code (Column C):',
+      machineNameLabel: 'Machine Name (Column H):',
+      machineCatLabel: 'Machine Category (Column Q):',
+      processLabel: 'Process Name (Column J):',
+      pointsSectionTitle: 'Machine Evaluation Points (Column N):',
+      helperBadgeText: 'Score: 0 Points (Helper)',
+      pointsBadgeText: 'Score: {points} Points',
+      p0Label: '0 Points',
+      p0Desc: 'Helper / 0%',
+      p1Label: '1 Point',
+      p1Desc: 'Basic (1-60%)',
+      p2Label: '2 Points',
+      p2Desc: 'Skilled (61-89%)',
+      p3Label: '3 Points',
+      p3Desc: 'Specialist (>90%)',
+      directInputLabel: 'Or enter points directly (0 to 3):',
+      plantCheckboxLabel: "Plant Operator to 'by_worker' Datasheet",
+      plantDesc: "New operator data (NIK, Name, DOJ, Tenure, Factory, Line, Machine Points, and ACTIVE status) will be permanently planted into the 'by_worker' Google Sheets tab.",
+      columnRBadge: 'Column R: ACTIVE',
+      preview18ColTitle: "Preview of 18-Column 'by_worker' Format + Automatic Formulas:",
+      copyFormulaBtn: 'Copy Sheets Row Formulas',
+      copiedFormulaBtn: '18 Columns & Formulas Copied!',
+      submitPlanting: 'Planting to by_worker...',
+      submitPlantAndSave: 'Save & Plant to by_worker',
+      submitSave: 'Save Operator Data',
+      disabledSubmitTooltip: 'Lookup and validate Operator ID in date_of_join sheet first, or enable manual entry',
+      toastSuccessPlant: 'Operator {name} ({nik}) was successfully planted into by_worker!',
+      toastWarningPlant: 'Operator added to system. Planting status: {msg}',
+      toastSuccessAdd: 'Operator {name} ({nik}) was successfully added to Skill Matrix (Status: ACTIVE).',
     },
     lineBalancing: {
       selectStyle: 'Select Garment Style (Standard Production):',

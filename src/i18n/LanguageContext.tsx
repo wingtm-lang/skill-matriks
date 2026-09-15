@@ -22,7 +22,7 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     } catch {
       // Ignore storage errors in sandboxed iframes
     }
-    return 'id'; // Default Indonesian
+    return 'en'; // Default English as requested
   });
 
   const setLanguage = (newLang: Language) => {
