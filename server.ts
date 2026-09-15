@@ -154,7 +154,7 @@ app.get("/api/sheets/operators", async (req, res) => {
       });
     }
 
-    const apiKey = process.env.GOOGLE_SHEETS_API_KEY;
+    const apiKey = process.env.GOOGLE_SHEETS_API_KEY || "AIzaSyBA08ZGyorJcsIXqe77sTuuNPxsOMWVabw";
     const spreadsheetId = process.env.SPREADSHEET_ID || "1tA8YyHxFr1xwGWvdwHLOXaF9q8SjgbDuxDinzuH6kag";
 
     let rows: any[][] | null = null;
@@ -599,7 +599,7 @@ app.get("/api/sheets/operators", async (req, res) => {
 app.get("/api/sheets/date-of-join", async (req, res) => {
   try {
     const requestedNik = String(req.query.nik || "").trim();
-    const apiKey = process.env.GOOGLE_SHEETS_API_KEY;
+    const apiKey = process.env.GOOGLE_SHEETS_API_KEY || "AIzaSyBA08ZGyorJcsIXqe77sTuuNPxsOMWVabw";
     const spreadsheetId = process.env.SPREADSHEET_ID || "1tA8YyHxFr1xwGWvdwHLOXaF9q8SjgbDuxDinzuH6kag";
 
     if (!requestedNik) {
@@ -894,15 +894,8 @@ app.post("/api/sheets/append-by-worker", async (req, res) => {
 // Google Sheets live fetch API endpoint using GOOGLE_SHEETS_API_KEY & SPREADSHEET_ID
 app.get("/api/sheets/fetch", async (req, res) => {
   try {
-    const apiKey = process.env.GOOGLE_SHEETS_API_KEY;
+    const apiKey = process.env.GOOGLE_SHEETS_API_KEY || "AIzaSyBA08ZGyorJcsIXqe77sTuuNPxsOMWVabw";
     const spreadsheetId = process.env.SPREADSHEET_ID || "1tA8YyHxFr1xwGWvdwHLOXaF9q8SjgbDuxDinzuH6kag";
-
-    if (!apiKey) {
-      return res.status(400).json({
-        success: false,
-        error: "GOOGLE_SHEETS_API_KEY belum dikonfigurasi di file .env",
-      });
-    }
 
     // 1. Fetch spreadsheet metadata (sheet tabs, title)
     const metaUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${apiKey}`;

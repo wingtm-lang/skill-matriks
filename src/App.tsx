@@ -18,6 +18,7 @@ import {
   fetchOperatorsFromGViz,
   getCustomAddedOperatorsFromStorage,
 } from './utils/ieCalculations';
+import { fetchDirectFromGoogleSheets, getStoredOperatorsCache } from './utils/sheetParser';
 import { AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 
 export default function App() {
@@ -38,260 +39,284 @@ export default function App() {
   const [availableFactories, setAvailableFactories] = useState<string[]>(FACTORIES);
   const [availableLines, setAvailableLines] = useState<string[]>(LINES);
 
-  // Fetch live operators directly from Google Sheets via backend proxy (/api/sheets/operators)
+  // Fetch live operators directly from Google Sheets via backend proxy or direct API (for Vercel & static hosting)
   const fetchLiveOperators = useCallback(async () => {
     setIsLoadingSheets(true);
     setSyncError(null);
 
+    // Pre-hydrate from cache if current operators list is empty for instant display
+    const cachedData = getStoredOperatorsCache();
+    if (cachedData && cachedData.operators.length > 0) {
+      setOperators(cachedData.operators);
+      if (cachedData.factories.length > 0) {
+        setAvailableFactories(sortFactoriesNumerically(Array.from(new Set([...FACTORIES, ...cachedData.factories]))));
+      }
+      if (cachedData.lines.length > 0) {
+        setAvailableLines(sortLinesNumerically(Array.from(new Set([...LINES, ...cachedData.lines]))));
+      }
+      setSyncMessage(`Memuat cache (${cachedData.operators.length} operator)... Menyinkronkan data terbaru...`);
+    }
+
+    // Helper untuk menggabungkan data remote dengan operator kustom di LocalStorage
+    const mergeWithLocalAdded = (remoteOps: Operator[]): Operator[] => {
+      const localAdded = getCustomAddedOperatorsFromStorage();
+      if (localAdded.length === 0) return remoteOps;
+
+      const existingKeys = new Set(
+        remoteOps.map((o: any) => `${String(o.nik || o.id).trim()}_${String(o.date || o.recordDate || '').trim()}_${String(o.line).trim()}`)
+      );
+      const newFromStorage = localAdded
+        .filter((o) => !existingKeys.has(`${String(o.nik || o.id).trim()}_${String(o.date || o.recordDate || '').trim()}_${String(o.line).trim()}`))
+        .map((o: any, idx: number) => ({
+          ...o,
+          id: o.id || `storage-${o.nik}-${idx}`,
+          factory: normalizeFactoryName(o.factory),
+          line: normalizeLineName(o.line),
+          status: o.status || 'ACTIVE',
+        }));
+      return [...newFromStorage, ...remoteOps];
+    };
+
     try {
-      // 1. Prioritas Utama: Backend proxy server (/api/sheets/operators?force=true)
-      // Menangani 24.000+ baris data dengan cepat, andal, tanpa terkena pemblokiran CORS browser
-      const proxyRes = await fetch("/api/sheets/operators?force=true");
-      if (proxyRes.ok) {
+      // 1. Prioritas 1: Backend proxy server (/api/sheets/operators)
+      // Berfungsi saat dijalankan di AI Studio, Cloud Run, atau server Node terdedikasi
+      try {
+      const proxyController = new AbortController();
+      const proxyTimeout = setTimeout(() => proxyController.abort(), 6000);
+
+      const proxyRes = await fetch("/api/sheets/operators?force=true", { signal: proxyController.signal });
+      clearTimeout(proxyTimeout);
+
+      const contentType = proxyRes.headers.get("content-type") || "";
+      if (proxyRes.ok && contentType.includes("application/json")) {
         const proxyData = await proxyRes.json();
         if (proxyData.success && Array.isArray(proxyData.operators) && proxyData.operators.length > 0) {
-          let loadedOps: Operator[] = proxyData.operators.map((op: Operator) => ({
+          const loadedOps: Operator[] = proxyData.operators.map((op: Operator) => ({
             ...op,
             factory: normalizeFactoryName(op.factory),
             line: normalizeLineName(op.line),
             status: op.status || "ACTIVE",
           }));
 
-          // Gabungkan dengan operator yang baru ditambahkan dari LocalStorage
-          const localAdded = getCustomAddedOperatorsFromStorage();
-          if (localAdded.length > 0) {
-            const existingKeys = new Set(
-              loadedOps.map((o: any) => `${String(o.nik || o.id).trim()}_${String(o.date || o.recordDate || '').trim()}_${String(o.line).trim()}`)
-            );
-            const newFromStorage = localAdded
-              .filter((o) => !existingKeys.has(`${String(o.nik || o.id).trim()}_${String(o.date || o.recordDate || '').trim()}_${String(o.line).trim()}`))
-              .map((o: any, idx: number) => ({
-                ...o,
-                id: o.id || `storage-${o.nik}-${idx}`,
-                factory: normalizeFactoryName(o.factory),
-                line: normalizeLineName(o.line),
-                status: o.status || 'ACTIVE',
-              }));
-            loadedOps = [...newFromStorage, ...loadedOps];
-          }
-
-          setOperators(loadedOps);
-          setIsLiveFromSheets(true);
-          setSyncMessage(`Tersambung ke Google Sheets: ${loadedOps.length} data record operator berhasil disinkronkan`);
-          setSyncError(null);
-
-          // Update daftar Factory & Line secara dinamis
-          if (Array.isArray(proxyData.factories) && proxyData.factories.length > 0) {
-            setAvailableFactories(sortFactoriesNumerically(Array.from(new Set([...FACTORIES, ...proxyData.factories]))));
-          } else {
-            const uniqueFactories = Array.from(new Set(loadedOps.map((op) => op.factory).filter(Boolean)));
-            if (uniqueFactories.length > 0) {
-              setAvailableFactories(sortFactoriesNumerically(Array.from(new Set([...FACTORIES, ...uniqueFactories]))));
-            }
-          }
-
-          if (Array.isArray(proxyData.lines) && proxyData.lines.length > 0) {
-            setAvailableLines(sortLinesNumerically(Array.from(new Set([...LINES, ...proxyData.lines]))));
-          } else {
-            const uniqueLines = Array.from(new Set(loadedOps.map((op) => op.line).filter(Boolean)));
-            if (uniqueLines.length > 0) {
-              setAvailableLines(sortLinesNumerically(Array.from(new Set([...LINES, ...uniqueLines]))));
-            }
-          }
-          return;
-        }
-      }
-      throw new Error("Gagal mengambil data dari proxy backend server");
-    } catch (err: any) {
-      console.warn("Backend proxy fetch gagal, mencoba Google Apps Script / GViz fallback:", err);
-
-      // Fallback 1: Google Apps Script Web App dengan timeout aman agar tidak hanging
-      try {
-        const gasUrl = "https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Zj5fnKejoelvuKkHQ1fQV-8UA_lRhtuTPMcmUFBH-xqN-kCVr3Dw/exec";
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-        const response = await fetch(gasUrl, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        const textData = await response.text();
-
-        let result;
-        try {
-          result = JSON.parse(textData);
-        } catch (e) {
-          throw new Error("Respons dari Google Sheets bukan JSON yang valid.");
-        }
-
-        if (result.status === "success" && Array.isArray(result.data)) {
-          const rows = result.data;
-          const headers: any[] = rows[0] || [];
-          const dataRows = rows.slice(1);
-
-          const findColIdx = (candidates: string[], fallbackIdx: number) => {
-            if (!Array.isArray(headers)) return fallbackIdx;
-            for (const cand of candidates) {
-              const idx = headers.findIndex(
-                (h) => typeof h === "string" && h.trim().toUpperCase() === cand.toUpperCase()
-              );
-              if (idx !== -1) return idx;
-            }
-            for (const cand of candidates) {
-              const idx = headers.findIndex(
-                (h) => typeof h === "string" && h.toUpperCase().includes(cand.toUpperCase())
-              );
-              if (idx !== -1) return idx;
-            }
-            return fallbackIdx;
-          };
-
-          const idxWorkerCode = findColIdx(["Worker Code", "NIK", "ID"], 4);
-          const idxWorker = findColIdx(["Worker", "Nama", "Operator"], 5);
-          const idxFactory = findColIdx(["Factory", "Pabrik"], 0);
-          const idxLine = findColIdx(["Line", "Jalur"], 1);
-          const idxStatus = findColIdx(["Status"], 17);
-          const idxDoj = findColIdx(["Date of Join", "D.O.J", "DOJ"], 6);
-          const idxDate = findColIdx(["Date", "Tanggal", "Tgl"], 3);
-          const idxRate = findColIdx(["Production Rate (%)", "Actual Rate", "Rate", "Efisiensi"], 12);
-          const idxPoints = findColIdx(["POIN", "POINT (KOLOM N)", "POIN MESIN"], 13);
-          const idxWorkMonth = findColIdx(["Work Month", "Masa Kerja"], 14);
-          const idxDateOfResign = findColIdx(["Date of Resign", "Resign"], 15);
-          const idxMachine = findColIdx(["Machine Category", "Kategori Mesin", "Category", "Kategori"], 16);
-          const idxMachineName = findColIdx(["Machine", "Mesin", "Nama Mesin"], 7);
-          const idxStyleNo = findColIdx(["Style No", "Style"], 8);
-          const idxProcess = findColIdx(["Process", "Proses", "Operasi"], 9);
-
-          const safeParseNumber = (val: any, fallback: number = 0): number => {
-            if (val === null || val === undefined || val === '') return fallback;
-            if (typeof val === 'number') return isNaN(val) ? fallback : val;
-            const cleaned = String(val).replace(',', '.').replace(/[^0-9.-]/g, '');
-            const parsed = parseFloat(cleaned);
-            return isNaN(parsed) ? fallback : parsed;
-          };
-
-          const normalizedOps: Operator[] = dataRows.map((row: any, index: number) => {
-            const rawProdRate = safeParseNumber(row[idxRate] ?? row[12], 0);
-            const rawPointsStr = String(row[idxPoints] ?? row[13] ?? "").trim();
-            const rawPoints = parseFloat(rawPointsStr.replace(',', '.').replace(/[^0-9.]/g, ''));
-            let pointVal = !isNaN(rawPoints) ? Math.min(3, Math.max(0, Math.round(rawPoints))) : 0;
-            if (rawPointsStr === "" && rawProdRate > 0) {
-              pointVal = getPointsFromEfficiency(rawProdRate);
-            }
-            const rawCat = String(row[idxMachine] ?? row[16] ?? "").toUpperCase();
-            const rawMachineName = String(row[idxMachineName] ?? row[7] ?? "").toUpperCase();
-
-            const isLockstitch = rawCat.includes("LOCKSTITCH") || rawCat.includes("SN") || rawCat.includes("SINGLE NEEDLE") ||
-              (!rawCat && (rawMachineName.includes("LOCKSTITCH") || rawMachineName.includes("1NEEDLE") || rawMachineName.includes("SN")));
-
-            const isOverlock = rawCat.includes("OVERLOCK") || rawCat.includes("OL") || rawCat.includes("OBRAS") ||
-              (!rawCat && (rawMachineName.includes("OVERLOCK") || rawMachineName.includes("OBRAS") || rawMachineName.includes("2NEEDLE OVERLOCK")));
-
-            const isFlatseam = rawCat.includes("FLATSEAM") || rawCat.includes("COVERSTITCH") || rawCat.includes("FS") || rawCat.includes("KAM") ||
-              (!rawCat && (rawMachineName.includes("FLAT SEAM") || rawMachineName.includes("COVERSTITCH") || rawMachineName.includes("FLATSEAM")));
-
-            const isSpecial = rawCat.includes("SPECIAL") || rawCat.includes("SP") || rawCat.includes("PRESS") || rawCat.includes("OTOMATIS") ||
-              (!rawCat && (rawMachineName.includes("PRESS") || rawMachineName.includes("HEAT TRANSFER") || rawMachineName.includes("SPECIAL")));
-
-            const isButtonHole = rawCat.includes("BUTTON HOLE") || rawCat.includes("BUTTON_HOLE") || rawCat.includes("BH") || rawCat.includes("LUBANG KANCING") ||
-              (!rawCat && (rawMachineName.includes("BUTTON HOLE") || rawMachineName.includes("LUBANG KANCING")));
-
-            const isButtonSet = rawCat.includes("BUTTON SET") || rawCat.includes("BUTTON_SET") || rawCat.includes("BS") || rawCat.includes("PASANG KANCING") ||
-              (!rawCat && (rawMachineName.includes("BUTTON SET") || rawMachineName.includes("PASANG KANCING")));
-
-            const isChainstitch = rawCat.includes("CHAINSTITCH") || rawCat.includes("CS") || rawCat.includes("KANSAI") ||
-              (!rawCat && (rawMachineName.includes("CHAINSTITCH") || rawMachineName.includes("KANSAI") || rawMachineName.includes("CHAIN STITCH")));
-
-            const isBartack = rawCat.includes("BARTACK") || rawCat.includes("BT") || rawCat.includes("BAR TACK") ||
-              (!rawCat && (rawMachineName.includes("BARTACK") || rawMachineName.includes("BAR TACK")));
-
-            const rawDate = row[idxDate] ?? row[3] ?? "";
-            const rowDateStr = rawDate ? String(rawDate).trim() : "";
-
-            const parsedWorkMonth = safeParseNumber(row[idxWorkMonth] ?? row[14], 0);
-            const rowDoj = String(row[idxDoj] ?? row[6] ?? "-");
-            const safeTenure = parsedWorkMonth > 0 ? parsedWorkMonth : (calculateWorkTimeMonths(rowDoj) || 0);
-
-            return {
-              id: String(row[idxWorkerCode] ?? row[4] ?? index),
-              no: index + 1,
-              factory: normalizeFactoryName(String(row[idxFactory] ?? row[0] ?? "1")),
-              line: normalizeLineName(String(row[idxLine] ?? row[1] ?? "1")),
-              nik: String(row[idxWorkerCode] ?? row[4] ?? ""),
-              name: String(row[idxWorker] ?? row[5] ?? "Unknown"),
-              date: rowDateStr,
-              recordDate: rowDateStr,
-              machine: String(row[idxMachineName] ?? row[7] ?? ""),
-              styleNo: String(row[idxStyleNo] ?? row[8] ?? ""),
-              process: String(row[idxProcess] ?? row[9] ?? ""),
-              currentOperation: String(row[idxProcess] ?? row[9] ?? ""),
-              productionRate: rawProdRate,
-              points: pointVal,
-              workMonth: safeTenure,
-              dateOfResign: String(row[idxDateOfResign] ?? row[15] ?? ""),
-              machineCategory: rawCat,
-              status: String(row[idxStatus] ?? row[17] ?? "ACTIVE"),
-              doj: rowDoj,
-              workTimeMonths: safeTenure,
-              resignDate: (row[idxDateOfResign] ?? row[15]) ? String(row[idxDateOfResign] ?? row[15]) : null,
-              lockstitch: isLockstitch ? pointVal : (!rawCat && !rawMachineName ? pointVal : null),
-              overlock: isOverlock ? pointVal : null,
-              flatseam: isFlatseam ? pointVal : null,
-              special: isSpecial ? pointVal : null,
-              buttonHole: isButtonHole ? pointVal : null,
-              buttonSet: isButtonSet ? pointVal : null,
-              chainstitch: isChainstitch ? pointVal : null,
-              bartack: isBartack ? pointVal : null,
-            };
-          });
-
-          let finalOps = normalizedOps;
-          const localAdded = getCustomAddedOperatorsFromStorage();
-          if (localAdded.length > 0) {
-            const existingKeys = new Set(
-              finalOps.map((o) => `${String(o.nik || o.id).trim()}_${String(o.date || o.recordDate || '').trim()}_${String(o.line).trim()}`)
-            );
-            const newFromStorage = localAdded
-              .filter((o) => !existingKeys.has(`${String(o.nik || o.id).trim()}_${String(o.date || o.recordDate || '').trim()}_${String(o.line).trim()}`))
-              .map((o: any, idx: number) => ({
-                ...o,
-                id: o.id || `storage-${o.nik}-${idx}`,
-                factory: normalizeFactoryName(o.factory),
-                line: normalizeLineName(o.line),
-                status: o.status || 'ACTIVE',
-              }));
-            finalOps = [...newFromStorage, ...finalOps];
-          }
-
+          const finalOps = mergeWithLocalAdded(loadedOps);
           setOperators(finalOps);
           setIsLiveFromSheets(true);
-          setSyncMessage(`Tersambung ke Google Sheets (GAS): ${finalOps.length} operator berhasil dimuat`);
+          setSyncMessage(`Tersambung ke Google Sheets (Proxy): ${finalOps.length} data record operator berhasil disinkronkan`);
+          setSyncError(null);
 
-          const uniqueFactories = Array.from(new Set(finalOps.map((op) => op.factory).filter(Boolean)));
-          if (uniqueFactories.length > 0) {
-            setAvailableFactories(sortFactoriesNumerically(Array.from(new Set([...FACTORIES, ...uniqueFactories]))));
+          if (Array.isArray(proxyData.factories) && proxyData.factories.length > 0) {
+            setAvailableFactories(sortFactoriesNumerically(Array.from(new Set([...FACTORIES, ...proxyData.factories]))));
           }
-          const uniqueLines = Array.from(new Set(finalOps.map((op) => op.line).filter(Boolean)));
-          if (uniqueLines.length > 0) {
-            setAvailableLines(sortLinesNumerically(Array.from(new Set([...LINES, ...uniqueLines]))));
+          if (Array.isArray(proxyData.lines) && proxyData.lines.length > 0) {
+            setAvailableLines(sortLinesNumerically(Array.from(new Set([...LINES, ...proxyData.lines]))));
           }
           return;
         }
-      } catch (gasErr) {
-        console.warn("GAS fetch fallback failed:", gasErr);
+      }
+    } catch (backendErr: any) {
+      console.warn("Backend proxy tidak aktif atau lambat, beralih ke Direct Google Sheets Sync (Vercel mode):", backendErr);
+    }
+
+    // 2. Prioritas 2: Direct Google Sheets API Sync (Sangat Andal untuk Vercel & Hosting Statis)
+    // Langsung menghubungi Google Sheets API v4 dari browser dengan dukungan penuh CORS dan kompresi gzip
+    try {
+      const directData = await fetchDirectFromGoogleSheets();
+      if (directData && Array.isArray(directData.operators) && directData.operators.length > 0) {
+        const normalizedOps = directData.operators.map((op: Operator) => ({
+          ...op,
+          factory: normalizeFactoryName(op.factory),
+          line: normalizeLineName(op.line),
+          status: op.status || "ACTIVE",
+        }));
+
+        const finalOps = mergeWithLocalAdded(normalizedOps);
+        setOperators(finalOps);
+        setIsLiveFromSheets(true);
+        setSyncMessage(`Tersambung ke Google Sheets (Direct Sync): ${finalOps.length} data record operator berhasil disinkronkan`);
+        setSyncError(null);
+
+        if (Array.isArray(directData.factories) && directData.factories.length > 0) {
+          setAvailableFactories(sortFactoriesNumerically(Array.from(new Set([...FACTORIES, ...directData.factories]))));
+        }
+        if (Array.isArray(directData.lines) && directData.lines.length > 0) {
+          setAvailableLines(sortLinesNumerically(Array.from(new Set([...LINES, ...directData.lines]))));
+        }
+        return;
+      }
+    } catch (directErr: any) {
+      console.warn("Direct Google Sheets fetch gagal, mencoba fallback Apps Script:", directErr);
+    }
+
+    // 3. Prioritas 3: Fallback ke Google Apps Script Web App
+    try {
+      const gasUrl = "https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Zj5fnKejoelvuKkHQ1fQV-8UA_lRhtuTPMcmUFBH-xqN-kCVr3Dw/exec";
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+      const response = await fetch(gasUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      const textData = await response.text();
+
+      let result;
+      try {
+        result = JSON.parse(textData);
+      } catch (e) {
+        throw new Error("Respons dari Google Sheets bukan JSON yang valid.");
       }
 
-      // Fallback 2: Muat operator dari localStorage
-      const localAdded = getCustomAddedOperatorsFromStorage();
-      if (localAdded.length > 0) {
-        setOperators(localAdded);
-        setSyncMessage(`Memuat ${localAdded.length} operator tersimpan di perangkat lokal`);
-        setSyncError(null);
-      } else {
-        setSyncError(err.toString());
+      if (result.status === "success" && Array.isArray(result.data)) {
+        const rows = result.data;
+        const headers: any[] = rows[0] || [];
+        const dataRows = rows.slice(1);
+
+        const findColIdx = (candidates: string[], fallbackIdx: number) => {
+          if (!Array.isArray(headers)) return fallbackIdx;
+          for (const cand of candidates) {
+            const idx = headers.findIndex(
+              (h) => typeof h === "string" && h.trim().toUpperCase() === cand.toUpperCase()
+            );
+            if (idx !== -1) return idx;
+          }
+          for (const cand of candidates) {
+            const idx = headers.findIndex(
+              (h) => typeof h === "string" && h.toUpperCase().includes(cand.toUpperCase())
+            );
+            if (idx !== -1) return idx;
+          }
+          return fallbackIdx;
+        };
+
+        const idxWorkerCode = findColIdx(["Worker Code", "NIK", "ID"], 4);
+        const idxWorker = findColIdx(["Worker", "Nama", "Operator"], 5);
+        const idxFactory = findColIdx(["Factory", "Pabrik"], 0);
+        const idxLine = findColIdx(["Line", "Jalur"], 1);
+        const idxStatus = findColIdx(["Status"], 17);
+        const idxDoj = findColIdx(["Date of Join", "D.O.J", "DOJ"], 6);
+        const idxDate = findColIdx(["Date", "Tanggal", "Tgl"], 3);
+        const idxRate = findColIdx(["Production Rate (%)", "Actual Rate", "Rate", "Efisiensi"], 12);
+        const idxPoints = findColIdx(["POIN", "POINT (KOLOM N)", "POIN MESIN"], 13);
+        const idxWorkMonth = findColIdx(["Work Month", "Masa Kerja"], 14);
+        const idxDateOfResign = findColIdx(["Date of Resign", "Resign"], 15);
+        const idxMachine = findColIdx(["Machine Category", "Kategori Mesin", "Category", "Kategori"], 16);
+        const idxMachineName = findColIdx(["Machine", "Mesin", "Nama Mesin"], 7);
+        const idxStyleNo = findColIdx(["Style No", "Style"], 8);
+        const idxProcess = findColIdx(["Process", "Proses", "Operasi"], 9);
+
+        const safeParseNumber = (val: any, fallback: number = 0): number => {
+          if (val === null || val === undefined || val === '') return fallback;
+          if (typeof val === 'number') return isNaN(val) ? fallback : val;
+          const cleaned = String(val).replace(',', '.').replace(/[^0-9.-]/g, '');
+          const parsed = parseFloat(cleaned);
+          return isNaN(parsed) ? fallback : parsed;
+        };
+
+        const normalizedOps: Operator[] = dataRows.map((row: any, index: number) => {
+          const rawProdRate = safeParseNumber(row[idxRate] ?? row[12], 0);
+          const rawPointsStr = String(row[idxPoints] ?? row[13] ?? "").trim();
+          const rawPoints = parseFloat(rawPointsStr.replace(',', '.').replace(/[^0-9.]/g, ''));
+          let pointVal = !isNaN(rawPoints) ? Math.min(3, Math.max(0, Math.round(rawPoints))) : 0;
+          if (rawPointsStr === "" && rawProdRate > 0) {
+            pointVal = getPointsFromEfficiency(rawProdRate);
+          }
+          const rawCat = String(row[idxMachine] ?? row[16] ?? "").toUpperCase();
+          const rawMachineName = String(row[idxMachineName] ?? row[7] ?? "").toUpperCase();
+
+          const isLockstitch = rawCat.includes("LOCKSTITCH") || rawCat.includes("SN") || rawCat.includes("SINGLE NEEDLE") ||
+            (!rawCat && (rawMachineName.includes("LOCKSTITCH") || rawMachineName.includes("1NEEDLE") || rawMachineName.includes("SN")));
+
+          const isOverlock = rawCat.includes("OVERLOCK") || rawCat.includes("OL") || rawCat.includes("OBRAS") ||
+            (!rawCat && (rawMachineName.includes("OVERLOCK") || rawMachineName.includes("OBRAS") || rawMachineName.includes("2NEEDLE OVERLOCK")));
+
+          const isFlatseam = rawCat.includes("FLATSEAM") || rawCat.includes("COVERSTITCH") || rawCat.includes("FS") || rawCat.includes("KAM") ||
+            (!rawCat && (rawMachineName.includes("FLAT SEAM") || rawMachineName.includes("COVERSTITCH") || rawMachineName.includes("FLATSEAM")));
+
+          const isSpecial = rawCat.includes("SPECIAL") || rawCat.includes("SP") || rawCat.includes("PRESS") || rawCat.includes("OTOMATIS") ||
+            (!rawCat && (rawMachineName.includes("PRESS") || rawMachineName.includes("HEAT TRANSFER") || rawMachineName.includes("SPECIAL")));
+
+          const isButtonHole = rawCat.includes("BUTTON HOLE") || rawCat.includes("BUTTON_HOLE") || rawCat.includes("BH") || rawCat.includes("LUBANG KANCING") ||
+            (!rawCat && (rawMachineName.includes("BUTTON HOLE") || rawMachineName.includes("LUBANG KANCING")));
+
+          const isButtonSet = rawCat.includes("BUTTON SET") || rawCat.includes("BUTTON_SET") || rawCat.includes("BS") || rawCat.includes("PASANG KANCING") ||
+            (!rawCat && (rawMachineName.includes("BUTTON SET") || rawMachineName.includes("PASANG KANCING")));
+
+          const isChainstitch = rawCat.includes("CHAINSTITCH") || rawCat.includes("CS") || rawCat.includes("KANSAI") ||
+            (!rawCat && (rawMachineName.includes("CHAINSTITCH") || rawMachineName.includes("KANSAI") || rawMachineName.includes("CHAIN STITCH")));
+
+          const isBartack = rawCat.includes("BARTACK") || rawCat.includes("BT") || rawCat.includes("BAR TACK") ||
+            (!rawCat && (rawMachineName.includes("BARTACK") || rawMachineName.includes("BAR TACK")));
+
+          const rawDate = row[idxDate] ?? row[3] ?? "";
+          const rowDateStr = rawDate ? String(rawDate).trim() : "";
+
+          const parsedWorkMonth = safeParseNumber(row[idxWorkMonth] ?? row[14], 0);
+          const rowDoj = String(row[idxDoj] ?? row[6] ?? "-");
+          const safeTenure = parsedWorkMonth > 0 ? parsedWorkMonth : (calculateWorkTimeMonths(rowDoj) || 0);
+
+          return {
+            id: String(row[idxWorkerCode] ?? row[4] ?? index),
+            no: index + 1,
+            factory: normalizeFactoryName(String(row[idxFactory] ?? row[0] ?? "1")),
+            line: normalizeLineName(String(row[idxLine] ?? row[1] ?? "1")),
+            nik: String(row[idxWorkerCode] ?? row[4] ?? ""),
+            name: String(row[idxWorker] ?? row[5] ?? "Unknown"),
+            date: rowDateStr,
+            recordDate: rowDateStr,
+            machine: String(row[idxMachineName] ?? row[7] ?? ""),
+            styleNo: String(row[idxStyleNo] ?? row[8] ?? ""),
+            process: String(row[idxProcess] ?? row[9] ?? ""),
+            currentOperation: String(row[idxProcess] ?? row[9] ?? ""),
+            productionRate: rawProdRate,
+            points: pointVal,
+            workMonth: safeTenure,
+            dateOfResign: String(row[idxDateOfResign] ?? row[15] ?? ""),
+            machineCategory: rawCat,
+            status: String(row[idxStatus] ?? row[17] ?? "ACTIVE"),
+            doj: rowDoj,
+            workTimeMonths: safeTenure,
+            resignDate: (row[idxDateOfResign] ?? row[15]) ? String(row[idxDateOfResign] ?? row[15]) : null,
+            lockstitch: isLockstitch ? pointVal : (!rawCat && !rawMachineName ? pointVal : null),
+            overlock: isOverlock ? pointVal : null,
+            flatseam: isFlatseam ? pointVal : null,
+            special: isSpecial ? pointVal : null,
+            buttonHole: isButtonHole ? pointVal : null,
+            buttonSet: isButtonSet ? pointVal : null,
+            chainstitch: isChainstitch ? pointVal : null,
+            bartack: isBartack ? pointVal : null,
+          };
+        });
+
+        const finalOps = mergeWithLocalAdded(normalizedOps);
+        setOperators(finalOps);
+        setIsLiveFromSheets(true);
+        setSyncMessage(`Tersambung ke Google Sheets (GAS): ${finalOps.length} operator berhasil dimuat`);
+
+        const uniqueFactories = Array.from(new Set(finalOps.map((op) => op.factory).filter(Boolean)));
+        if (uniqueFactories.length > 0) {
+          setAvailableFactories(sortFactoriesNumerically(Array.from(new Set([...FACTORIES, ...uniqueFactories]))));
+        }
+        const uniqueLines = Array.from(new Set(finalOps.map((op) => op.line).filter(Boolean)));
+        if (uniqueLines.length > 0) {
+          setAvailableLines(sortLinesNumerically(Array.from(new Set([...LINES, ...uniqueLines]))));
+        }
+        return;
       }
-    } finally {
-      setIsLoadingSheets(false);
+    } catch (gasErr) {
+      console.warn("GAS fetch fallback failed:", gasErr);
     }
-  }, []);
+
+    // 4. Prioritas 4: Muat operator dari localStorage jika semua koneksi remote offline
+    const localAdded = getCustomAddedOperatorsFromStorage();
+    if (localAdded.length > 0) {
+      setOperators(localAdded);
+      setSyncMessage(`Mode Offline: Memuat ${localAdded.length} operator tersimpan di perangkat lokal`);
+      setSyncError(null);
+    } else {
+      setSyncError("Tidak dapat memuat data dari Google Sheets. Pastikan koneksi internet stabil atau muat ulang halaman.");
+    }
+  } finally {
+    setIsLoadingSheets(false);
+  }
+}, []);
 
   // Fetch on initial app load
   useEffect(() => {
