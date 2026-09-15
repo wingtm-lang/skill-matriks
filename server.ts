@@ -1114,18 +1114,42 @@ async function startServer() {
   }
 
   // Port configuration:
-  // Port 3000 is hardcoded by the infrastructure and must be bound strictly to 0.0.0.0:3000
-  const server = app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://0.0.0.0:${PORT} (Mode: ${isProduction ? "Production" : "Development"})`);
-  });
+  // In development, the dev server must bind strictly to port 3000 (proxied by Nginx).
+  // In production (Cloud Run), Cloud Run injects process.env.PORT (typically 8080) and sends health checks to it.
+  const primaryPort = isProduction && process.env.PORT
+    ? parseInt(process.env.PORT, 10)
+    : 3000;
 
-  server.on("error", (err: any) => {
+  const servers: any[] = [];
+
+  const mainServer = app.listen(primaryPort, "0.0.0.0", () => {
+    console.log(`Server running on http://0.0.0.0:${primaryPort} (Mode: ${isProduction ? "Production" : "Development"})`);
+  });
+  servers.push(mainServer);
+
+  mainServer.on("error", (err: any) => {
     if (err.code === "EADDRINUSE") {
-      console.error(`Port ${PORT} is already in use.`);
+      console.error(`Port ${primaryPort} is already in use.`);
     } else {
-      console.error(`Server error on port ${PORT}:`, err);
+      console.error(`Server error on port ${primaryPort}:`, err);
     }
   });
+
+  // In production, if primaryPort is not 3000, also bind to port 3000 as a secondary listener
+  // to ensure backwards compatibility with any internal probes or proxy routes expecting 3000.
+  if (isProduction && primaryPort !== 3000) {
+    try {
+      const fallbackServer = app.listen(3000, "0.0.0.0", () => {
+        console.log(`Secondary listener active on http://0.0.0.0:3000`);
+      });
+      fallbackServer.on("error", (err: any) => {
+        console.warn(`Port 3000 secondary listener notice: ${err.message}`);
+      });
+      servers.push(fallbackServer);
+    } catch (err: any) {
+      console.warn(`Could not bind secondary port 3000: ${err.message}`);
+    }
+  }
 
   const shutdown = async () => {
     console.log("Shutting down server...");
@@ -1136,10 +1160,12 @@ async function startServer() {
         // ignore
       }
     }
-    try {
-      server.close();
-    } catch (err) {
-      // ignore
+    for (const s of servers) {
+      try {
+        s.close();
+      } catch (err) {
+        // ignore
+      }
     }
     process.exit(0);
   };
