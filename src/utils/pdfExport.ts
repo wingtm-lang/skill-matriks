@@ -12,6 +12,7 @@ import {
   MONTH_NAMES_ID,
   isOperatorResignedAtPeriod 
 } from './ieCalculations';
+import { WINNERS_LOGO_BASE64 } from '../assets/logo';
 
 export interface PDFExportOptions {
   operators: Operator[];
@@ -44,7 +45,8 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
     includeSignatures = true,
     includeCurrentOperation = true,
     language = 'id',
-    orientation = 'portrait'
+    orientation = 'portrait',
+    lineLeaders
   } = options;
 
   const isEn = language === 'en';
@@ -129,16 +131,28 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
     : (MONTH_NAMES_ID[now.getMonth()]?.label || `${now.getMonth() + 1}`);
   const printDateStr = `${now.getDate()} ${currentMonthStr} ${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} WIB`;
 
-  // --- BRAND & REPORT HEADER (NO RIBBON/PITA, STRICT IDENTITY) ---
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(isPortrait ? 13.5 : 15);
-  doc.setTextColor(30, 41, 59);
-  doc.text('PT.WINNERS INTERNATIONAL', margin, isPortrait ? 15 : 15.5);
+  // --- BRAND & REPORT HEADER (WITH OFFICIAL LOGO) ---
+  const logoSize = isPortrait ? 6.5 : 7.2;
+  const logoX = margin;
+  const logoY = isPortrait ? 8.6 : 8.2;
+  
+  try {
+    doc.addImage(WINNERS_LOGO_BASE64, 'PNG', logoX, logoY, logoSize, logoSize);
+  } catch (err) {
+    console.warn('Could not add logo to PDF:', err);
+  }
+
+  const headerTextX = margin + logoSize + (isPortrait ? 2.2 : 2.5);
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(isPortrait ? 10.5 : 12);
+  doc.setFontSize(isPortrait ? 13 : 14.5);
+  doc.setTextColor(30, 41, 59);
+  doc.text('PT.WINNERS INTERNATIONAL', headerTextX, isPortrait ? 13.8 : 13.8);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(isPortrait ? 9.5 : 11);
   doc.setTextColor(36, 70, 70); // #244646
-  doc.text('MULTI SKILL OPERATOR DEVELOPMENT', margin, isPortrait ? 21.5 : 22.5);
+  doc.text('MULTI SKILL OPERATOR DEVELOPMENT', headerTextX, isPortrait ? 19.2 : 19.5);
 
   // --- METADATA CARD (TOP RIGHT) ---
   const metaBoxW = isPortrait ? 66 : 75;
@@ -157,24 +171,29 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
   const metaTextLeft = metaBoxX + 2.5;
   const metaValLeft = metaBoxX + (isPortrait ? 22 : 26);
 
-  doc.text(`${isEn ? 'Factory / Line' : 'Pabrik / Lini'}:`, metaTextLeft, metaBoxY + 3.8);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(30, 41, 59);
-  doc.text(`${selectedFactory} • ${selectedLine}`, metaValLeft, metaBoxY + 3.8);
-
+  // 1. Doc ID (Paling Atas)
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 116, 139);
-  doc.text(`${isEn ? 'Period' : 'Periode'}:`, metaTextLeft, metaBoxY + 7.5);
+  doc.text(`Doc ID:`, metaTextLeft, metaBoxY + 3.8);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(30, 41, 59);
-  doc.text(`${monthName} ${selectedYear}`, metaValLeft, metaBoxY + 7.5);
+  doc.setTextColor(196, 142, 20); // #C48E14
+  doc.text('WI.FR.LEAN.02.03', metaValLeft, metaBoxY + 3.8);
 
+  // 2. Factory / Line
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 116, 139);
-  doc.text(`Doc ID:`, metaTextLeft, metaBoxY + 11.2);
+  doc.text(`${isEn ? 'Factory / Line' : 'Pabrik / Lini'}:`, metaTextLeft, metaBoxY + 7.5);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(196, 142, 20);
-  doc.text('WI.FR.LEAN.02.03', metaValLeft, metaBoxY + 11.2);
+  doc.setTextColor(30, 41, 59);
+  doc.text(`${selectedFactory} • ${selectedLine}`, metaValLeft, metaBoxY + 7.5);
+
+  // 3. Period
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
+  doc.text(`${isEn ? 'Period' : 'Periode'}:`, metaTextLeft, metaBoxY + 11.2);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(30, 41, 59);
+  doc.text(`${monthName} ${selectedYear}`, metaValLeft, metaBoxY + 11.2);
 
   let currentY = isPortrait ? 27.5 : 28;
 
@@ -492,23 +511,26 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
     const boxH = isPortrait ? 24 : 26;
     const sigGap = (contentWidth - (boxW * 3)) / 2;
 
-    const leader = getLineLeader(DEFAULT_LINE_LEADERS, selectedFactory, selectedLine);
+    const leader = getLineLeader(lineLeaders || DEFAULT_LINE_LEADERS, selectedFactory, selectedLine);
 
     const signBoxes = [
       {
         title: isEn ? 'PREPARED BY (IE OFFICER)' : 'DIBUAT OLEH (IE OFFICER)',
         subtitle: isEn ? 'Industrial Engineering Dept.' : 'Industrial Engineering Dept.',
-        name: leader.ie && leader.ie !== '-' ? leader.ie : 'IE Specialist'
+        name: leader.ie && leader.ie !== '-' ? leader.ie : 'IE Specialist',
+        role: '(IE Specialist)'
       },
       {
         title: isEn ? 'VERIFIED BY (SUPERVISOR)' : 'DIVERIFIKASI OLEH (SPV SEWING)',
         subtitle: isEn ? 'Sewing Production Line' : 'Line Supervisor Sewing',
-        name: leader.supervisor && leader.supervisor !== '-' ? leader.supervisor : `${selectedLine} Supervisor`
+        name: leader.supervisor && leader.supervisor !== '-' ? leader.supervisor : `${selectedLine} Supervisor`,
+        role: `(Supervisor ${selectedLine})`
       },
       {
-        title: isEn ? 'APPROVED BY (CHIEF / MGR)' : 'DISETUJUI OLEH (CHIEF / MGR)',
-        subtitle: isEn ? 'Production Chief / Management' : 'Chief of Production',
-        name: leader.chief && leader.chief !== '-' ? leader.chief : `${selectedFactory} Management`
+        title: 'APPROVED BY (CHIEF)',
+        subtitle: isEn ? 'Sewing Production Dept.' : 'Sewing Production Dept.',
+        name: leader.chief && leader.chief !== '-' ? leader.chief : 'Sewing Chief',
+        role: '(Sewing Chief)'
       }
     ];
 
@@ -530,13 +552,18 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
 
       doc.setDrawColor(180, 195, 195);
       doc.setLineDashPattern([1, 1], 0);
-      doc.line(bx + 5, sigY + (boxH - 6), bx + boxW - 5, sigY + (boxH - 6));
+      doc.line(bx + 5, sigY + (boxH - 8), bx + boxW - 5, sigY + (boxH - 8));
       doc.setLineDashPattern([], 0);
 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(isPortrait ? 6 : 6.5);
       doc.setTextColor(50, 65, 65);
-      doc.text(`( ${box.name} )`, bx + (boxW / 2), sigY + (boxH - 2.5), { align: 'center' });
+      doc.text(box.name, bx + (boxW / 2), sigY + (boxH - 4.5), { align: 'center' });
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(isPortrait ? 5 : 5.5);
+      doc.setTextColor(120, 136, 136);
+      doc.text(box.role, bx + (boxW / 2), sigY + (boxH - 1.8), { align: 'center' });
     });
   }
 

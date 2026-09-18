@@ -28,7 +28,7 @@ import {
   FileDown
 } from 'lucide-react';
 import { ExportPDFModal } from './ExportPDFModal';
-import { Operator, GradeType, MachineCategory } from '../types';
+import { Operator, GradeType, MachineCategory, LineLeader } from '../types';
 import { 
   getOperatorMultiSkillCount, 
   getOperatorAvgRate, 
@@ -72,6 +72,7 @@ interface SkillMatrixTabProps {
   selectedFactory: string;
   selectedMonth?: number;
   selectedYear?: number;
+  lineLeaders?: LineLeader[];
 }
 
 export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
@@ -84,6 +85,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
   selectedFactory,
   selectedMonth = 9,
   selectedYear = 2026,
+  lineLeaders,
 }) => {
   const { t, language } = useLanguage();
   const addOpT = t.addOperatorModal;
@@ -1970,6 +1972,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
         selectedLine={selectedLine}
         selectedMonth={selectedMonth}
         selectedYear={selectedYear}
+        lineLeaders={lineLeaders}
       />
 
     </div>

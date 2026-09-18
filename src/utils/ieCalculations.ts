@@ -346,6 +346,12 @@ export function normalizeFactoryName(raw: any): string {
   if (raw === undefined || raw === null) return "Factory 1";
   const str = String(raw).trim();
   if (!str || str === "-") return "Factory 1";
+  
+  // Khusus Factory 3B: jaga agar tidak terpotong menjadi Factory 3
+  if (/3\s*b/i.test(str)) {
+    return "Factory 3B";
+  }
+
   const match = str.match(/\d+/);
   if (match) {
     return `Factory ${parseInt(match[0], 10)}`;
@@ -372,11 +378,12 @@ export function normalizeLineName(raw: any): string {
 
 /**
  * Format nama factory murni untuk penulisan ke Google Sheets Kolom A (hanya angka).
- * Contoh: "Factory 1" -> "1", "Factory 2" -> "2", "1" -> "1"
+ * Contoh: "Factory 1" -> "1", "Factory 2" -> "2", "Factory 3B" -> "3B"
  */
 export function formatFactoryForSheet(raw: any): string {
   if (raw === undefined || raw === null) return "1";
   const str = String(raw).trim();
+  if (/3\s*b/i.test(str)) return "3B";
   const match = str.match(/\d+/);
   return match ? match[0] : (str.replace(/factory\s*/i, "").trim() || "1");
 }
@@ -823,9 +830,17 @@ export function filterOperatorsByPointInTime(
 
   // 4. Filter opsional berdasarkan Factory dan Line jika ada
   if (selectedFactory && selectedFactory !== 'All') {
+    const normSelected = normalizeFactoryName(selectedFactory).toLowerCase();
+    
+    // Khusus Factory 3B: karena belum ada datanya, kosongkan agar data tidak rancu
+    if (normSelected === 'factory 3b') {
+      return [];
+    }
+
     result = result.filter((op: any) => {
-      const fac = normalizeFactoryName(op.factory || '1');
-      return fac.toLowerCase() === normalizeFactoryName(selectedFactory).toLowerCase();
+      const fac = normalizeFactoryName(op.factory || '1').toLowerCase();
+      if (fac === 'factory 3b') return false;
+      return fac === normSelected;
     });
   }
 
@@ -864,6 +879,11 @@ export function processOperatorsByDominantLine<T extends RawSheetRow = RawSheetR
   targetLine: string
 ): T[] {
   if (!rawRows || !Array.isArray(rawRows) || rawRows.length === 0) {
+    return [];
+  }
+
+  // Khusus Factory 3B: belum ada data, kembalikan array kosong agar data tidak rancu
+  if (targetFactory && normalizeFactoryName(targetFactory).toLowerCase() === 'factory 3b') {
     return [];
   }
 

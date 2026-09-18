@@ -1,5 +1,6 @@
 import React from 'react';
 import { 
+  LayoutDashboard,
   TableProperties, 
   Target, 
   Building2,
@@ -48,6 +49,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const navItems: NavItem[] = [
     {
+      id: 'overall',
+      label: t.sidebar.navOverall,
+      sublabel: t.sidebar.navOverallSub,
+      icon: LayoutDashboard,
+      badge: 'Main',
+    },
+    {
       id: 'matrix',
       label: t.sidebar.navMatrix,
       sublabel: t.sidebar.navMatrixSub,
@@ -81,8 +89,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-white border border-white/15 shadow-inner">
-                <Building2 className="w-5 h-5 text-[#D0A018]" />
+              <div className="w-10 h-10 rounded-2xl bg-white p-1.5 flex items-center justify-center border border-white/20 shadow-md shrink-0">
+                <img
+                  src="/winners-logo.png"
+                  alt="PT. Winners International"
+                  className="w-full h-full object-contain"
+                />
               </div>
               <div>
                 <h1 className="text-sm font-bold tracking-wider text-white uppercase font-sans">
@@ -276,8 +288,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           <div className="border-t border-white/10 pt-2.5">
-            <div className="flex items-start space-x-2 text-[#C8D8D8]">
-              <Award className="w-3.5 h-3.5 text-[#D0A018] shrink-0 mt-0.5" />
+            <div className="flex items-center space-x-2.5 text-[#C8D8D8]">
+              <div className="w-5 h-5 rounded-md bg-white p-0.5 shrink-0 flex items-center justify-center">
+                <img
+                  src="/winners-logo.png"
+                  alt="PT. Winners International"
+                  className="w-full h-full object-contain"
+                />
+              </div>
               <div>
                 <span className="font-semibold text-white text-[11px] block leading-tight">
                   Manufacturing Excellence Team

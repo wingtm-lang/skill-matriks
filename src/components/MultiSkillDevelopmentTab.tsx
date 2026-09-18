@@ -16,7 +16,7 @@ import {
   Cpu,
   FileDown
 } from 'lucide-react';
-import { Operator, MachineCategory } from '../types';
+import { Operator, MachineCategory, LineLeader } from '../types';
 import { getOperatorMultiSkillCount, getOperatorAvgRate } from '../utils/ieCalculations';
 import { getGradeFromRate } from '../data/mockData';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -28,6 +28,7 @@ interface MultiSkillDevelopmentTabProps {
   selectedFactory: string;
   selectedMonth?: number;
   selectedYear?: number;
+  lineLeaders?: LineLeader[];
 }
 
 export const MultiSkillDevelopmentTab: React.FC<MultiSkillDevelopmentTabProps> = ({
@@ -36,6 +37,7 @@ export const MultiSkillDevelopmentTab: React.FC<MultiSkillDevelopmentTabProps> =
   selectedFactory,
   selectedMonth = new Date().getMonth() + 1,
   selectedYear = new Date().getFullYear(),
+  lineLeaders,
 }) => {
   const { t } = useLanguage();
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
@@ -321,6 +323,7 @@ export const MultiSkillDevelopmentTab: React.FC<MultiSkillDevelopmentTabProps> =
         selectedLine={selectedLine}
         selectedMonth={selectedMonth}
         selectedYear={selectedYear}
+        lineLeaders={lineLeaders}
       />
 
     </div>

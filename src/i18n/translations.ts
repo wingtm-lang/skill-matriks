@@ -61,6 +61,8 @@ export interface Translations {
     activeLine: string;
     activeOpsLabel: string;
     totalPopLabel: string;
+    navOverall: string;
+    navOverallSub: string;
     navMatrix: string;
     navMatrixSub: string;
     navBalancing: string;
@@ -626,6 +628,8 @@ export const translations: Record<Language, Translations> = {
       activeLine: 'Lini Aktif',
       activeOpsLabel: 'Operator Aktif',
       totalPopLabel: 'Total Populasi',
+      navOverall: 'Overall Dashboard',
+      navOverallSub: 'Ringkasan Seluruh Pabrik',
       navMatrix: 'Skill Matrix',
       navMatrixSub: 'Operator & Kompetensi',
       navBalancing: 'AI Line Balancing',
@@ -856,9 +860,9 @@ export const translations: Record<Language, Translations> = {
       sigVerifiedBy: 'DIVERIFIKASI (SPV SEWING)',
       sigVerifiedDept: 'Sewing Production Line',
       sigVerifiedRole: '( Supervisor Lini )',
-      sigApprovedBy: 'DISETUJUI (PABRIK / IE MGR)',
-      sigApprovedDept: 'Factory & IE Management',
-      sigApprovedRole: '( Manajemen Pabrik )',
+      sigApprovedBy: 'APPROVED BY (CHIEF)',
+      sigApprovedDept: 'Sewing Production Dept.',
+      sigApprovedRole: '(Sewing Chief)',
       paperFooterCompany: 'PT.WINNERS INTERNATIONAL',
       readyExportMessage: 'Siap mengekspor {count} data operator dalam format {orientation}',
       closeBtn: 'Tutup',
@@ -1163,6 +1167,8 @@ export const translations: Record<Language, Translations> = {
       activeLine: 'Active Line',
       activeOpsLabel: 'Active Operators',
       totalPopLabel: 'Total Population',
+      navOverall: 'Overall Dashboard',
+      navOverallSub: 'Factory & Enterprise Overview',
       navMatrix: 'Skill Matrix',
       navMatrixSub: 'Operators & Competencies',
       navBalancing: 'AI Line Balancing',
@@ -1393,9 +1399,9 @@ export const translations: Record<Language, Translations> = {
       sigVerifiedBy: 'VERIFIED BY (SEWING SPV)',
       sigVerifiedDept: 'Sewing Production Line',
       sigVerifiedRole: '( Sewing Line Supervisor )',
-      sigApprovedBy: 'APPROVED BY (FACTORY / IE MGR)',
-      sigApprovedDept: 'Factory & IE Management',
-      sigApprovedRole: '( Factory Management )',
+      sigApprovedBy: 'APPROVED BY (CHIEF)',
+      sigApprovedDept: 'Sewing Production Dept.',
+      sigApprovedRole: '(Sewing Chief)',
       paperFooterCompany: 'PT.WINNERS INTERNATIONAL',
       readyExportMessage: 'Ready to export {count} operator records in {orientation} format',
       closeBtn: 'Close',

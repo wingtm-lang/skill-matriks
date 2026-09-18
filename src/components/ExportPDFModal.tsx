@@ -21,7 +21,7 @@ import {
   Info,
   Layers
 } from 'lucide-react';
-import { Operator } from '../types';
+import { Operator, LineLeader } from '../types';
 import { 
   exportSkillMatrixPDF, 
   generateSkillMatrixPDFBlob 
@@ -46,6 +46,7 @@ interface ExportPDFModalProps {
   selectedLine: string;
   selectedMonth: number;
   selectedYear: number;
+  lineLeaders?: LineLeader[];
 }
 
 export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
@@ -55,7 +56,8 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
   selectedFactory,
   selectedLine,
   selectedMonth,
-  selectedYear
+  selectedYear,
+  lineLeaders
 }) => {
   const { language, getMonthName, t } = useLanguage();
   const pdfT = t.exportPdfModal;
@@ -222,7 +224,8 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
         includeSignatures,
         includeCurrentOperation,
         language,
-        orientation
+        orientation,
+        lineLeaders
       });
 
       setTimeout(() => {
@@ -247,7 +250,8 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
         includeSignatures,
         includeCurrentOperation,
         language,
-        orientation
+        orientation,
+        lineLeaders
       });
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank');
@@ -689,16 +693,27 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                   {/* HEADER & METADATA SECTION */}
                   <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-3">
                     <div>
-                      <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-                        {pdfT.companyTitle}
-                      </h1>
-                      <h2 className="text-sm font-extrabold text-[#244646] mt-1 tracking-wide uppercase">
+                      <div className="flex items-center gap-2.5">
+                        <img
+                          src="/winners-logo.png"
+                          alt="PT. Winners International"
+                          className="w-6 h-6 object-contain shrink-0"
+                        />
+                        <h1 className="text-xl font-bold text-slate-900 tracking-tight leading-none">
+                          {pdfT.companyTitle}
+                        </h1>
+                      </div>
+                      <h2 className="text-sm font-extrabold text-[#244646] mt-1.5 ml-[34px] tracking-wide uppercase">
                         {pdfT.documentTitle}
                       </h2>
                     </div>
 
                     {/* Metadata Card Box */}
                     <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 text-[10px] min-w-[210px] space-y-1">
+                      <div className="flex justify-between pb-0.5 border-b border-slate-200">
+                        <span className="text-slate-500">{pdfT.docIdLabel}:</span>
+                        <span className="font-mono font-bold text-[#C48E14]">{docIdStr}</span>
+                      </div>
                       <div className="flex justify-between">
                         <span className="text-slate-500">{pdfT.factoryLineLabel}:</span>
                         <span className="font-bold text-slate-800">{selectedFactory} • {selectedLine}</span>
@@ -706,10 +721,6 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                       <div className="flex justify-between">
                         <span className="text-slate-500">{pdfT.periodLabel}:</span>
                         <span className="font-bold text-slate-800">{monthName} {selectedYear}</span>
-                      </div>
-                      <div className="flex justify-between pt-0.5 border-t border-slate-200">
-                        <span className="text-slate-500">{pdfT.docIdLabel}:</span>
-                        <span className="font-mono font-bold text-[#C48E14]">{docIdStr}</span>
                       </div>
                     </div>
                   </div>
@@ -884,7 +895,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
 
                   {/* SIGNATURES BLOCK (ON LAST PAGE) */}
                   {includeSignatures && safePageIndex === pagesData.length - 1 && (() => {
-                    const leaderInfo = getLineLeader(DEFAULT_LINE_LEADERS, selectedFactory, selectedLine);
+                    const leaderInfo = getLineLeader(lineLeaders || DEFAULT_LINE_LEADERS, selectedFactory, selectedLine);
                     return (
                       <div className="pt-2">
                         <div className="grid grid-cols-3 gap-4 text-center">
@@ -911,8 +922,8 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                             <p className="text-[9px] font-bold text-[#244646] uppercase">{pdfT.sigApprovedBy}</p>
                             <p className="text-[8px] text-slate-400 mb-5">{pdfT.sigApprovedDept}</p>
                             <div className="border-b border-dashed border-slate-300 mx-3 mb-1" />
-                            <p className="text-[9px] font-bold text-slate-800">{leaderInfo.chief && leaderInfo.chief !== '-' ? leaderInfo.chief : pdfT.sigApprovedRole.replace('{factory}', selectedFactory)}</p>
-                            <p className="text-[7.5px] text-slate-400">{pdfT.sigApprovedRole.replace('{factory}', selectedFactory)}</p>
+                            <p className="text-[9px] font-bold text-slate-800">{leaderInfo.chief && leaderInfo.chief !== '-' ? leaderInfo.chief : 'Sewing Chief'}</p>
+                            <p className="text-[7.5px] text-slate-400">{pdfT.sigApprovedRole}</p>
                           </div>
                         </div>
                       </div>

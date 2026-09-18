@@ -10,11 +10,13 @@ import { FACTORIES, LINES } from '../data/mockData';
 import { 
   sortLinesNumerically, 
   sortFactoriesNumerically, 
+  normalizeFactoryName,
   AVAILABLE_YEARS 
 } from '../utils/ieCalculations';
 import { useLanguage } from '../i18n/LanguageContext';
 
 interface HeaderProps {
+  activeTab?: string;
   onToggleSidebar: () => void;
   selectedFactory: string;
   onFactoryChange: (factory: string) => void;
@@ -32,6 +34,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
+  activeTab,
   onToggleSidebar,
   selectedFactory,
   onFactoryChange,
@@ -75,22 +78,29 @@ export const Header: React.FC<HeaderProps> = ({
             <Menu className="w-5 h-5" />
           </button>
 
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm sm:text-base font-bold text-[#304848] tracking-tight">
-                {t.header.companyName}
-              </h2>
-              <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
-                isLive 
-                  ? 'bg-[#D9F1EF] text-[#247F77] border-[#BDE5E2]' 
-                  : 'bg-amber-50 text-amber-800 border-amber-200'
-              }`}>
-                {isLive ? t.header.liveBadge : t.header.mockBadge}
-              </span>
+          <div className="flex items-center space-x-3">
+            <img
+              src="/winners-logo.png"
+              alt="PT. Winners International Logo"
+              className="w-8 h-8 sm:w-9 sm:h-9 object-contain shrink-0 drop-shadow-2xs"
+            />
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm sm:text-base font-bold text-[#304848] tracking-tight">
+                  {t.header.companyName}
+                </h2>
+                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                  isLive 
+                    ? 'bg-[#D9F1EF] text-[#247F77] border-[#BDE5E2]' 
+                    : 'bg-amber-50 text-amber-800 border-amber-200'
+                }`}>
+                  {isLive ? t.header.liveBadge : t.header.mockBadge}
+                </span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-[#788888] font-normal">
+                {t.header.systemSubtitle}
+              </p>
             </div>
-            <p className="text-[11px] sm:text-xs text-[#788888] font-normal">
-              {t.header.systemSubtitle}
-            </p>
           </div>
         </div>
 
@@ -100,6 +110,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Factory Selector */}
           <div className="flex items-center space-x-1.5 bg-[#F8F8F8] hover:bg-[#F2F6F6] border border-[#E0E8E8] hover:border-[#2AAFA3]/40 rounded-xl px-2.5 py-1.5 shadow-2xs transition-colors">
             <Building2 className="w-3.5 h-3.5 text-[#2AAFA3]" />
+            <span className="text-[11px] text-[#788888] hidden sm:inline">{t.header.factory}:</span>
             <select
               value={selectedFactory}
               onChange={(e) => onFactoryChange(e.target.value)}
@@ -113,21 +124,35 @@ export const Header: React.FC<HeaderProps> = ({
             </select>
           </div>
 
-          {/* Line Selector */}
-          <div className="flex items-center space-x-1.5 bg-[#F8F8F8] hover:bg-[#F2F6F6] border border-[#E0E8E8] hover:border-[#D0A018]/40 rounded-xl px-2.5 py-1.5 shadow-2xs transition-colors">
-            <GitFork className="w-3.5 h-3.5 text-[#D0A018]" />
-            <select
-              value={selectedLine}
-              onChange={(e) => onLineChange(e.target.value)}
-              className="bg-transparent text-xs font-semibold text-[#304848] outline-none cursor-pointer pr-1"
-            >
-              {lineList.map((l) => (
-                <option key={l} value={l}>
-                  {l}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Line Selector - only shown when on line-specific tabs */}
+          {activeTab !== 'overall' && (
+            <div className={`flex items-center space-x-1.5 border rounded-xl px-2.5 py-1.5 shadow-2xs transition-colors ${
+              normalizeFactoryName(selectedFactory).toLowerCase() === 'factory 3b'
+                ? 'bg-amber-50/70 border-amber-200 text-amber-800'
+                : 'bg-[#F8F8F8] hover:bg-[#F2F6F6] border-[#E0E8E8] hover:border-[#D0A018]/40'
+            }`}>
+              <GitFork className={`w-3.5 h-3.5 ${
+                normalizeFactoryName(selectedFactory).toLowerCase() === 'factory 3b' ? 'text-amber-500' : 'text-[#D0A018]'
+              }`} />
+              {normalizeFactoryName(selectedFactory).toLowerCase() === 'factory 3b' ? (
+                <span className="text-xs font-semibold text-amber-800/80 italic pr-1">
+                  Belum Ada Lini (Kosong)
+                </span>
+              ) : (
+                <select
+                  value={selectedLine}
+                  onChange={(e) => onLineChange(e.target.value)}
+                  className="bg-transparent text-xs font-semibold text-[#304848] outline-none cursor-pointer pr-1"
+                >
+                  {lineList.map((l) => (
+                    <option key={l} value={l}>
+                      {l}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
 
           {/* Point-in-Time Reporting Filter (Month & Year) */}
           <div className="flex items-center space-x-1.5 bg-[#F8F8F8] hover:bg-[#F2F6F6] border border-[#E0E8E8] hover:border-[#2AAFA3]/40 rounded-xl px-2.5 py-1.5 shadow-2xs transition-colors" title="Point-in-Time Reporting Filter">

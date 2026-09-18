@@ -251,6 +251,9 @@ app.get("/api/sheets/operators", async (req, res) => {
       if (raw === undefined || raw === null || raw === "") return "Factory 1";
       const str = String(raw).trim();
       if (!str || str === "-") return "Factory 1";
+      if (/3\s*b/i.test(str)) {
+        return "Factory 3B";
+      }
       if (/^factory\s*\d+/i.test(str)) {
         const num = str.match(/\d+/)?.[0];
         return `Factory ${num}`;
@@ -784,10 +787,11 @@ app.post("/api/sheets/append-by-worker", async (req, res) => {
     const name = String(operator.name).trim().toUpperCase();
     const doj = String(operator.doj || "-").trim();
     
-    // Format Factory: hanya angka (e.g. "Factory 1" -> "1", "1" -> "1")
+    // Format Factory: hanya angka atau 3B (e.g. "Factory 1" -> "1", "Factory 3B" -> "3B")
     const rawFac = String(operator.factory || "1").trim();
+    const is3B = /3\s*b/i.test(rawFac);
     const facMatch = rawFac.match(/\d+/);
-    const factory = facMatch ? facMatch[0] : (rawFac.replace(/factory\s*/i, "").trim() || "1");
+    const factory = is3B ? "3B" : (facMatch ? facMatch[0] : (rawFac.replace(/factory\s*/i, "").trim() || "1"));
 
     // Format Line: hanya nomor line (e.g. "Line 28" -> "28", "Line 1" -> "1", "28" -> "28")
     const rawLine = String(operator.line || "1").trim();

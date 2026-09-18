@@ -4,6 +4,7 @@ import { Header } from './components/Header';
 import { MetricsOverview } from './components/MetricsOverview';
 import { SkillMatrixTab } from './components/SkillMatrixTab';
 import { MultiSkillDevelopmentTab } from './components/MultiSkillDevelopmentTab';
+import { OverallDashboardTab } from './components/OverallDashboardTab';
 import { FACTORIES, LINES, DEFAULT_LINE_LEADERS } from './data/mockData';
 import { Operator, LineLeader } from './types';
 import { 
@@ -27,7 +28,7 @@ export default function App() {
   const [selectedLine, setSelectedLine] = useState<string>('Line 1');
   const [selectedMonth, setSelectedMonth] = useState<number>(() => new Date().getMonth() + 1); // Current active month (1-12)
   const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear()); // Current active year
-  const [activeTab, setActiveTab] = useState<string>('matrix');
+  const [activeTab, setActiveTab] = useState<string>('overall');
   const [userRole, setUserRole] = useState<'VIEWER' | 'EDITOR' | 'ADMIN'>('VIEWER');
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
 
@@ -426,6 +427,7 @@ export default function App() {
         
         {/* TOP HEADER WITH POINT-IN-TIME CONTROLS */}
         <Header
+          activeTab={activeTab}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           selectedFactory={selectedFactory}
           onFactoryChange={setSelectedFactory}
@@ -458,19 +460,40 @@ export default function App() {
           </div>
         )}
 
-        {/* METRICS KPI SUMMARY ROW */}
-        <MetricsOverview
-          operators={displayedOperators}
-          selectedLine={selectedLine}
-          selectedFactory={selectedFactory}
-          targetGrade="Grade A"
-          selectedMonth={selectedMonth}
-          selectedYear={selectedYear}
-          lineLeaders={lineLeaders}
-        />
+        {/* METRICS KPI SUMMARY ROW - Only displayed on line-specific tabs */}
+        {activeTab !== 'overall' && (
+          <MetricsOverview
+            operators={displayedOperators}
+            selectedLine={selectedLine}
+            selectedFactory={selectedFactory}
+            targetGrade="Grade A"
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
+            lineLeaders={lineLeaders}
+          />
+        )}
 
         {/* TAB CONTENTS */}
         <div className="flex-1">
+          {activeTab === 'overall' && (
+            <OverallDashboardTab
+              operators={operators}
+              availableFactories={availableFactories}
+              selectedFactory={selectedFactory}
+              onFactoryChange={setSelectedFactory}
+              selectedMonth={selectedMonth}
+              onMonthChange={setSelectedMonth}
+              selectedYear={selectedYear}
+              onYearChange={setSelectedYear}
+              onNavigateToLine={(fac, line) => {
+                setSelectedFactory(fac);
+                setSelectedLine(line);
+                setActiveTab('matrix');
+              }}
+              lineLeaders={lineLeaders}
+            />
+          )}
+
           {activeTab === 'matrix' && (
             <SkillMatrixTab
               operators={displayedOperators}
@@ -482,6 +505,7 @@ export default function App() {
               selectedFactory={selectedFactory}
               selectedMonth={selectedMonth}
               selectedYear={selectedYear}
+              lineLeaders={lineLeaders}
             />
           )}
 
@@ -492,13 +516,17 @@ export default function App() {
               selectedFactory={selectedFactory}
               selectedMonth={selectedMonth}
               selectedYear={selectedYear}
+              lineLeaders={lineLeaders}
             />
           )}
         </div>
 
         {/* FOOTER */}
         <footer className="mt-8 pt-4 border-t border-[#E0E8E8] text-center text-xs text-[#788888] flex flex-wrap items-center justify-between gap-2">
-          <span>PT. Winners International &copy; 2026 — Industrial Engineering & Lean Manufacturing System</span>
+          <span className="flex items-center gap-1.5">
+            <img src="/winners-logo.png" alt="" className="w-4 h-4 object-contain inline-block shrink-0" />
+            PT. Winners International &copy; 2026 — Industrial Engineering & Lean Manufacturing System
+          </span>
           <span className="font-mono text-[11px] text-[#98A8A8]">GSD & MOST Standard Compliance</span>
         </footer>
 
