@@ -4,8 +4,8 @@ import { Header } from './components/Header';
 import { MetricsOverview } from './components/MetricsOverview';
 import { SkillMatrixTab } from './components/SkillMatrixTab';
 import { MultiSkillDevelopmentTab } from './components/MultiSkillDevelopmentTab';
-import { FACTORIES, LINES } from './data/mockData';
-import { Operator } from './types';
+import { FACTORIES, LINES, DEFAULT_LINE_LEADERS } from './data/mockData';
+import { Operator, LineLeader } from './types';
 import { 
   sortLinesNumerically, 
   sortFactoriesNumerically, 
@@ -38,6 +38,7 @@ export default function App() {
   const [syncError, setSyncError] = useState<string | null>(null);
   const [availableFactories, setAvailableFactories] = useState<string[]>(FACTORIES);
   const [availableLines, setAvailableLines] = useState<string[]>(LINES);
+  const [lineLeaders, setLineLeaders] = useState<LineLeader[]>(DEFAULT_LINE_LEADERS);
 
   // Fetch live operators directly from Google Sheets via backend proxy or direct API (for Vercel & static hosting)
   const fetchLiveOperators = useCallback(async () => {
@@ -53,6 +54,9 @@ export default function App() {
       }
       if (cachedData.lines.length > 0) {
         setAvailableLines(sortLinesNumerically(Array.from(new Set([...LINES, ...cachedData.lines]))));
+      }
+      if (cachedData.lineLeaders && cachedData.lineLeaders.length > 0) {
+        setLineLeaders(cachedData.lineLeaders);
       }
       setSyncMessage(`Memuat cache (${cachedData.operators.length} operator)... Menyinkronkan data terbaru...`);
     }
@@ -110,6 +114,9 @@ export default function App() {
           if (Array.isArray(proxyData.lines) && proxyData.lines.length > 0) {
             setAvailableLines(sortLinesNumerically(Array.from(new Set([...LINES, ...proxyData.lines]))));
           }
+          if (Array.isArray(proxyData.lineLeaders) && proxyData.lineLeaders.length > 0) {
+            setLineLeaders(proxyData.lineLeaders);
+          }
           return;
         }
       }
@@ -140,6 +147,9 @@ export default function App() {
         }
         if (Array.isArray(directData.lines) && directData.lines.length > 0) {
           setAvailableLines(sortLinesNumerically(Array.from(new Set([...LINES, ...directData.lines]))));
+        }
+        if (Array.isArray(directData.lineLeaders) && directData.lineLeaders.length > 0) {
+          setLineLeaders(directData.lineLeaders);
         }
         return;
       }
@@ -298,6 +308,33 @@ export default function App() {
         if (uniqueLines.length > 0) {
           setAvailableLines(sortLinesNumerically(Array.from(new Set([...LINES, ...uniqueLines]))));
         }
+
+        // Ekstraksi Line Leaders dari dataRows (Kolom AC: 28, AD: 29, AE: 30, AF: 31, AG: 32)
+        const leadersMap = new Map<string, LineLeader>();
+        dataRows.forEach((r: any[]) => {
+          const rawF = (r[28] ?? "").toString().trim();
+          const rawL = (r[29] ?? "").toString().trim();
+          const rawChief = (r[30] ?? "").toString().trim();
+          const rawSpv = (r[31] ?? "").toString().trim();
+          const rawIE = (r[32] ?? "").toString().trim();
+          if (rawF && rawL && (rawChief || rawSpv || rawIE)) {
+            const fName = normalizeFactoryName(rawF);
+            const lName = normalizeLineName(rawL);
+            const key = `${fName}_${lName}`;
+            if (!leadersMap.has(key)) {
+              leadersMap.set(key, {
+                factory: fName,
+                line: lName,
+                chief: rawChief || "-",
+                supervisor: (rawSpv && rawSpv !== "-") ? rawSpv : "-",
+                ie: rawIE || "-",
+              });
+            }
+          }
+        });
+        if (leadersMap.size > 0) {
+          setLineLeaders(Array.from(leadersMap.values()));
+        }
         return;
       }
     } catch (gasErr) {
@@ -429,6 +466,7 @@ export default function App() {
           targetGrade="Grade A"
           selectedMonth={selectedMonth}
           selectedYear={selectedYear}
+          lineLeaders={lineLeaders}
         />
 
         {/* TAB CONTENTS */}

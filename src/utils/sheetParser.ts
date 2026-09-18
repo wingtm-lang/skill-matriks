@@ -1,4 +1,4 @@
-import { Operator } from "../types";
+import { Operator, LineLeader } from "../types";
 import { calculateWorkTimeMonths } from "./ieCalculations";
 
 export const DEFAULT_SPREADSHEET_ID = "1tA8YyHxFr1xwGWvdwHLOXaF9q8SjgbDuxDinzuH6kag";
@@ -67,9 +67,10 @@ export function parseSheetRowsToOperators(rows: any[][]): {
   operators: Operator[];
   factories: string[];
   lines: string[];
+  lineLeaders: LineLeader[];
 } {
   if (!Array.isArray(rows) || rows.length === 0) {
-    return { operators: [], factories: [], lines: [] };
+    return { operators: [], factories: [], lines: [], lineLeaders: [] };
   }
 
   const operatorMap = new Map<string, {
@@ -327,6 +328,35 @@ export function parseSheetRowsToOperators(rows: any[][]): {
     };
   });
 
+  // Ekstraksi struktur pimpinan lini (Kolom AC: Factory R, AD: Line R, AE: Chief, AF: Supervisor, AG: IE)
+  const lineLeadersMap = new Map<string, LineLeader>();
+  dataRows.forEach((row) => {
+    const rawF = row[28] !== undefined && row[28] !== null ? row[28].toString().trim() : "";
+    const rawL = row[29] !== undefined && row[29] !== null ? row[29].toString().trim() : "";
+    const rawChief = row[30] !== undefined && row[30] !== null ? row[30].toString().trim() : "";
+    const rawSpv = row[31] !== undefined && row[31] !== null ? row[31].toString().trim() : "";
+    const rawIE = row[32] !== undefined && row[32] !== null ? row[32].toString().trim() : "";
+
+    if (rawF && rawL && (rawChief || rawSpv || rawIE)) {
+      const fNum = rawF.replace(/[^0-9]/g, "") || rawF;
+      const lNum = rawL.replace(/[^0-9]/g, "") || rawL;
+      const fName = `Factory ${fNum}`;
+      const lName = `Line ${lNum}`;
+      const key = `${fName}_${lName}`;
+
+      if (!lineLeadersMap.has(key)) {
+        lineLeadersMap.set(key, {
+          factory: fName,
+          line: lName,
+          chief: rawChief || "-",
+          supervisor: (rawSpv && rawSpv !== "-") ? rawSpv : "-",
+          ie: rawIE || "-",
+        });
+      }
+    }
+  });
+  const lineLeaders = Array.from(lineLeadersMap.values());
+
   const uniqueFactories = Array.from(new Set(formattedOperators.map((o) => o.factory))).sort((a, b) => {
     const matchA = a.match(/\d+/);
     const matchB = b.match(/\d+/);
@@ -353,6 +383,7 @@ export function parseSheetRowsToOperators(rows: any[][]): {
     operators: formattedOperators,
     factories: uniqueFactories,
     lines: uniqueLines,
+    lineLeaders,
   };
 }
 
@@ -364,6 +395,7 @@ export async function fetchDirectFromGoogleSheets(): Promise<{
   operators: Operator[];
   factories: string[];
   lines: string[];
+  lineLeaders: LineLeader[];
   source: string;
 }> {
   const spreadsheetId = (typeof process !== "undefined" && process.env?.VITE_SPREADSHEET_ID) || DEFAULT_SPREADSHEET_ID;
@@ -371,7 +403,7 @@ export async function fetchDirectFromGoogleSheets(): Promise<{
 
   // 1. Google Sheets API v4 Official Direct Browser Fetch (CORS open to all origins, fast, compressed)
   try {
-    const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/by_worker!A2%3AR?key=${apiKey}`;
+    const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/by_worker!A2%3AAG?key=${apiKey}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 seconds timeout
 
@@ -390,6 +422,7 @@ export async function fetchDirectFromGoogleSheets(): Promise<{
               operators: parsed.operators,
               factories: parsed.factories,
               lines: parsed.lines,
+              lineLeaders: parsed.lineLeaders,
             }));
           } catch {
             // ignore storage quota errors
@@ -427,6 +460,7 @@ export async function fetchDirectFromGoogleSheets(): Promise<{
               operators: parsed.operators,
               factories: parsed.factories,
               lines: parsed.lines,
+              lineLeaders: parsed.lineLeaders,
             }));
           } catch {
             // ignore
@@ -452,6 +486,7 @@ export function getStoredOperatorsCache(): {
   operators: Operator[];
   factories: string[];
   lines: string[];
+  lineLeaders: LineLeader[];
 } | null {
   try {
     const stored = localStorage.getItem(CACHE_STORAGE_KEY);
@@ -462,6 +497,7 @@ export function getStoredOperatorsCache(): {
         operators: parsed.operators,
         factories: parsed.factories || [],
         lines: parsed.lines || [],
+        lineLeaders: parsed.lineLeaders || [],
       };
     }
   } catch {

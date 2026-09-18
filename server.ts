@@ -108,6 +108,7 @@ interface CachedOperatorsData {
   factories: string[];
   lines: string[];
   operators: any[];
+  lineLeaders?: any[];
 }
 let cachedOperatorsData: CachedOperatorsData | null = null;
 const CACHE_TTL_MS = 60 * 1000; // 60 seconds TTL
@@ -149,6 +150,7 @@ app.get("/api/sheets/operators", async (req, res) => {
         factories: cachedOperatorsData.factories,
         lines: cachedOperatorsData.lines,
         operators: cachedOperatorsData.operators,
+        lineLeaders: cachedOperatorsData.lineLeaders || [],
         cached: true,
         timestamp: new Date(cachedOperatorsData.timestamp).toISOString(),
       });
@@ -165,7 +167,7 @@ app.get("/api/sheets/operators", async (req, res) => {
         const sheets = google.sheets({ version: "v4", auth: apiKey });
         const response = await sheets.spreadsheets.values.get({
           spreadsheetId,
-          range: "by_worker!A2:R", // Ambil seluruh baris data sampai Kolom R (Status) tanpa batasan 2000
+          range: "by_worker!A2:AG", // Ambil seluruh baris data sampai Kolom AG (termasuk AC:Factory R, AD:Line R, AE:Chief, AF:Supervisor, AG:IE)
         });
         if (response.data.values && response.data.values.length > 0) {
           rows = response.data.values;
@@ -557,6 +559,35 @@ app.get("/api/sheets/operators", async (req, res) => {
         return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
       });
 
+    // Ekstraksi struktur pimpinan lini dari Kolom AC (idx 28: Factory R), AD (idx 29: Line R), AE (idx 30: Chief), AF (idx 31: Supervisor), AG (idx 32: IE)
+    const lineLeadersMap = new Map<string, { factory: string; line: string; chief: string; supervisor: string; ie: string }>();
+    rows.forEach((row) => {
+      const rawF = row[28] !== undefined && row[28] !== null ? String(row[28]).trim() : "";
+      const rawL = row[29] !== undefined && row[29] !== null ? String(row[29]).trim() : "";
+      const chief = row[30] !== undefined && row[30] !== null ? String(row[30]).trim() : "";
+      const supervisor = row[31] !== undefined && row[31] !== null ? String(row[31]).trim() : "";
+      const ie = row[32] !== undefined && row[32] !== null ? String(row[32]).trim() : "";
+
+      if (rawF && rawL && (chief || supervisor || ie)) {
+        const fNum = rawF.replace(/[^0-9]/g, "") || rawF;
+        const lNum = rawL.replace(/[^0-9]/g, "") || rawL;
+        const fName = `Factory ${fNum}`;
+        const lName = `Line ${lNum}`;
+        const key = `${fName}_${lName}`;
+
+        if (!lineLeadersMap.has(key)) {
+          lineLeadersMap.set(key, {
+            factory: fName,
+            line: lName,
+            chief: chief || "-",
+            supervisor: (supervisor && supervisor !== "-") ? supervisor : "-",
+            ie: ie || "-",
+          });
+        }
+      }
+    });
+    const lineLeaders = Array.from(lineLeadersMap.values());
+
     // Update in-memory cache
     cachedOperatorsData = {
       timestamp: Date.now(),
@@ -564,6 +595,7 @@ app.get("/api/sheets/operators", async (req, res) => {
       factories: uniqueFactories,
       lines: uniqueLines,
       operators: formattedOperators,
+      lineLeaders,
     };
 
     res.json({ 
@@ -572,6 +604,7 @@ app.get("/api/sheets/operators", async (req, res) => {
       factories: uniqueFactories,
       lines: uniqueLines,
       operators: formattedOperators,
+      lineLeaders,
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
@@ -583,6 +616,7 @@ app.get("/api/sheets/operators", async (req, res) => {
         factories: cachedOperatorsData.factories,
         lines: cachedOperatorsData.lines,
         operators: cachedOperatorsData.operators,
+        lineLeaders: cachedOperatorsData.lineLeaders || [],
         cached: true,
         stale: true,
         timestamp: new Date(cachedOperatorsData.timestamp).toISOString(),

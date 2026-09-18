@@ -32,7 +32,9 @@ import {
 } from '../utils/ieCalculations';
 import { 
   getOperatorTotalPoints, 
-  getGradeFromTotalPoints 
+  getGradeFromTotalPoints,
+  DEFAULT_LINE_LEADERS,
+  getLineLeader
 } from '../data/mockData';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -63,7 +65,21 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
   const [includeResigned, setIncludeResigned] = useState<boolean>(true);
   const [includeSummary, setIncludeSummary] = useState<boolean>(true);
   const [includeSignatures, setIncludeSignatures] = useState<boolean>(true);
+  const [includeCurrentOperation, setIncludeCurrentOperation] = useState<boolean>(true);
+  const [selectedOperationFilter, setSelectedOperationFilter] = useState<string>('ALL');
   const [multiSkillOnlyFilter, setMultiSkillOnlyFilter] = useState<boolean>(false);
+
+  // Unique list of processes / operations in current scope
+  const uniqueOperations = useMemo(() => {
+    const set = new Set<string>();
+    operators.forEach(op => {
+      const opName = (op.process || op.currentOperation || '').trim();
+      if (opName && opName !== '-') {
+        set.add(opName);
+      }
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [operators]);
 
   // Zoom & View state
   const [zoomLevel, setZoomLevel] = useState<number>(100);
@@ -82,8 +98,14 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
     if (multiSkillOnlyFilter) {
       list = list.filter(op => getOperatorMultiSkillCount(op) >= 2);
     }
+    if (selectedOperationFilter !== 'ALL') {
+      list = list.filter(op => {
+        const curOp = (op.process || op.currentOperation || '').trim();
+        return curOp.toLowerCase() === selectedOperationFilter.toLowerCase();
+      });
+    }
     return list;
-  }, [operators, includeResigned, multiSkillOnlyFilter, selectedMonth, selectedYear]);
+  }, [operators, includeResigned, multiSkillOnlyFilter, selectedOperationFilter, selectedMonth, selectedYear]);
 
   // Analytics Computation for Header & KPI Cards
   const stats = useMemo(() => {
@@ -109,11 +131,17 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
         totalActive++;
         const pts = getOperatorTotalPoints(op);
         totalPointsSum += pts;
-        const isHelper = op.status?.toUpperCase() === 'HELPER' || (op as any).grade === 'HELPER';
+        const isHelper = op.status?.toUpperCase() === 'HELPER' || (op as any).grade === 'HELPER' || (op as any).grade === 'H';
         const gradeObj = getGradeFromTotalPoints(pts, isHelper);
-        const letter = gradeObj.letter as keyof typeof gradeCounts;
-        if (gradeCounts[letter] !== undefined) {
-          gradeCounts[letter]++;
+        const letter = gradeObj.letter;
+        if (letter === 'H' || gradeObj.grade === 'HELPER' || isHelper) {
+          gradeCounts.HELPER++;
+        } else if (letter === 'S') {
+          gradeCounts.S++;
+        } else if (letter === 'A') {
+          gradeCounts.A++;
+        } else if (letter === 'B') {
+          gradeCounts.B++;
         } else {
           gradeCounts.C++;
         }
@@ -145,8 +173,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
   }, [filteredOperators, selectedMonth, selectedYear]);
 
   // Page chunking for realistic A4 sheets
-  // Portrait: Page 1 with Summary fits ~14-16 items; subsequent pages fit ~22-26 items
-  // Landscape: Page 1 fits ~10-12 items; subsequent pages fit ~18 items
+  // With the new Unified Executive KPI Strip saving 50% vertical space, Page 1 can comfortably fit more rows
   const pagesData = useMemo(() => {
     if (filteredOperators.length === 0) {
       return [[]];
@@ -154,8 +181,8 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
 
     const isPortrait = orientation === 'portrait';
     const firstPageCapacity = isPortrait 
-      ? (includeSummary ? 15 : 22)
-      : (includeSummary ? 11 : 16);
+      ? (includeSummary ? 18 : 24)
+      : (includeSummary ? 13 : 17);
     const subsequentPageCapacity = isPortrait ? 24 : 17;
 
     const pages: Operator[][] = [];
@@ -193,6 +220,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
         includeResigned,
         includeSummary,
         includeSignatures,
+        includeCurrentOperation,
         language,
         orientation
       });
@@ -217,6 +245,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
         includeResigned,
         includeSummary,
         includeSignatures,
+        includeCurrentOperation,
         language,
         orientation
       });
@@ -476,6 +505,64 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                   </p>
                 </div>
               </div>
+
+              {/* Checkbox 5: Include Current Operation Column */}
+              <div 
+                onClick={() => setIncludeCurrentOperation(!includeCurrentOperation)}
+                className="flex items-start gap-2.5 p-2.5 bg-white rounded-xl border border-slate-200 hover:border-teal-300 cursor-pointer transition-colors"
+              >
+                <div className="mt-0.5 text-teal-700 shrink-0">
+                  {includeCurrentOperation ? (
+                    <CheckSquare className="w-4 h-4 text-[#244646]" />
+                  ) : (
+                    <Square className="w-4 h-4 text-slate-400" />
+                  )}
+                </div>
+                <div className="text-xs">
+                  <p className="font-semibold text-slate-800 leading-tight">
+                    {pdfT.currentOperationCheckboxTitle}
+                  </p>
+                  <p className="text-slate-500 text-[10px] mt-0.5">
+                    {pdfT.currentOperationCheckboxDesc}
+                  </p>
+                </div>
+              </div>
+
+              {/* Filter by Current Operation (if operations exist) */}
+              {uniqueOperations.length > 0 && (
+                <div className="p-2.5 bg-white rounded-xl border border-slate-200 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-800">
+                      {pdfT.filterOperationTitle}
+                    </span>
+                    {selectedOperationFilter !== 'ALL' && (
+                      <button 
+                        onClick={() => setSelectedOperationFilter('ALL')}
+                        className="text-[10px] font-semibold text-teal-700 hover:text-teal-900 cursor-pointer"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                  <select
+                    value={selectedOperationFilter}
+                    onChange={(e) => setSelectedOperationFilter(e.target.value)}
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-teal-500 cursor-pointer"
+                  >
+                    <option value="ALL">
+                      {pdfT.allOperationsOption} ({operators.length})
+                    </option>
+                    {uniqueOperations.map((opName) => {
+                      const count = operators.filter(o => ((o.process || o.currentOperation || '').trim().toLowerCase() === opName.toLowerCase())).length;
+                      return (
+                        <option key={opName} value={opName}>
+                          {opName} ({count})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* AUDIT / GSD COMPLIANCE BANNER */}
@@ -620,12 +707,6 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                         <span className="text-slate-500">{pdfT.periodLabel}:</span>
                         <span className="font-bold text-slate-800">{monthName} {selectedYear}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">{pdfT.generatedLabel}:</span>
-                        <span className="font-semibold text-slate-700">
-                          {new Date().toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </span>
-                      </div>
                       <div className="flex justify-between pt-0.5 border-t border-slate-200">
                         <span className="text-slate-500">{pdfT.docIdLabel}:</span>
                         <span className="font-mono font-bold text-[#C48E14]">{docIdStr}</span>
@@ -633,59 +714,73 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                     </div>
                   </div>
 
-                  {/* EXECUTIVE KPI SUMMARY CARDS (ON FIRST PAGE) */}
+                  {/* UNIFIED EXECUTIVE KPI STRIP (ON FIRST PAGE) */}
                   {includeSummary && safePageIndex === 0 && (
-                    <div className={`grid gap-2 text-xs ${orientation === 'portrait' ? 'grid-cols-2' : 'grid-cols-4'}`}>
-                      {/* Card 1: Manpower */}
-                      <div className="bg-[#f1f8f8] border border-[#bedada] rounded-lg p-2.5">
-                        <span className="text-[9px] font-bold text-[#465f5f] uppercase tracking-wider block">
-                          {pdfT.kpiTotalManpower}
-                        </span>
-                        <div className="text-base font-extrabold text-[#244646] mt-0.5">
-                          {stats.totalActive} {pdfT.kpiActiveLabel}
+                    <div className="bg-slate-50/90 border border-slate-200 rounded-lg overflow-hidden">
+                      <div className="grid grid-cols-4 divide-x divide-slate-200 text-xs">
+                        {/* Metric 1: Total Manpower */}
+                        <div className="p-2.5 flex flex-col justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#244646] shrink-0" />
+                            <span className="text-[8.5px] font-bold text-slate-600 uppercase tracking-wider truncate">
+                              {pdfT.kpiTotalManpower}
+                            </span>
+                          </div>
+                          <div className="text-sm font-extrabold text-[#244646] my-auto leading-none">
+                            {stats.totalActive} <span className="text-[9.5px] font-semibold text-slate-600">{pdfT.kpiActiveLabel}</span>
+                          </div>
                         </div>
-                        <span className="text-[9.5px] text-[#8c6464] block">
-                          ({stats.totalResigned} {pdfT.kpiResignedLabel})
-                        </span>
-                      </div>
 
-                      {/* Card 2: Multi-Skill */}
-                      <div className="bg-[#ecfdf5] border border-[#a7f3d0] rounded-lg p-2.5">
-                        <span className="text-[9px] font-bold text-[#166534] uppercase tracking-wider block">
-                          {pdfT.kpiMultiSkillRatio}
-                        </span>
-                        <div className="text-base font-extrabold text-[#166534] mt-0.5">
-                          {stats.multiSkillPercent}%
+                        {/* Metric 2: Multi-Skill Ratio */}
+                        <div className="p-2.5 flex flex-col justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
+                            <span className="text-[8.5px] font-bold text-slate-600 uppercase tracking-wider truncate">
+                              {pdfT.kpiMultiSkillRatio}
+                            </span>
+                          </div>
+                          <div className="text-sm font-extrabold text-emerald-700 mt-1 leading-none">
+                            {stats.multiSkillPercent}%
+                          </div>
+                          <span className="text-[8.5px] text-slate-500 mt-1 block font-medium truncate">
+                            {stats.multiSkillCount} / {stats.totalActive} {pdfT.kpiQualifiedCount}
+                          </span>
                         </div>
-                        <span className="text-[9.5px] text-[#4a725e] block">
-                          {stats.multiSkillCount} / {stats.totalActive} {pdfT.kpiQualifiedCount}
-                        </span>
-                      </div>
 
-                      {/* Card 3: Grade Distribution */}
-                      <div className="bg-[#fefce8] border border-[#fef08a] rounded-lg p-2.5">
-                        <span className="text-[9px] font-bold text-[#854d0e] uppercase tracking-wider block">
-                          {pdfT.kpiGradeDistribution}
-                        </span>
-                        <div className="text-sm font-extrabold text-[#713f12] mt-0.5">
-                          S:{stats.gradeCounts.S} • A:{stats.gradeCounts.A} • B:{stats.gradeCounts.B} • C:{stats.gradeCounts.C}
+                        {/* Metric 3: Grade Distribution */}
+                        <div className="p-2.5 flex flex-col justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 rounded-full bg-amber-600 shrink-0" />
+                            <span className="text-[8.5px] font-bold text-slate-600 uppercase tracking-wider truncate">
+                              {pdfT.kpiGradeDistribution}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 mt-1 flex-wrap">
+                            <span className="px-1 py-0.5 rounded bg-purple-100 text-purple-800 font-extrabold text-[8.5px] leading-none">S:{stats.gradeCounts.S}</span>
+                            <span className="px-1 py-0.5 rounded bg-emerald-100 text-emerald-800 font-extrabold text-[8.5px] leading-none">A:{stats.gradeCounts.A}</span>
+                            <span className="px-1 py-0.5 rounded bg-blue-100 text-blue-800 font-extrabold text-[8.5px] leading-none">B:{stats.gradeCounts.B}</span>
+                            <span className="px-1 py-0.5 rounded bg-slate-200 text-slate-700 font-extrabold text-[8.5px] leading-none">C:{stats.gradeCounts.C}</span>
+                          </div>
+                          <span className="text-[8.5px] text-slate-500 mt-1 block truncate">
+                            {pdfT.kpiHelperAvg.replace('{helper}', String(stats.gradeCounts.HELPER)).replace('{avg}', String(stats.avgPoints))}
+                          </span>
                         </div>
-                        <span className="text-[9.5px] text-[#8c6e32] block">
-                          {pdfT.kpiHelperAvg.replace('{helper}', String(stats.gradeCounts.HELPER)).replace('{avg}', String(stats.avgPoints))}
-                        </span>
-                      </div>
 
-                      {/* Card 4: Machine Coverage */}
-                      <div className="bg-[#f0f9ff] border border-[#bae6fd] rounded-lg p-2.5">
-                        <span className="text-[9px] font-bold text-[#0369a1] uppercase tracking-wider block">
-                          {pdfT.kpiMachinePopulation}
-                        </span>
-                        <div className="text-xs font-extrabold text-[#0369a1] mt-0.5">
-                          SN:{stats.machineCounts.lockstitch} | OL:{stats.machineCounts.overlock} | FS:{stats.machineCounts.flatseam}
+                        {/* Metric 4: Machine Population */}
+                        <div className="p-2.5 flex flex-col justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 rounded-full bg-sky-600 shrink-0" />
+                            <span className="text-[8.5px] font-bold text-slate-600 uppercase tracking-wider truncate">
+                              {pdfT.kpiMachinePopulation}
+                            </span>
+                          </div>
+                          <div className="text-[9.5px] font-bold text-slate-800 font-mono mt-1 leading-none truncate">
+                            SN:{stats.machineCounts.lockstitch} · OL:{stats.machineCounts.overlock} · FS:{stats.machineCounts.flatseam}
+                          </div>
+                          <div className="text-[8.5px] font-bold text-slate-700 font-mono mt-1 leading-none truncate">
+                            SP:{stats.machineCounts.special} · BTN Hole:{stats.machineCounts.buttonHole} · BTN Set:{stats.machineCounts.buttonSet}
+                          </div>
                         </div>
-                        <span className="text-[9.5px] text-[#5082a0] block">
-                          SP:{stats.machineCounts.special} | BTN:{stats.machineCounts.buttonHole + stats.machineCounts.buttonSet}
-                        </span>
                       </div>
                     </div>
                   )}
@@ -697,9 +792,11 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                         <tr className="bg-[#244646] text-white font-bold text-center">
                           <th className="py-1.5 px-1 w-6 border-r border-teal-800">{pdfT.thNo}</th>
                           <th className="py-1.5 px-1.5 w-16 border-r border-teal-800">{pdfT.thNik}</th>
-                          <th className="py-1.5 px-2 text-left border-r border-teal-800">{pdfT.thOperatorName}</th>
+                          <th className={`py-1.5 px-2 text-left border-r border-teal-800 ${includeCurrentOperation ? 'min-w-[130px]' : 'min-w-[170px]'}`}>{pdfT.thOperatorName}</th>
                           <th className="py-1.5 px-1 w-14 border-r border-teal-800">{pdfT.thTenure}</th>
-                          <th className="py-1.5 px-1.5 w-24 border-r border-teal-800 text-left">Current Operation</th>
+                          {includeCurrentOperation && (
+                            <th className="py-1.5 px-1.5 w-28 border-r border-teal-800 text-left">Current Operation</th>
+                          )}
                           <th className="py-1 px-1 w-8 border-r border-teal-800 leading-tight">SN<br/><span className="text-[8px] font-normal">{pdfT.thLockstitch}</span></th>
                           <th className="py-1 px-1 w-8 border-r border-teal-800 leading-tight">OL<br/><span className="text-[8px] font-normal">{pdfT.thOverlock}</span></th>
                           <th className="py-1 px-1 w-8 border-r border-teal-800 leading-tight">FS<br/><span className="text-[8px] font-normal">{pdfT.thFlatseam}</span></th>
@@ -708,8 +805,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                           <th className="py-1 px-1 w-8 border-r border-teal-800 leading-tight">BTN<br/><span className="text-[8px] font-normal">{pdfT.thButtonSet}</span></th>
                           <th className="py-1.5 px-1 w-12 border-r border-teal-800">{pdfT.thMulti}</th>
                           <th className="py-1.5 px-1 w-12 border-r border-teal-800">{pdfT.thTotal}</th>
-                          <th className="py-1.5 px-1 w-14 border-r border-teal-800">{pdfT.thGrade}</th>
-                          <th className="py-1.5 px-1.5 w-16">{pdfT.thStatus}</th>
+                          <th className="py-1.5 px-1.5 w-16">{pdfT.thGrade}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
@@ -724,7 +820,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
 
                             const isResigned = isOperatorResignedAtPeriod(op, selectedMonth, selectedYear);
                             const totalPts = getOperatorTotalPoints(op);
-                            const isHelper = op.status?.toUpperCase() === 'HELPER' || (op as any).grade === 'HELPER';
+                            const isHelper = op.status?.toUpperCase() === 'HELPER' || (op as any).grade === 'HELPER' || (op as any).grade === 'H';
                             const gradeObj = getGradeFromTotalPoints(totalPts, isHelper);
                             const msCount = getOperatorMultiSkillCount(op);
 
@@ -742,11 +838,13 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                               >
                                 <td className="py-1 px-1 font-mono text-[9px] border-r border-slate-200">{globalIdx}</td>
                                 <td className="py-1 px-1.5 font-mono font-semibold text-[9.5px] border-r border-slate-200">{op.nik}</td>
-                                <td className="py-1 px-2 text-left font-bold border-r border-slate-200 truncate max-w-[170px]">{op.name}</td>
+                                <td className="py-1 px-2 text-left font-bold border-r border-slate-200 truncate max-w-[200px]">{op.name}</td>
                                 <td className="py-1 px-1 text-[9px] border-r border-slate-200">{op.workTimeMonths ? `${op.workTimeMonths} ${pdfT.tenureMonthUnit}` : '-'}</td>
-                                <td className="py-1 px-1.5 text-left text-[8px] font-medium border-r border-slate-200 truncate max-w-[120px]" title={op.process || op.currentOperation}>
-                                  {op.process || op.currentOperation || '-'}
-                                </td>
+                                {includeCurrentOperation && (
+                                  <td className="py-1 px-1.5 text-left text-[8px] font-medium border-r border-slate-200 truncate max-w-[140px]" title={op.process || op.currentOperation}>
+                                    {op.process || op.currentOperation || '-'}
+                                  </td>
+                                )}
                                 <td className="py-1 px-1 border-r border-slate-200">{renderVal(op.lockstitch)}</td>
                                 <td className="py-1 px-1 border-r border-slate-200">{renderVal(op.overlock)}</td>
                                 <td className="py-1 px-1 border-r border-slate-200">{renderVal(op.flatseam)}</td>
@@ -757,24 +855,17 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                                   {msCount > 0 ? `${msCount} ${pdfT.machineUnit}` : '-'}
                                 </td>
                                 <td className="py-1 px-1 font-extrabold border-r border-slate-200">{totalPts}</td>
-                                <td className="py-1 px-1 border-r border-slate-200">
-                                  <span className={`inline-block px-1.5 py-0.5 rounded text-[8.5px] font-extrabold ${gradeObj.cssBadge}`}>
+                                <td className="py-1 px-1.5">
+                                  <span className={`inline-block px-2 py-0.5 rounded text-[8.5px] font-extrabold ${gradeObj.cssBadge}`}>
                                     {gradeObj.letter || gradeObj.label}
                                   </span>
-                                </td>
-                                <td className="py-1 px-1.5 font-bold text-[9px]">
-                                  {isResigned ? (
-                                    <span className="text-red-700 bg-red-100 px-1.5 py-0.5 rounded">{pdfT.statusResigned}</span>
-                                  ) : (
-                                    <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">{pdfT.statusActive}</span>
-                                  )}
                                 </td>
                               </tr>
                             );
                           })
                         ) : (
                           <tr>
-                            <td colSpan={14} className="py-8 text-center text-slate-400">
+                            <td colSpan={includeCurrentOperation ? 14 : 13} className="py-8 text-center text-slate-400">
                               <div className="flex flex-col items-center justify-center gap-1">
                                 <Users className="w-6 h-6 text-slate-300" />
                                 <span className="font-semibold text-xs text-slate-500">
@@ -792,41 +883,50 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                   </div>
 
                   {/* SIGNATURES BLOCK (ON LAST PAGE) */}
-                  {includeSignatures && safePageIndex === pagesData.length - 1 && (
-                    <div className="pt-2">
-                      <div className="grid grid-cols-3 gap-4 text-center">
-                        {/* Box 1 */}
-                        <div className="border border-slate-200 rounded-lg p-2.5 bg-slate-50/50">
-                          <p className="text-[9px] font-bold text-[#244646] uppercase">{pdfT.sigCreatedBy}</p>
-                          <p className="text-[8px] text-slate-400 mb-6">{pdfT.sigCreatedDept}</p>
-                          <div className="border-b border-dashed border-slate-300 mx-3 mb-1" />
-                          <p className="text-[9px] font-bold text-slate-700">{pdfT.sigCreatedRole}</p>
-                        </div>
+                  {includeSignatures && safePageIndex === pagesData.length - 1 && (() => {
+                    const leaderInfo = getLineLeader(DEFAULT_LINE_LEADERS, selectedFactory, selectedLine);
+                    return (
+                      <div className="pt-2">
+                        <div className="grid grid-cols-3 gap-4 text-center">
+                          {/* Box 1 */}
+                          <div className="border border-slate-200 rounded-lg p-2.5 bg-slate-50/50">
+                            <p className="text-[9px] font-bold text-[#244646] uppercase">{pdfT.sigCreatedBy}</p>
+                            <p className="text-[8px] text-slate-400 mb-5">{pdfT.sigCreatedDept}</p>
+                            <div className="border-b border-dashed border-slate-300 mx-3 mb-1" />
+                            <p className="text-[9px] font-bold text-slate-800">{leaderInfo.ie && leaderInfo.ie !== '-' ? leaderInfo.ie : pdfT.sigCreatedRole}</p>
+                            <p className="text-[7.5px] text-slate-400">{pdfT.sigCreatedRole}</p>
+                          </div>
 
-                        {/* Box 2 */}
-                        <div className="border border-slate-200 rounded-lg p-2.5 bg-slate-50/50">
-                          <p className="text-[9px] font-bold text-[#244646] uppercase">{pdfT.sigVerifiedBy}</p>
-                          <p className="text-[8px] text-slate-400 mb-6">{pdfT.sigVerifiedDept}</p>
-                          <div className="border-b border-dashed border-slate-300 mx-3 mb-1" />
-                          <p className="text-[9px] font-bold text-slate-700">{pdfT.sigVerifiedRole.replace('{line}', selectedLine)}</p>
-                        </div>
+                          {/* Box 2 */}
+                          <div className="border border-slate-200 rounded-lg p-2.5 bg-slate-50/50">
+                            <p className="text-[9px] font-bold text-[#244646] uppercase">{pdfT.sigVerifiedBy}</p>
+                            <p className="text-[8px] text-slate-400 mb-5">{pdfT.sigVerifiedDept}</p>
+                            <div className="border-b border-dashed border-slate-300 mx-3 mb-1" />
+                            <p className="text-[9px] font-bold text-slate-800">{leaderInfo.supervisor && leaderInfo.supervisor !== '-' ? leaderInfo.supervisor : pdfT.sigVerifiedRole.replace('{line}', selectedLine)}</p>
+                            <p className="text-[7.5px] text-slate-400">{pdfT.sigVerifiedRole.replace('{line}', selectedLine)}</p>
+                          </div>
 
-                        {/* Box 3 */}
-                        <div className="border border-slate-200 rounded-lg p-2.5 bg-slate-50/50">
-                          <p className="text-[9px] font-bold text-[#244646] uppercase">{pdfT.sigApprovedBy}</p>
-                          <p className="text-[8px] text-slate-400 mb-6">{pdfT.sigApprovedDept}</p>
-                          <div className="border-b border-dashed border-slate-300 mx-3 mb-1" />
-                          <p className="text-[9px] font-bold text-slate-700">{pdfT.sigApprovedRole.replace('{factory}', selectedFactory)}</p>
+                          {/* Box 3 */}
+                          <div className="border border-slate-200 rounded-lg p-2.5 bg-slate-50/50">
+                            <p className="text-[9px] font-bold text-[#244646] uppercase">{pdfT.sigApprovedBy}</p>
+                            <p className="text-[8px] text-slate-400 mb-5">{pdfT.sigApprovedDept}</p>
+                            <div className="border-b border-dashed border-slate-300 mx-3 mb-1" />
+                            <p className="text-[9px] font-bold text-slate-800">{leaderInfo.chief && leaderInfo.chief !== '-' ? leaderInfo.chief : pdfT.sigApprovedRole.replace('{factory}', selectedFactory)}</p>
+                            <p className="text-[7.5px] text-slate-400">{pdfT.sigApprovedRole.replace('{factory}', selectedFactory)}</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                 </div>
 
                 {/* BOTTOM FOOTER ON PAPER */}
                 <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-[9px] text-slate-400">
                   <span className="font-semibold text-slate-500">{pdfT.paperFooterCompany}</span>
+                  <span className="text-slate-400 font-medium">
+                    {pdfT.generatedLabel}: {new Date().toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
                   <span className="font-bold text-slate-600">
                     {pdfT.pageIndicator} {safePageIndex + 1} {pdfT.ofText} {pagesData.length}
                   </span>

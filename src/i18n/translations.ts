@@ -112,6 +112,11 @@ export interface Translations {
     p3Title: string;
     p3Desc: string;
     p3Limit: string;
+    lineLeadershipTitle: string;
+    lineLeadershipSubtitle: string;
+    chiefLabel: string;
+    supervisorLabel: string;
+    ieLabel: string;
   };
 
   // Skill Matrix Tab
@@ -241,6 +246,10 @@ export interface Translations {
     resignedCheckboxDesc: string;
     signaturesCheckboxTitle: string;
     signaturesCheckboxDesc: string;
+    currentOperationCheckboxTitle: string;
+    currentOperationCheckboxDesc: string;
+    filterOperationTitle: string;
+    allOperationsOption: string;
     multiSkillOnlyTitle: string;
     multiSkillOnlyDesc: string;
     auditBannerTitle: string;
@@ -666,6 +675,11 @@ export const translations: Record<Language, Translations> = {
       p3Title: 'Mahir / Ahli (Expert / Star)',
       p3Desc: 'Kecepatan tinggi melampaui target SMV, konsisten presisi, kandidat utama floater dan trainer.',
       p3Limit: 'Batas Efisiensi: > 90%',
+      lineLeadershipTitle: 'Pimpinan Lini & Industrial Engineering',
+      lineLeadershipSubtitle: 'Struktur penanggung jawab lini dari Google Sheets tab by_worker',
+      chiefLabel: 'Chief',
+      supervisorLabel: 'Supervisor',
+      ieLabel: 'IE (Industrial Engineer)',
     },
     matrix: {
       resignSuccess: 'Status RESIGNED berhasil dikirim ke Google Sheets untuk',
@@ -785,6 +799,10 @@ export const translations: Record<Language, Translations> = {
       resignedCheckboxDesc: 'Menampilkan data operator keluar dengan badge status',
       signaturesCheckboxTitle: 'Lembar Pengesahan Tanda Tangan',
       signaturesCheckboxDesc: 'Kolom IE Specialist, Spv Sewing, & Factory Manager',
+      currentOperationCheckboxTitle: 'Kolom Current Operation',
+      currentOperationCheckboxDesc: 'Tampilkan nama proses/operasi kerja terkini di tabel',
+      filterOperationTitle: 'Saring Berdasarkan Operasi',
+      allOperationsOption: 'Semua Operasi',
       multiSkillOnlyTitle: 'Saring: Hanya Multi-Skill (≥2)',
       multiSkillOnlyDesc: 'Hanya mencetak operator dengan 2+ jenis mesin',
       auditBannerTitle: 'Standar IE & MOST Terakreditasi',
@@ -807,9 +825,9 @@ export const translations: Record<Language, Translations> = {
       kpiTotalManpower: 'TOTAL OPERATOR (MP)',
       kpiActiveLabel: 'Aktif',
       kpiResignedLabel: 'Resigned',
-      kpiMultiSkillRatio: 'RASIO MULTI-SKILL (≥2 MESIN)',
+      kpiMultiSkillRatio: 'RASIO MULTI-SKILL',
       kpiQualifiedCount: 'operator kompeten',
-      kpiGradeDistribution: 'DISTRIBUSI GRADE (S / A / B / C)',
+      kpiGradeDistribution: 'DISTRIBUSI GRADE',
       kpiHelperAvg: 'Helper: {helper} | Rata Poin: {avg}',
       kpiMachinePopulation: 'POPULASI MESIN',
       thNo: 'NO',
@@ -1194,6 +1212,11 @@ export const translations: Record<Language, Translations> = {
       p3Title: 'Expert / Master (Star)',
       p3Desc: 'High speed exceeding target SMV, consistently precise, prime candidate for floater and trainer.',
       p3Limit: 'Efficiency Threshold: > 90%',
+      lineLeadershipTitle: 'Line Leadership & Industrial Engineering',
+      lineLeadershipSubtitle: 'Line leaders and industrial engineer in charge from Google Sheets tab by_worker',
+      chiefLabel: 'Chief',
+      supervisorLabel: 'Supervisor',
+      ieLabel: 'IE (Industrial Engineer)',
     },
     matrix: {
       resignSuccess: 'RESIGNED status successfully sent to Google Sheets for',
@@ -1313,6 +1336,10 @@ export const translations: Record<Language, Translations> = {
       resignedCheckboxDesc: 'Show inactive/resigned operator records with status badges',
       signaturesCheckboxTitle: 'Official Validation Signatures',
       signaturesCheckboxDesc: 'IE Specialist, Sewing Supervisor, and Factory Manager',
+      currentOperationCheckboxTitle: 'Current Operation Column',
+      currentOperationCheckboxDesc: 'Display active sewing operation/process name in table',
+      filterOperationTitle: 'Filter by Current Operation',
+      allOperationsOption: 'All Operations',
       multiSkillOnlyTitle: 'Multi-Skilled Operators Only (≥2)',
       multiSkillOnlyDesc: 'Only export operators who master 2 or more machine types',
       auditBannerTitle: 'Accredited IE & MOST Standard',
@@ -1335,9 +1362,9 @@ export const translations: Record<Language, Translations> = {
       kpiTotalManpower: 'TOTAL MANPOWER (MP)',
       kpiActiveLabel: 'Active',
       kpiResignedLabel: 'Resigned',
-      kpiMultiSkillRatio: 'MULTI-SKILL RATIO (≥2 MACHINES)',
+      kpiMultiSkillRatio: 'MULTI-SKILL RATIO',
       kpiQualifiedCount: 'qualified operators',
-      kpiGradeDistribution: 'GRADE DISTRIBUTION (S / A / B / C)',
+      kpiGradeDistribution: 'GRADE DISTRIBUTION',
       kpiHelperAvg: 'Helper: {helper} | Avg Points: {avg}',
       kpiMachinePopulation: 'MACHINE POPULATION',
       thNo: 'NO',

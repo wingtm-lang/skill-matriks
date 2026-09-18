@@ -1,9 +1,11 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Operator } from '../types';
+import { Operator, LineLeader } from '../types';
 import { 
   getOperatorTotalPoints, 
-  getGradeFromTotalPoints 
+  getGradeFromTotalPoints,
+  DEFAULT_LINE_LEADERS,
+  getLineLeader
 } from '../data/mockData';
 import { 
   getOperatorMultiSkillCount, 
@@ -20,8 +22,10 @@ export interface PDFExportOptions {
   includeResigned?: boolean;
   includeSummary?: boolean;
   includeSignatures?: boolean;
+  includeCurrentOperation?: boolean;
   language?: 'id' | 'en';
   orientation?: 'portrait' | 'landscape';
+  lineLeaders?: LineLeader[];
 }
 
 /**
@@ -38,6 +42,7 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
     includeResigned = true,
     includeSummary = true,
     includeSignatures = true,
+    includeCurrentOperation = true,
     language = 'id',
     orientation = 'portrait'
   } = options;
@@ -89,11 +94,17 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
       totalActive++;
       const pts = getOperatorTotalPoints(op);
       totalPointsSum += pts;
-      const isHelper = op.status?.toUpperCase() === 'HELPER' || (op as any).grade === 'HELPER';
+      const isHelper = op.status?.toUpperCase() === 'HELPER' || (op as any).grade === 'HELPER' || (op as any).grade === 'H';
       const gradeObj = getGradeFromTotalPoints(pts, isHelper);
-      const gradeLetter = gradeObj.letter as keyof typeof gradeCounts;
-      if (gradeCounts[gradeLetter] !== undefined) {
-        gradeCounts[gradeLetter]++;
+      const gradeLetter = gradeObj.letter;
+      if (gradeLetter === 'H' || gradeObj.grade === 'HELPER' || isHelper) {
+        gradeCounts.HELPER++;
+      } else if (gradeLetter === 'S') {
+        gradeCounts.S++;
+      } else if (gradeLetter === 'A') {
+        gradeCounts.A++;
+      } else if (gradeLetter === 'B') {
+        gradeCounts.B++;
       } else {
         gradeCounts.C++;
       }
@@ -131,7 +142,7 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
 
   // --- METADATA CARD (TOP RIGHT) ---
   const metaBoxW = isPortrait ? 66 : 75;
-  const metaBoxH = isPortrait ? 18 : 20;
+  const metaBoxH = isPortrait ? 14 : 15.5;
   const metaBoxX = pageWidth - margin - metaBoxW;
   const metaBoxY = isPortrait ? 9.5 : 9;
 
@@ -146,223 +157,148 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
   const metaTextLeft = metaBoxX + 2.5;
   const metaValLeft = metaBoxX + (isPortrait ? 22 : 26);
 
-  doc.text(`${isEn ? 'Factory / Line' : 'Pabrik / Lini'}:`, metaTextLeft, metaBoxY + 4);
+  doc.text(`${isEn ? 'Factory / Line' : 'Pabrik / Lini'}:`, metaTextLeft, metaBoxY + 3.8);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(30, 41, 59);
-  doc.text(`${selectedFactory} • ${selectedLine}`, metaValLeft, metaBoxY + 4);
+  doc.text(`${selectedFactory} • ${selectedLine}`, metaValLeft, metaBoxY + 3.8);
 
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 116, 139);
-  doc.text(`${isEn ? 'Period' : 'Periode'}:`, metaTextLeft, metaBoxY + 8);
+  doc.text(`${isEn ? 'Period' : 'Periode'}:`, metaTextLeft, metaBoxY + 7.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(30, 41, 59);
-  doc.text(`${monthName} ${selectedYear}`, metaValLeft, metaBoxY + 8);
+  doc.text(`${monthName} ${selectedYear}`, metaValLeft, metaBoxY + 7.5);
 
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 116, 139);
-  doc.text(`${isEn ? 'Generated' : 'Dicetak'}:`, metaTextLeft, metaBoxY + 12);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(30, 41, 59);
-  doc.text(printDateStr, metaValLeft, metaBoxY + 12);
-
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 116, 139);
-  doc.text(`Doc ID:`, metaTextLeft, metaBoxY + 16);
+  doc.text(`Doc ID:`, metaTextLeft, metaBoxY + 11.2);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(196, 142, 20);
-  doc.text('WI.FR.LEAN.02.03', metaValLeft, metaBoxY + 16);
+  doc.text('WI.FR.LEAN.02.03', metaValLeft, metaBoxY + 11.2);
 
-  let currentY = isPortrait ? 30.5 : 31;
+  let currentY = isPortrait ? 27.5 : 28;
 
-  // --- EXECUTIVE KPI STAT CARDS ---
+  // --- UNIFIED EXECUTIVE KPI STRIP (SLIM, ARTISTIC & COMPACT) ---
   if (includeSummary) {
-    if (isPortrait) {
-      // 2 x 2 GRID FOR PORTRAIT
-      const gapX = 3;
-      const gapY = 2.5;
-      const cardW = (contentWidth - gapX) / 2;
-      const cardH = 12.5;
+    const stripH = isPortrait ? 13 : 13.5;
+    const colW = contentWidth / 4;
 
-      // Card 1: Total Manpower
-      doc.setFillColor(241, 248, 248);
-      doc.setDrawColor(190, 218, 218);
-      doc.roundedRect(margin, currentY, cardW, cardH, 1.5, 1.5, 'FD');
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6);
-      doc.setTextColor(70, 95, 95);
-      doc.text(isEn ? 'TOTAL MANPOWER' : 'TOTAL OPERATOR (MP)', margin + 3, currentY + 3.8);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9.5);
-      doc.setTextColor(36, 70, 70);
-      doc.text(`${totalActive} ${isEn ? 'Active' : 'Aktif'}`, margin + 3, currentY + 8.5);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(5.8);
-      doc.setTextColor(140, 100, 100);
-      doc.text(`(${totalResigned} ${isEn ? 'Resigned' : 'Resigned'})`, margin + 3, currentY + 11.2);
+    // Outer unified container
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(margin, currentY, contentWidth, stripH, 1.2, 1.2, 'FD');
 
-      // Card 2: Multi-Skill Ratio
-      const c2X = margin + cardW + gapX;
-      doc.setFillColor(236, 253, 245);
-      doc.setDrawColor(167, 243, 208);
-      doc.roundedRect(c2X, currentY, cardW, cardH, 1.5, 1.5, 'FD');
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6);
-      doc.setTextColor(22, 101, 52);
-      doc.text(isEn ? 'MULTI-SKILL RATIO (>=2 MACHINES)' : 'RASIO MULTI-SKILL (>=2 MESIN)', c2X + 3, currentY + 3.8);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9.5);
-      doc.setTextColor(22, 101, 52);
-      doc.text(`${multiSkillPercent}%`, c2X + 3, currentY + 8.5);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(5.8);
-      doc.setTextColor(74, 114, 94);
-      doc.text(`${multiSkillCount} / ${totalActive} ${isEn ? 'operators' : 'operator kompeten'}`, c2X + 3, currentY + 11.2);
-
-      // Card 3: Grade Distribution
-      const r2Y = currentY + cardH + gapY;
-      doc.setFillColor(254, 252, 232);
-      doc.setDrawColor(254, 240, 138);
-      doc.roundedRect(margin, r2Y, cardW, cardH, 1.5, 1.5, 'FD');
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6);
-      doc.setTextColor(133, 77, 14);
-      doc.text(isEn ? 'GRADE DISTRIBUTION (S / A / B / C)' : 'DISTRIBUSI GRADE (S / A / B / C)', margin + 3, r2Y + 3.8);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8.5);
-      doc.setTextColor(113, 63, 18);
-      doc.text(`S:${gradeCounts.S}  A:${gradeCounts.A}  B:${gradeCounts.B}  C:${gradeCounts.C}`, margin + 3, r2Y + 8.5);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(5.8);
-      doc.setTextColor(140, 110, 50);
-      doc.text(`Helper: ${gradeCounts.HELPER} | ${isEn ? 'Avg Points' : 'Rata-rata Poin'}: ${avgPoints}`, margin + 3, r2Y + 11.2);
-
-      // Card 4: Machine Coverage
-      doc.setFillColor(240, 249, 255);
-      doc.setDrawColor(186, 230, 253);
-      doc.roundedRect(c2X, r2Y, cardW, cardH, 1.5, 1.5, 'FD');
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6);
-      doc.setTextColor(3, 105, 161);
-      doc.text(isEn ? 'MACHINE POPULATION COVERAGE' : 'POPULASI KOMPETENSI MESIN', c2X + 3, r2Y + 3.8);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.setTextColor(3, 105, 161);
-      doc.text(`SN:${machineCounts.lockstitch} | OL:${machineCounts.overlock} | FS:${machineCounts.flatseam}`, c2X + 3, r2Y + 8.2);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(5.8);
-      doc.setTextColor(80, 130, 160);
-      doc.text(`SP:${machineCounts.special} | BTN:${machineCounts.buttonHole + machineCounts.buttonSet}`, c2X + 3, r2Y + 11.2);
-
-      currentY = r2Y + cardH + 3.5;
-    } else {
-      // 4 CARDS IN A ROW FOR LANDSCAPE
-      const cardGap = 3.5;
-      const numCards = 4;
-      const cardW = (contentWidth - ((numCards - 1) * cardGap)) / numCards;
-      const cardH = 15;
-
-      // Card 1
-      doc.setFillColor(241, 248, 248);
-      doc.setDrawColor(190, 218, 218);
-      doc.roundedRect(margin, currentY, cardW, cardH, 2, 2, 'FD');
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      doc.setTextColor(70, 95, 95);
-      doc.text(isEn ? 'TOTAL MANPOWER' : 'TOTAL OPERATOR (MP)', margin + 3.5, currentY + 4.5);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.setTextColor(36, 70, 70);
-      doc.text(`${totalActive} ${isEn ? 'Active' : 'Aktif'}`, margin + 3.5, currentY + 10.5);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.5);
-      doc.setTextColor(140, 100, 100);
-      doc.text(`(${totalResigned} ${isEn ? 'Resigned/Inactive' : 'Resigned'})`, margin + 3.5, currentY + 13.8);
-
-      // Card 2
-      const c2X = margin + cardW + cardGap;
-      doc.setFillColor(236, 253, 245);
-      doc.setDrawColor(167, 243, 208);
-      doc.roundedRect(c2X, currentY, cardW, cardH, 2, 2, 'FD');
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      doc.setTextColor(22, 101, 52);
-      doc.text(isEn ? 'MULTI-SKILL RATIO (>=2 MACHINES)' : 'RASIO MULTI-SKILL (>=2 MESIN)', c2X + 3.5, currentY + 4.5);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.setTextColor(22, 101, 52);
-      doc.text(`${multiSkillPercent}%`, c2X + 3.5, currentY + 10.5);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.5);
-      doc.setTextColor(74, 114, 94);
-      doc.text(`${multiSkillCount} / ${totalActive} ${isEn ? 'qualified operators' : 'operator kompeten'}`, c2X + 3.5, currentY + 13.8);
-
-      // Card 3
-      const c3X = c2X + cardW + cardGap;
-      doc.setFillColor(254, 252, 232);
-      doc.setDrawColor(254, 240, 138);
-      doc.roundedRect(c3X, currentY, cardW, cardH, 2, 2, 'FD');
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      doc.setTextColor(133, 77, 14);
-      doc.text(isEn ? 'GRADE DISTRIBUTION (S / A / B / C)' : 'DISTRIBUSI GRADE (S / A / B / C)', c3X + 3.5, currentY + 4.5);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(113, 63, 18);
-      doc.text(`S:${gradeCounts.S}  A:${gradeCounts.A}  B:${gradeCounts.B}  C:${gradeCounts.C}`, c3X + 3.5, currentY + 10.5);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.5);
-      doc.setTextColor(140, 110, 50);
-      doc.text(`Helper: ${gradeCounts.HELPER} ${isEn ? 'personnel' : 'orang'}`, c3X + 3.5, currentY + 13.8);
-
-      // Card 4
-      const c4X = c3X + cardW + cardGap;
-      doc.setFillColor(240, 249, 255);
-      doc.setDrawColor(186, 230, 253);
-      doc.roundedRect(c4X, currentY, cardW, cardH, 2, 2, 'FD');
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      doc.setTextColor(3, 105, 161);
-      doc.text(isEn ? 'MACHINE POPULATION COVERAGE' : 'POPULASI KOMPETENSI MESIN', c4X + 3.5, currentY + 4.5);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.setTextColor(3, 105, 161);
-      doc.text(`SN: ${machineCounts.lockstitch} | OL: ${machineCounts.overlock} | FS: ${machineCounts.flatseam}`, c4X + 3.5, currentY + 10.2);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.5);
-      doc.setTextColor(80, 130, 160);
-      doc.text(`Special: ${machineCounts.special} | Button: ${machineCounts.buttonHole + machineCounts.buttonSet} | Rata Pts: ${avgPoints}`, c4X + 3.5, currentY + 13.8);
-
-      currentY += cardH + 4;
+    // Vertical column dividers
+    doc.setDrawColor(226, 232, 240);
+    for (let i = 1; i < 4; i++) {
+      const divX = margin + (i * colW);
+      doc.line(divX, currentY + 1.2, divX, currentY + stripH - 1.2);
     }
+
+    // --- Metric 1: Total Manpower ---
+    const col0X = margin + 2.5;
+    // Dot indicator
+    doc.setFillColor(36, 70, 70);
+    doc.circle(col0X + 0.6, currentY + 3.3, 0.6, 'F');
+    // Header label
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(5.8);
+    doc.setTextColor(100, 116, 139);
+    doc.text(isEn ? 'TOTAL MANPOWER' : 'TOTAL OPERATOR (MP)', col0X + 2.2, currentY + 3.6);
+    // Value
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.setTextColor(36, 70, 70);
+    doc.text(`${totalActive} ${isEn ? 'Active' : 'Aktif'}`, col0X, currentY + 8.8);
+
+    // --- Metric 2: Multi-Skill Ratio ---
+    const col1X = margin + colW + 2.5;
+    // Dot indicator
+    doc.setFillColor(16, 185, 129);
+    doc.circle(col1X + 0.6, currentY + 3.3, 0.6, 'F');
+    // Header label
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(5.8);
+    doc.setTextColor(100, 116, 139);
+    doc.text(isEn ? 'MULTI-SKILL RATIO' : 'RASIO MULTI-SKILL', col1X + 2.2, currentY + 3.6);
+    // Value
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.2);
+    doc.setTextColor(22, 101, 52);
+    doc.text(`${multiSkillPercent}%`, col1X, currentY + 7.8);
+    // Subtext
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(5.5);
+    doc.setTextColor(74, 114, 94);
+    doc.text(`${multiSkillCount} / ${totalActive} ${isEn ? 'qualified' : 'kompeten'}`, col1X, currentY + 11.2);
+
+    // --- Metric 3: Grade Distribution ---
+    const col2X = margin + (colW * 2) + 2.5;
+    // Dot indicator
+    doc.setFillColor(245, 158, 11);
+    doc.circle(col2X + 0.6, currentY + 3.3, 0.6, 'F');
+    // Header label
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(5.8);
+    doc.setTextColor(100, 116, 139);
+    doc.text(isEn ? 'GRADE DISTRIBUTION' : 'DISTRIBUSI GRADE', col2X + 2.2, currentY + 3.6);
+    // Value
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.6);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`S:${gradeCounts.S}   A:${gradeCounts.A}   B:${gradeCounts.B}   C:${gradeCounts.C}`, col2X, currentY + 7.8);
+    // Subtext
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(5.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Helper: ${gradeCounts.HELPER} · ${isEn ? 'Avg Pts' : 'Rata Poin'}: ${avgPoints}`, col2X, currentY + 11.2);
+
+    // --- Metric 4: Machine Population ---
+    const col3X = margin + (colW * 3) + 2.5;
+    // Dot indicator
+    doc.setFillColor(14, 165, 233);
+    doc.circle(col3X + 0.6, currentY + 3.3, 0.6, 'F');
+    // Header label
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(5.8);
+    doc.setTextColor(100, 116, 139);
+    doc.text(isEn ? 'MACHINE POPULATION' : 'POPULASI MESIN', col3X + 2.2, currentY + 3.6);
+    // Value (Line 1)
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.8);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`SN:${machineCounts.lockstitch} · OL:${machineCounts.overlock} · FS:${machineCounts.flatseam}`, col3X, currentY + 7.8);
+    // Value (Line 2: SP, BTN Hole, BTN Set formatted like SN, OL, FS)
+    doc.text(`SP:${machineCounts.special} · BTN Hole:${machineCounts.buttonHole} · BTN Set:${machineCounts.buttonSet}`, col3X, currentY + 11.2);
+
+    currentY += stripH + 3.5;
   } else {
     currentY += 2;
   }
 
   // --- PREPARE TABLE HEADERS & BODY ---
-  const headers = [
-    [
-      'NO',
-      'NIK',
-      isEn ? 'OPERATOR NAME' : 'NAMA OPERATOR',
-      isEn ? 'TENURE' : 'MASA\nKERJA',
-      'CURRENT\nOPERATION',
-      'SN\n(Lock)',
-      'OL\n(Obras)',
-      'FS\n(Flat)',
-      'SP\n(Special)',
-      'BTN\n(Hole)',
-      'BTN\n(Set)',
-      'MULTI\nSKILL',
-      isEn ? 'TOTAL\nPTS' : 'TOTAL\nPOIN',
-      'GRADE',
-      'STATUS'
-    ]
+  const headerRow = [
+    'NO',
+    'NIK',
+    isEn ? 'OPERATOR NAME' : 'NAMA OPERATOR',
+    isEn ? 'TENURE' : 'MASA\nKERJA',
+    ...(includeCurrentOperation ? ['CURRENT\nOPERATION'] : []),
+    'SN\n(Lock)',
+    'OL\n(Obras)',
+    'FS\n(Flat)',
+    'SP\n(Special)',
+    'BTN\n(Hole)',
+    'BTN\n(Set)',
+    'MULTI\nSKILL',
+    isEn ? 'TOTAL\nPTS' : 'TOTAL\nPOIN',
+    'GRADE'
   ];
+  const headers = [headerRow];
 
   const bodyData = targetOperators.map((op, idx) => {
     const isResigned = isOperatorResignedAtPeriod(op, selectedMonth, selectedYear);
     const totalPts = getOperatorTotalPoints(op);
-    const isHelper = op.status?.toUpperCase() === 'HELPER' || (op as any).grade === 'HELPER';
+    const isHelper = op.status?.toUpperCase() === 'HELPER' || (op as any).grade === 'HELPER' || (op as any).grade === 'H';
     const gradeObj = getGradeFromTotalPoints(totalPts, isHelper);
     const msCount = getOperatorMultiSkillCount(op);
 
@@ -373,14 +309,13 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
     };
 
     const tenureStr = op.workTimeMonths ? `${op.workTimeMonths} bln` : '-';
-    const statusStr = isResigned ? (isEn ? 'Resigned' : 'Keluar') : (isEn ? 'Active' : 'Aktif');
 
     return [
       idx + 1,
       op.nik || '-',
       op.name || '-',
       tenureStr,
-      op.process || (op as any).currentOperation || '-',
+      ...(includeCurrentOperation ? [op.process || (op as any).currentOperation || '-'] : []),
       formatSkillVal(op.lockstitch),
       formatSkillVal(op.overlock),
       formatSkillVal(op.flatseam),
@@ -389,47 +324,83 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
       formatSkillVal(op.buttonSet),
       msCount > 0 ? `${msCount} Mesin` : '-',
       totalPts,
-      gradeObj.letter || gradeObj.label,
-      statusStr
+      gradeObj.letter || gradeObj.label
     ];
   });
 
-  // Table Column Styles tailored for Portrait (198 mm) vs Landscape (283 mm)
-  const columnStylesPortrait: { [key: number]: any } = {
+  // Table Column Styles tailored for Portrait (201 mm content) vs Landscape (286 mm content)
+  const columnStylesPortraitWithOp: { [key: number]: any } = {
     0: { cellWidth: 7, halign: 'center' }, // No
     1: { cellWidth: 16, halign: 'center', fontStyle: 'bold' }, // NIK
-    2: { cellWidth: 36, halign: 'left', fontStyle: 'bold' }, // Name
-    3: { cellWidth: 12, halign: 'center' }, // Tenure
-    4: { cellWidth: 26, halign: 'left' }, // Current Operation
+    2: { cellWidth: 40, halign: 'left', fontStyle: 'bold' }, // Name
+    3: { cellWidth: 13, halign: 'center' }, // Tenure
+    4: { cellWidth: 31, halign: 'left' }, // Current Operation
     5: { cellWidth: 9, halign: 'center' }, // SN
     6: { cellWidth: 9, halign: 'center' }, // OL
     7: { cellWidth: 9, halign: 'center' }, // FS
     8: { cellWidth: 9, halign: 'center' }, // SP
     9: { cellWidth: 9, halign: 'center' }, // BTN Hole
     10: { cellWidth: 9, halign: 'center' }, // BTN Set
-    11: { cellWidth: 13, halign: 'center' }, // Multi skill
-    12: { cellWidth: 12, halign: 'center', fontStyle: 'bold' }, // Total Points
-    13: { cellWidth: 12, halign: 'center', fontStyle: 'bold' }, // Grade
-    14: { cellWidth: 15, halign: 'center' } // Status
+    11: { cellWidth: 14, halign: 'center' }, // Multi skill
+    12: { cellWidth: 13, halign: 'center', fontStyle: 'bold' }, // Total Points
+    13: { cellWidth: 13, halign: 'center', fontStyle: 'bold' } // Grade
   };
 
-  const columnStylesLandscape: { [key: number]: any } = {
-    0: { cellWidth: 7, halign: 'center' },
-    1: { cellWidth: 18, halign: 'center', fontStyle: 'bold' },
-    2: { cellWidth: 46, halign: 'left', fontStyle: 'bold' },
-    3: { cellWidth: 14, halign: 'center' },
-    4: { cellWidth: 42, halign: 'left' }, // Current Operation
-    5: { cellWidth: 13, halign: 'center' },
-    6: { cellWidth: 13, halign: 'center' },
-    7: { cellWidth: 13, halign: 'center' },
-    8: { cellWidth: 13, halign: 'center' },
-    9: { cellWidth: 13, halign: 'center' },
-    10: { cellWidth: 13, halign: 'center' },
-    11: { cellWidth: 17, halign: 'center' },
-    12: { cellWidth: 15, halign: 'center', fontStyle: 'bold' },
-    13: { cellWidth: 16, halign: 'center', fontStyle: 'bold' },
-    14: { cellWidth: 20, halign: 'center' }
+  const columnStylesPortraitWithoutOp: { [key: number]: any } = {
+    0: { cellWidth: 8, halign: 'center' }, // No
+    1: { cellWidth: 18, halign: 'center', fontStyle: 'bold' }, // NIK
+    2: { cellWidth: 49, halign: 'left', fontStyle: 'bold' }, // Name
+    3: { cellWidth: 14, halign: 'center' }, // Tenure
+    4: { cellWidth: 11, halign: 'center' }, // SN
+    5: { cellWidth: 11, halign: 'center' }, // OL
+    6: { cellWidth: 11, halign: 'center' }, // FS
+    7: { cellWidth: 11, halign: 'center' }, // SP
+    8: { cellWidth: 11, halign: 'center' }, // BTN Hole
+    9: { cellWidth: 11, halign: 'center' }, // BTN Set
+    10: { cellWidth: 15, halign: 'center' }, // Multi skill
+    11: { cellWidth: 15, halign: 'center', fontStyle: 'bold' }, // Total Points
+    12: { cellWidth: 16, halign: 'center', fontStyle: 'bold' } // Grade
   };
+
+  const columnStylesLandscapeWithOp: { [key: number]: any } = {
+    0: { cellWidth: 8, halign: 'center' }, // No
+    1: { cellWidth: 20, halign: 'center', fontStyle: 'bold' }, // NIK
+    2: { cellWidth: 55, halign: 'left', fontStyle: 'bold' }, // Name
+    3: { cellWidth: 16, halign: 'center' }, // Tenure
+    4: { cellWidth: 47, halign: 'left' }, // Current Operation
+    5: { cellWidth: 14, halign: 'center' }, // SN
+    6: { cellWidth: 14, halign: 'center' }, // OL
+    7: { cellWidth: 14, halign: 'center' }, // FS
+    8: { cellWidth: 14, halign: 'center' }, // SP
+    9: { cellWidth: 14, halign: 'center' }, // BTN Hole
+    10: { cellWidth: 14, halign: 'center' }, // BTN Set
+    11: { cellWidth: 18, halign: 'center' }, // Multi skill
+    12: { cellWidth: 19, halign: 'center', fontStyle: 'bold' }, // Total Points
+    13: { cellWidth: 19, halign: 'center', fontStyle: 'bold' } // Grade
+  };
+
+  const columnStylesLandscapeWithoutOp: { [key: number]: any } = {
+    0: { cellWidth: 10, halign: 'center' }, // No
+    1: { cellWidth: 24, halign: 'center', fontStyle: 'bold' }, // NIK
+    2: { cellWidth: 75, halign: 'left', fontStyle: 'bold' }, // Name
+    3: { cellWidth: 19, halign: 'center' }, // Tenure
+    4: { cellWidth: 16, halign: 'center' }, // SN
+    5: { cellWidth: 16, halign: 'center' }, // OL
+    6: { cellWidth: 16, halign: 'center' }, // FS
+    7: { cellWidth: 16, halign: 'center' }, // SP
+    8: { cellWidth: 16, halign: 'center' }, // BTN Hole
+    9: { cellWidth: 16, halign: 'center' }, // BTN Set
+    10: { cellWidth: 20, halign: 'center' }, // Multi skill
+    11: { cellWidth: 21, halign: 'center', fontStyle: 'bold' }, // Total Points
+    12: { cellWidth: 21, halign: 'center', fontStyle: 'bold' } // Grade
+  };
+
+  const columnStyles = isPortrait
+    ? (includeCurrentOperation ? columnStylesPortraitWithOp : columnStylesPortraitWithoutOp)
+    : (includeCurrentOperation ? columnStylesLandscapeWithOp : columnStylesLandscapeWithoutOp);
+
+  const gradeColIndex = includeCurrentOperation ? 13 : 12;
+  const multiSkillColIndex = includeCurrentOperation ? 11 : 10;
 
   // Run AutoTable
   autoTable(doc, {
@@ -457,7 +428,7 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
       valign: 'middle',
       cellPadding: isPortrait ? 1.6 : 2.2
     },
-    columnStyles: isPortrait ? columnStylesPortrait : columnStylesLandscape,
+    columnStyles: columnStyles,
     alternateRowStyles: {
       fillColor: [248, 251, 251]
     },
@@ -467,19 +438,11 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
         const isResigned = rawRow ? isOperatorResignedAtPeriod(rawRow, selectedMonth, selectedYear) : false;
 
         if (isResigned) {
-          data.cell.styles.textColor = [140, 140, 140];
-          if (data.column.index === 13) {
-            data.cell.styles.textColor = [185, 28, 28];
-            data.cell.styles.fontStyle = 'bold';
-            data.cell.styles.fillColor = [254, 242, 242];
-          }
-        } else if (data.column.index === 13) {
-          data.cell.styles.textColor = [22, 101, 52];
-          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.textColor = [150, 150, 150];
         }
 
         // Color grade column
-        if (data.column.index === 12) {
+        if (data.column.index === gradeColIndex) {
           const gradeVal = String(data.cell.raw || '');
           data.cell.styles.fontStyle = 'bold';
           if (gradeVal.includes('S')) {
@@ -501,9 +464,9 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
         }
 
         // Highlight high multi-skill cells
-        if (data.column.index === 10) {
+        if (data.column.index === multiSkillColIndex) {
           const val = String(data.cell.raw || '');
-          if (val.includes('2') || val.includes('3') || val.includes('4') || val.includes('5')) {
+          if (val.includes('2') || val.includes('3') || val.includes('4') || val.includes('5') || val.includes('6')) {
             data.cell.styles.textColor = [22, 101, 52];
             data.cell.styles.fontStyle = 'bold';
           }
@@ -529,21 +492,23 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
     const boxH = isPortrait ? 24 : 26;
     const sigGap = (contentWidth - (boxW * 3)) / 2;
 
+    const leader = getLineLeader(DEFAULT_LINE_LEADERS, selectedFactory, selectedLine);
+
     const signBoxes = [
       {
         title: isEn ? 'PREPARED BY (IE OFFICER)' : 'DIBUAT OLEH (IE OFFICER)',
         subtitle: isEn ? 'Industrial Engineering Dept.' : 'Industrial Engineering Dept.',
-        name: 'IE Specialist'
+        name: leader.ie && leader.ie !== '-' ? leader.ie : 'IE Specialist'
       },
       {
         title: isEn ? 'VERIFIED BY (SUPERVISOR)' : 'DIVERIFIKASI OLEH (SPV SEWING)',
         subtitle: isEn ? 'Sewing Production Line' : 'Line Supervisor Sewing',
-        name: `${selectedLine} Supervisor`
+        name: leader.supervisor && leader.supervisor !== '-' ? leader.supervisor : `${selectedLine} Supervisor`
       },
       {
-        title: isEn ? 'APPROVED BY (MANAGER)' : 'DISETUJUI OLEH (PABRIK / IE MGR)',
-        subtitle: isEn ? 'Production / Factory Manager' : 'Factory & IE Manager',
-        name: `${selectedFactory} Management`
+        title: isEn ? 'APPROVED BY (CHIEF / MGR)' : 'DISETUJUI OLEH (CHIEF / MGR)',
+        subtitle: isEn ? 'Production Chief / Management' : 'Chief of Production',
+        name: leader.chief && leader.chief !== '-' ? leader.chief : `${selectedFactory} Management`
       }
     ];
 
@@ -591,6 +556,14 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
       'PT.WINNERS INTERNATIONAL',
       margin,
       pageHeight - 4.2
+    );
+
+    // Center: Generated / Dicetak timestamp
+    doc.text(
+      `${isEn ? 'Generated' : 'Dicetak'}: ${printDateStr}`,
+      pageWidth / 2,
+      pageHeight - 4.2,
+      { align: 'center' }
     );
 
     doc.setFont('helvetica', 'bold');

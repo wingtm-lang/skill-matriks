@@ -1,8 +1,8 @@
 import React from 'react';
-import { Users, TrendingUp, Cpu, CheckCircle2 } from 'lucide-react';
-import { Operator } from '../types';
+import { Users, TrendingUp, Cpu, CheckCircle2, Award, UserCheck, Cog } from 'lucide-react';
+import { Operator, LineLeader } from '../types';
 import { getOperatorMultiSkillCount, getOperatorTotalPoints, isOperatorResignedAtPeriod } from '../utils/ieCalculations';
-import { getGradeFromTotalPoints } from '../data/mockData';
+import { getGradeFromTotalPoints, getLineLeader } from '../data/mockData';
 import { useLanguage } from '../i18n/LanguageContext';
 
 interface MetricsOverviewProps {
@@ -12,6 +12,7 @@ interface MetricsOverviewProps {
   targetGrade?: string;
   selectedMonth?: number | string;
   selectedYear?: number | string;
+  lineLeaders?: LineLeader[];
 }
 
 export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
@@ -21,8 +22,12 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
   targetGrade = "Grade A",
   selectedMonth,
   selectedYear,
+  lineLeaders,
 }) => {
   const { t } = useLanguage();
+
+  // Lookup data pimpinan lini saat ini (Chief Kolom AE, Supervisor Kolom AF, IE Kolom AG sesuai Factory Kolom AC dan Line Kolom AD)
+  const currentLeader = getLineLeader(lineLeaders, selectedFactory, selectedLine);
 
   // Filter operator aktif di dalam fungsi kalkulasi/tabel frontend
   const activeOperators = operators.filter(row => {
@@ -58,7 +63,7 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
   const multiskillPct = isNaN(multiskillPctNum) ? '0.0' : multiskillPctNum.toFixed(1);
 
   return (
-    <div className="mb-6">
+    <div className="mb-6 space-y-4">
       {/* 3 TOP KPI SUMMARY CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
         
@@ -138,7 +143,56 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
         </div>
 
       </div>
+
+      {/* PIMPINAN LINI: CHIEF, SUPERVISOR, IE */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* CHIEF */}
+        <div className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-[#E0E8E8] shadow-[0_4px_16px_rgba(48,72,72,0.04)]">
+          <div className="w-9 h-9 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-700 font-bold shrink-0">
+            <Award className="w-4 h-4 text-teal-600" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#2AAFA3]">
+              {t.metrics.chiefLabel}
+            </span>
+            <p className="text-sm font-bold text-[#244646] truncate" title={currentLeader.chief}>
+              {currentLeader.chief && currentLeader.chief !== "-" ? currentLeader.chief : "-"}
+            </p>
+          </div>
+        </div>
+
+        {/* SUPERVISOR */}
+        <div className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-[#E0E8E8] shadow-[0_4px_16px_rgba(48,72,72,0.04)]">
+          <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-700 font-bold shrink-0">
+            <UserCheck className="w-4 h-4 text-cyan-700" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#244646]">
+              {t.metrics.supervisorLabel}
+            </span>
+            <p className="text-sm font-bold text-[#244646] truncate" title={currentLeader.supervisor}>
+              {currentLeader.supervisor && currentLeader.supervisor !== "-" ? currentLeader.supervisor : "-"}
+            </p>
+          </div>
+        </div>
+
+        {/* INDUSTRIAL ENGINEER / IE */}
+        <div className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-[#E0E8E8] shadow-[0_4px_16px_rgba(48,72,72,0.04)]">
+          <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-700 font-bold shrink-0">
+            <Cog className="w-4 h-4 text-amber-600" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600">
+              {t.metrics.ieLabel}
+            </span>
+            <p className="text-sm font-bold text-[#244646] truncate" title={currentLeader.ie}>
+              {currentLeader.ie && currentLeader.ie !== "-" ? currentLeader.ie : "-"}
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
+
 

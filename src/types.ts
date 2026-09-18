@@ -73,6 +73,14 @@ export interface Operator {
   avatarUrl?: string;
 }
 
+export interface LineLeader {
+  factory: string;
+  line: string;
+  chief: string;
+  supervisor: string;
+  ie: string;
+}
+
 export interface MachineSkillSummary {
   category: MachineCategory;
   name: string;

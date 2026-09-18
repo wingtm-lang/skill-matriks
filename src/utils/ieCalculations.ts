@@ -1,17 +1,21 @@
-import { Operator, GarmentStyle, WorkstationAssignment, LineBalancingResult, MachineCategory, RawSheetRow } from '../types';
+import { Operator, GarmentStyle, WorkstationAssignment, LineBalancingResult, MachineCategory, RawSheetRow, LineLeader } from '../types';
 import { 
   getGradeFromRate, 
   getGradeFromPoints, 
   getOperatorMaxPoints, 
   getGradeFromTotalPoints, 
-  getOperatorTotalPoints 
+  getOperatorTotalPoints,
+  DEFAULT_LINE_LEADERS,
+  getLineLeader
 } from '../data/mockData';
 
 export { 
   getGradeFromPoints, 
   getOperatorMaxPoints, 
   getGradeFromTotalPoints, 
-  getOperatorTotalPoints 
+  getOperatorTotalPoints,
+  DEFAULT_LINE_LEADERS,
+  getLineLeader
 };
 export type { RawSheetRow };
 
@@ -1586,6 +1590,7 @@ export function parseCsvLine(line: string): string[] {
 export async function fetchOperatorsFromGViz(sheetId: string = "1tA8YyHxFr1xwGWvdwHLOXaF9q8SjgbDuxDinzuH6kag"): Promise<{
   success: boolean;
   operators: any[];
+  lineLeaders?: LineLeader[];
   count: number;
   error?: string;
 }> {
@@ -1712,9 +1717,40 @@ export async function fetchOperatorsFromGViz(sheetId: string = "1tA8YyHxFr1xwGWv
       });
     }
 
+    // Ekstraksi struktur pimpinan lini (Kolom AC: Factory R, AD: Line R, AE: Chief, AF: Supervisor, AG: IE)
+    const lineLeadersMap = new Map<string, LineLeader>();
+    for (let i = 1; i < lines.length; i++) {
+      const cols = parseCsvLine(lines[i]);
+      const rawF = (cols[28] ?? "").trim();
+      const rawL = (cols[29] ?? "").trim();
+      const rawChief = (cols[30] ?? "").trim();
+      const rawSpv = (cols[31] ?? "").trim();
+      const rawIE = (cols[32] ?? "").trim();
+
+      if (rawF && rawL && (rawChief || rawSpv || rawIE)) {
+        const fNum = rawF.replace(/[^0-9]/g, "") || rawF;
+        const lNum = rawL.replace(/[^0-9]/g, "") || rawL;
+        const fName = `Factory ${fNum}`;
+        const lName = `Line ${lNum}`;
+        const key = `${fName}_${lName}`;
+
+        if (!lineLeadersMap.has(key)) {
+          lineLeadersMap.set(key, {
+            factory: fName,
+            line: lName,
+            chief: rawChief || "-",
+            supervisor: (rawSpv && rawSpv !== "-") ? rawSpv : "-",
+            ie: rawIE || "-",
+          });
+        }
+      }
+    }
+    const lineLeaders = Array.from(lineLeadersMap.values());
+
     return {
       success: true,
       operators: parsedOps,
+      lineLeaders,
       count: parsedOps.length,
     };
   } catch (err: any) {
@@ -1722,6 +1758,7 @@ export async function fetchOperatorsFromGViz(sheetId: string = "1tA8YyHxFr1xwGWv
     return {
       success: false,
       operators: [],
+      lineLeaders: [],
       count: 0,
       error: err.message || String(err),
     };
