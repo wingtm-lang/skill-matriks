@@ -3,26 +3,28 @@ import {
   LayoutDashboard,
   TableProperties, 
   Target, 
-  Building2,
   X,
   ChevronRight,
-  Award,
   ShieldCheck,
-  Languages
+  Languages,
+  Search
 } from 'lucide-react';
 import { useLanguage } from '../i18n/LanguageContext';
+import { Operator } from '../types';
 
 interface SidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   isOpen: boolean;
   onClose: () => void;
-  selectedFactory: string;
-  selectedLine: string;
-  totalOperatorsCount: number;
+  selectedFactory?: string;
+  selectedLine?: string;
+  totalOperatorsCount?: number;
   totalActiveOperatorsCount?: number;
   userRole: 'VIEWER' | 'EDITOR' | 'ADMIN';
   onRoleChange: (role: 'VIEWER' | 'EDITOR' | 'ADMIN') => void;
+  operators?: Operator[];
+  onNavigateToLine?: (factory: string, line: string) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -30,9 +32,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onTabChange,
   isOpen,
   onClose,
-  selectedFactory,
-  selectedLine,
-  totalOperatorsCount,
   totalActiveOperatorsCount = 0,
   userRole,
   onRoleChange,
@@ -67,6 +66,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       sublabel: t.sidebar.navTrainingSub,
       icon: Target,
     },
+    {
+      id: 'search',
+      label: t.sidebar.navSearch,
+      sublabel: t.sidebar.navSearchSub,
+      icon: Search,
+      badge: 'NIK',
+    },
   ];
 
   return (
@@ -86,7 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         } lg:static lg:h-screen lg:shrink-0 lg:rounded-r-3xl my-0 lg:my-3 lg:ml-3 lg:h-[calc(100vh-24px)]`}
       >
         {/* Top Branding */}
-        <div className="p-6">
+        <div className="p-5 pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 rounded-2xl bg-white p-1.5 flex items-center justify-center border border-white/20 shadow-md shrink-0">
@@ -114,39 +120,45 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <X className="w-5 h-5" />
             </button>
           </div>
-
-          {/* Active Context Card in Sidebar */}
-          <div className="mt-5 p-3 rounded-2xl bg-white/6 border border-white/10 flex items-center justify-between shadow-2xs">
-            <div>
-              <span className="text-[10px] uppercase font-semibold tracking-wider text-[#C8D8D8] block">
-                {t.sidebar.activeLine}
-              </span>
-              <div className="text-xs font-bold text-white mt-0.5">
-                {selectedFactory} • {selectedLine}
-              </div>
-            </div>
-            <span className="text-[11px] font-bold bg-[#D0A018] text-white px-2.5 py-0.5 rounded-full shadow-xs">
-              {totalOperatorsCount} Op
-            </span>
-          </div>
         </div>
 
         {/* Active Personnel Card */}
-        <div className="p-3.5 mx-4 my-1 bg-white/6 rounded-2xl border border-white/10 backdrop-blur-xs shadow-inner">
+        <div className="p-3 mx-4 my-1 bg-white/6 rounded-2xl border border-white/10 backdrop-blur-xs shadow-inner">
           <div className="flex items-center justify-between">
             <p className="text-[10px] text-[#C8D8D8] font-bold uppercase tracking-wider">{t.sidebar.activeOpsLabel}</p>
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           </div>
-          <p className="text-2xl font-bold text-emerald-300 mt-1">
+          <p className="text-xl font-bold text-emerald-300 mt-0.5">
             {totalActiveOperatorsCount} <span className="text-xs font-normal text-[#C8D8D8]">{t.common.personnel}</span>
           </p>
           <p className="text-[10px] text-[#A0B5B5] mt-0.5">{t.sidebar.totalPopLabel}</p>
         </div>
 
-        {/* Navigation Items */}
+        {/* Quick Search Shortcut Bar */}
+        <div className="px-4 pt-2 pb-1">
+          <button
+            type="button"
+            onClick={() => {
+              onTabChange('search');
+              onClose();
+            }}
+            className="w-full flex items-center justify-between px-3 py-2 text-xs bg-black/20 hover:bg-black/30 text-[#A0B5B5] hover:text-white border border-white/15 hover:border-[#2AAFA3]/50 rounded-xl outline-none transition-all shadow-inner cursor-pointer group"
+          >
+            <div className="flex items-center gap-2 truncate">
+              <Search className="w-3.5 h-3.5 text-[#2AAFA3] group-hover:scale-110 transition-transform shrink-0" />
+              <span className="truncate text-[11px]">{t.sidebar.searchPlaceholder}</span>
+            </div>
+            <span className="text-[9px] font-mono font-bold bg-white/10 text-[#C8D8D8] px-1.5 py-0.5 rounded shrink-0">
+              NIK
+            </span>
+          </button>
+        </div>
+
+        {/* MIDDLE SECTION: MAIN NAVIGATION */}
         <div className="flex-1 px-4 py-2 space-y-1.5 overflow-y-auto no-scrollbar">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-[#C8D8D8]/70 px-3 mb-2">
-            Main Navigation
+          <div className="text-[10px] font-bold uppercase tracking-wider text-[#C8D8D8]/70 px-3 mb-2 flex items-center justify-between">
+            <span>Main Navigation</span>
+            <span className="text-[9px] font-mono text-[#2AAFA3] font-bold">4 MODUL</span>
           </div>
 
           {navItems.map((item) => {

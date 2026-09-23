@@ -89,13 +89,11 @@ export const Header: React.FC<HeaderProps> = ({
                 <h2 className="text-sm sm:text-base font-bold text-[#304848] tracking-tight">
                   {t.header.companyName}
                 </h2>
-                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
-                  isLive 
-                    ? 'bg-[#D9F1EF] text-[#247F77] border-[#BDE5E2]' 
-                    : 'bg-amber-50 text-amber-800 border-amber-200'
-                }`}>
-                  {isLive ? t.header.liveBadge : t.header.mockBadge}
-                </span>
+                {!isLive && (
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full border bg-amber-50 text-amber-800 border-amber-200">
+                    {t.header.mockBadge}
+                  </span>
+                )}
               </div>
               <p className="text-[11px] sm:text-xs text-[#788888] font-normal">
                 {t.header.systemSubtitle}
@@ -125,7 +123,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Line Selector - only shown when on line-specific tabs */}
-          {activeTab !== 'overall' && (
+          {activeTab !== 'overall' && activeTab !== 'search' && (
             <div className={`flex items-center space-x-1.5 border rounded-xl px-2.5 py-1.5 shadow-2xs transition-colors ${
               normalizeFactoryName(selectedFactory).toLowerCase() === 'factory 3b'
                 ? 'bg-amber-50/70 border-amber-200 text-amber-800'
@@ -136,7 +134,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`} />
               {normalizeFactoryName(selectedFactory).toLowerCase() === 'factory 3b' ? (
                 <span className="text-xs font-semibold text-amber-800/80 italic pr-1">
-                  Belum Ada Lini (Kosong)
+                  {t.header.noLineAvailable}
                 </span>
               ) : (
                 <select

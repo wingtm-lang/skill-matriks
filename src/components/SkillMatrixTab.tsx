@@ -1614,7 +1614,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                         type="button"
                         onClick={handleCopyPlantingFormula}
                         className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white text-emerald-800 border border-emerald-300 hover:bg-emerald-100/80 transition-colors shadow-xs cursor-pointer"
-                        title="Salin 18 kolom beserta rumus XLOOKUP, DATEDIF, dan INDEX MATCH ke clipboard"
+                        title={addOpT.copyTooltip}
                       >
                         {hasCopiedFormula ? (
                           <>

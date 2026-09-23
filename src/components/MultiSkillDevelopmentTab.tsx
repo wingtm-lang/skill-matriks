@@ -126,10 +126,10 @@ export const MultiSkillDevelopmentTab: React.FC<MultiSkillDevelopmentTabProps> =
             type="button"
             onClick={() => setIsPdfModalOpen(true)}
             className="self-start sm:self-auto bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-            title="Export Laporan PDF Skill Matrix & Evaluasi Kompetensi"
+            title={t.matrix.exportPdfDesc}
           >
             <FileDown className="w-3.5 h-3.5 text-rose-600" />
-            <span>Export PDF Laporan</span>
+            <span>{t.matrix.exportPDF}</span>
             <span className="text-[9px] bg-rose-200/80 text-rose-900 px-1 py-0.2 rounded font-bold uppercase tracking-wide">A4</span>
           </button>
         </div>

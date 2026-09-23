@@ -44,6 +44,7 @@ export interface Translations {
     factory: string;
     line: string;
     period: string;
+    noLineAvailable: string;
     role: string;
     roleViewer: string;
     roleEditor: string;
@@ -77,6 +78,63 @@ export interface Translations {
     targetIELabel: string;
     rebalanceReadyLabel: string;
     footerVersion: string;
+    searchPlaceholder: string;
+    searchResultsTitle: string;
+    searchFoundCount: string;
+    searchNotFound: string;
+    searchNotFoundDesc: string;
+    clearSearch: string;
+    tenureLabel: string;
+    currentOpLabel: string;
+    machinePointsLabel: string;
+    skillLabel: string;
+    multiSkillTag: string;
+    singleSkillTag: string;
+    helperTag: string;
+    openMatrix: string;
+    totalPointsLabel: string;
+    navSearch: string;
+    navSearchSub: string;
+  };
+
+  // User Search Tab
+  searchTab: {
+    title: string;
+    subtitle: string;
+    searchPlaceholder: string;
+    filterFactory: string;
+    filterLine: string;
+    filterGrade: string;
+    filterSkill: string;
+    allFactories: string;
+    allLines: string;
+    allGrades: string;
+    allSkills: string;
+    sortBy: string;
+    sortNameAsc: string;
+    sortNameDesc: string;
+    sortTenureDesc: string;
+    sortTenureAsc: string;
+    sortPointsDesc: string;
+    sortNikAsc: string;
+    viewCard: string;
+    viewTable: string;
+    showingCount: string;
+    clearFilters: string;
+    noResults: string;
+    noResultsDesc: string;
+    openInMatrix: string;
+    copyNikSuccess: string;
+    totalOperatorsFound: string;
+    multiSkillOperators: string;
+    avgScore: string;
+    avgTenure: string;
+    tenureHeader: string;
+    currentOpHeader: string;
+    machinePointsHeader: string;
+    skillHeader: string;
+    gradeHeader: string;
+    actionsHeader: string;
   };
 
   // Metrics Overview
@@ -378,6 +436,7 @@ export interface Translations {
     preview18ColTitle: string;
     copyFormulaBtn: string;
     copiedFormulaBtn: string;
+    copyTooltip: string;
     submitPlanting: string;
     submitPlantAndSave: string;
     submitSave: string;
@@ -554,6 +613,98 @@ export interface Translations {
     retryBtn: string;
   };
 
+  // Overall Dashboard Tab
+  overallDashboard: {
+    tabTitle: string;
+    tabSubtitle: string;
+    avgScoreLabel: string;
+    multiSkillLabel: string;
+    f3bWarningTitle: string;
+    f3bWarningDesc: string;
+
+    // KPI Cards
+    totalOperatorCardTitle: string;
+    totalOperatorPopSubtitle: string;
+    multiSkillOfTotal: string;
+    opUnit: string;
+
+    gradeSTitle: string;
+    gradeATitle: string;
+    gradeBTitle: string;
+    gradeCTitle: string;
+    helperTitle: string;
+    ofTotal: string;
+    criteriaLabel: string;
+    criteriaS: string;
+    criteriaA: string;
+    criteriaB: string;
+    criteriaC: string;
+    criteriaHelper: string;
+
+    // Visual Distribution Bar
+    visualDistTitle: string;
+    totalOperatorsLabel: string;
+
+    // Line Breakdown Section
+    lineBreakdownTitle: string;
+    lineBreakdownSubtitle: string;
+    searchLinePlaceholder: string;
+    thLine: string;
+    thChief: string;
+    thTotalOp: string;
+    thGradeS: string;
+    thGradeA: string;
+    thGradeB: string;
+    thGradeC: string;
+    thHelper: string;
+    thMultiSkillPct: string;
+    thAction: string;
+    chiefRole: string;
+    openMatrixBtn: string;
+    openMatrixTooltip: string;
+    emptyLinesF3B: string;
+    emptyLinesOther: string;
+
+    // Section 2: All Factories Benchmark
+    benchmarkTitle: string;
+    benchmarkSubtitle: string;
+    companyTotalTitle: string;
+    companyTotalOperators: string;
+    allFactoriesPill: string;
+    enterpriseTotalOp: string;
+    allFactoriesFoot: string;
+    totalGradeSCompany: string;
+    totalGradeACompany: string;
+    totalGradeBCompany: string;
+    totalGradeCCompany: string;
+    totalHelperCompany: string;
+    companyWidePct: string;
+
+    // Factory Side-by-Side Cards
+    periodLabel: string;
+    selectedBadge: string;
+    noDataBadge: string;
+    noDataTitle: string;
+    noDataDesc: string;
+    viewingNow: string;
+    focusFactoryBtn: string;
+
+    // Comparison Table
+    compTableTitle: string;
+    compTableSubtitle: string;
+    thFactoryName: string;
+    thGradeSHeader: string;
+    thGradeAHeader: string;
+    thGradeBHeader: string;
+    thGradeCHeader: string;
+    thHelperHeader: string;
+    thAvgPoints: string;
+    activeStatus: string;
+    btnSelected: string;
+    btnSelect: string;
+    totalCompanyRow: string;
+  };
+
   // Months
   months: {
     1: string;
@@ -613,6 +764,7 @@ export const translations: Record<Language, Translations> = {
       factory: 'Pabrik',
       line: 'Lini',
       period: 'Periode:',
+      noLineAvailable: 'Belum Ada Lini (Kosong)',
       role: 'Role:',
       roleViewer: 'Viewer (GM/Manager)',
       roleEditor: 'Editor (IE Staff)',
@@ -644,6 +796,61 @@ export const translations: Record<Language, Translations> = {
       targetIELabel: 'Target IE Line',
       rebalanceReadyLabel: 'Kesiapan Rebalance',
       footerVersion: 'Winners IE System v2.4',
+      searchPlaceholder: 'Cari NIK atau nama operator...',
+      searchResultsTitle: 'Hasil Pencarian Operator',
+      searchFoundCount: '{count} operator ditemukan',
+      searchNotFound: 'Operator tidak ditemukan',
+      searchNotFoundDesc: 'Pastikan NIK atau nama yang dimasukkan sudah benar.',
+      clearSearch: 'Bersihkan Pencarian',
+      tenureLabel: 'Masa Kerja',
+      currentOpLabel: 'Operasi Saat Ini',
+      machinePointsLabel: 'Poin Mesin',
+      skillLabel: 'Keterampilan / Mesin',
+      multiSkillTag: 'Multi-Skill ({count} Mesin)',
+      singleSkillTag: 'Single-Skill (1 Mesin)',
+      helperTag: 'Helper (Non-Mesin)',
+      openMatrix: 'Buka di Matriks Lini',
+      totalPointsLabel: 'Total Poin',
+      navSearch: 'Pencarian Operator',
+      navSearchSub: 'Cari NIK & Profil Detail',
+    },
+    searchTab: {
+      title: 'Pencarian Operator & Analisis Profil',
+      subtitle: 'Pencarian terpusat seluruh operator PT. Winners International berdasarkan NIK atau Nama dengan rincian masa kerja, lini, operasi berjalan, poin mesin, skill, dan grade.',
+      searchPlaceholder: 'Ketik NIK (contoh: WI-...) atau Nama Operator...',
+      filterFactory: 'Filter Pabrik',
+      filterLine: 'Filter Lini',
+      filterGrade: 'Filter Grade',
+      filterSkill: 'Filter Skill',
+      allFactories: 'Semua Pabrik',
+      allLines: 'Semua Lini',
+      allGrades: 'Semua Grade',
+      allSkills: 'Semua Kategori Skill',
+      sortBy: 'Urutkan Berdasarkan',
+      sortNameAsc: 'Nama (A - Z)',
+      sortNameDesc: 'Nama (Z - A)',
+      sortTenureDesc: 'Masa Kerja Tertinggi',
+      sortTenureAsc: 'Masa Kerja Terendah',
+      sortPointsDesc: 'Poin Mesin Tertinggi',
+      sortNikAsc: 'NIK Terurut',
+      viewCard: 'Tampilan Kartu',
+      viewTable: 'Tampilan Tabel',
+      showingCount: 'Menampilkan {count} dari {total} operator',
+      clearFilters: 'Reset Filter',
+      noResults: 'Operator Tidak Ditemukan',
+      noResultsDesc: 'Tidak ada operator yang cocok dengan filter atau kata kunci yang dimasukkan.',
+      openInMatrix: 'Buka di Matriks Lini',
+      copyNikSuccess: 'NIK berhasil disalin ke clipboard!',
+      totalOperatorsFound: 'Total Operator',
+      multiSkillOperators: 'Operator Multi-Skill',
+      avgScore: 'Rata-rata Poin',
+      avgTenure: 'Rata-rata Masa Kerja',
+      tenureHeader: 'Masa Kerja',
+      currentOpHeader: 'Operasi Saat Ini',
+      machinePointsHeader: 'Poin Mesin',
+      skillHeader: 'Kategori Skill',
+      gradeHeader: 'Grade IE',
+      actionsHeader: 'Aksi',
     },
     metrics: {
       totalOperators: 'Total Operator Line',
@@ -931,6 +1138,7 @@ export const translations: Record<Language, Translations> = {
       preview18ColTitle: "Pratinjau Format 18 Kolom 'by_worker' + Rumus Otomatis:",
       copyFormulaBtn: 'Salin Rumus Baris Sheets',
       copiedFormulaBtn: '18 Kolom & Rumus Disalin!',
+      copyTooltip: 'Salin 18 kolom beserta rumus XLOOKUP, DATEDIF, dan INDEX MATCH ke clipboard',
       submitPlanting: 'Menanamkan ke by_worker...',
       submitPlantAndSave: 'Simpan & Tanamkan ke by_worker',
       submitSave: 'Simpan Data Operator',
@@ -1096,6 +1304,96 @@ export const translations: Record<Language, Translations> = {
       footerStandard: 'GSD & MOST Standard Compliance',
       retryBtn: 'Coba Lagi',
     },
+    overallDashboard: {
+      tabTitle: 'Overall Dashboard',
+      tabSubtitle: 'Evaluasi kinerja populasi operator & distribusi grade seluruh lini',
+      avgScoreLabel: 'Rata-rata:',
+      multiSkillLabel: 'Multi-Skill:',
+      f3bWarningTitle: 'Pabrik Factory 3B: Belum Ada Data',
+      f3bWarningDesc: 'Pabrik Factory 3B saat ini belum memiliki data operator aktif terdaftar di spreadsheet. Seluruh metrik populasi, grade (S, A, B, C, Helper), dan lini produksi dikosongkan agar data tidak rancu dengan pabrik lainnya.',
+
+      // KPI Cards
+      totalOperatorCardTitle: 'Total Operator',
+      totalOperatorPopSubtitle: 'Populasi {factory}',
+      multiSkillOfTotal: 'Multi-Skill:',
+      opUnit: 'Op',
+
+      gradeSTitle: 'Grade S',
+      gradeATitle: 'Grade A',
+      gradeBTitle: 'Grade B',
+      gradeCTitle: 'Grade C',
+      helperTitle: 'Helper',
+      ofTotal: 'dari total',
+      criteriaLabel: 'Kriteria:',
+      criteriaS: '> 13 Poin',
+      criteriaA: '8 – 13 Poin',
+      criteriaB: '4 – 7 Poin',
+      criteriaC: '1 – 3 Poin',
+      criteriaHelper: '0 Poin / Non-Sewing',
+
+      // Visual Distribution Bar
+      visualDistTitle: 'Distribusi Visual Grade {factory} ({period})',
+      totalOperatorsLabel: 'Total: {total} Operator',
+
+      // Line Breakdown Section
+      lineBreakdownTitle: 'Rincian Operator Per Lini di {factory}',
+      lineBreakdownSubtitle: 'Daftar per lini produksi beserta komposisi grade dan akses cepat ke matriks keterampilan',
+      searchLinePlaceholder: 'Cari lini atau leader...',
+      thLine: 'Lini Produksi',
+      thChief: 'Chief / SPV',
+      thTotalOp: 'Total Op',
+      thGradeS: 'S',
+      thGradeA: 'A',
+      thGradeB: 'B',
+      thGradeC: 'C',
+      thHelper: 'Helper',
+      thMultiSkillPct: 'Multi-Skill %',
+      thAction: 'Aksi',
+      chiefRole: 'Chief Sewing',
+      openMatrixBtn: 'Buka Matriks',
+      openMatrixTooltip: 'Buka matriks keterampilan untuk {factory} {line}',
+      emptyLinesF3B: 'Pabrik Factory 3B belum memiliki data lini produksi maupun operator di sistem (Data Kosong).',
+      emptyLinesOther: 'Tidak ada lini yang ditemukan untuk {factory} pada periode ini.',
+
+      // Section 2: All Factories Benchmark
+      benchmarkTitle: 'Benchmark Seluruh Pabrik',
+      benchmarkSubtitle: 'Perbandingan agregat populasi operator dan pembagian grade (S, A, B, C, Helper) di seluruh pabrik PT. Winners International',
+      companyTotalTitle: 'Total Operator Perusahaan',
+      companyTotalOperators: '{count} Operator',
+      allFactoriesPill: 'Semua Pabrik',
+      enterpriseTotalOp: 'Total Op Perusahaan',
+      allFactoriesFoot: 'Semua Pabrik',
+      totalGradeSCompany: 'Total Grade S',
+      totalGradeACompany: 'Total Grade A',
+      totalGradeBCompany: 'Total Grade B',
+      totalGradeCCompany: 'Total Grade C',
+      totalHelperCompany: 'Total Helper',
+      companyWidePct: 'Perusahaan',
+
+      // Factory Side-by-Side Cards
+      periodLabel: 'Periode {period}',
+      selectedBadge: 'Terpilih',
+      noDataBadge: 'Belum Ada Data',
+      noDataTitle: 'Data operator belum tersedia',
+      noDataDesc: 'Metrik pabrik ini dikosongkan agar tidak menimbulkan kerancuan data.',
+      viewingNow: 'Sedang Dilihat',
+      focusFactoryBtn: 'Fokuskan {factory}',
+
+      // Comparison Table
+      compTableTitle: 'Tabel Perbandingan Seluruh Pabrik ({period})',
+      compTableSubtitle: 'Rangkuman lengkap distribusi grade dan rasio kompetensi antar pabrik secara berdampingan',
+      thFactoryName: 'Nama Pabrik',
+      thGradeSHeader: 'Grade S (>13 Pts)',
+      thGradeAHeader: 'Grade A (8-13 Pts)',
+      thGradeBHeader: 'Grade B (4-7 Pts)',
+      thGradeCHeader: 'Grade C (1-3 Pts)',
+      thHelperHeader: 'Helper (0 Pts)',
+      thAvgPoints: 'Rata-rata Poin',
+      activeStatus: 'Aktif',
+      btnSelected: 'Terpilih',
+      btnSelect: 'Pilih',
+      totalCompanyRow: 'TOTAL PERUSAHAAN',
+    },
     months: {
       1: 'Januari',
       2: 'Februari',
@@ -1152,6 +1450,7 @@ export const translations: Record<Language, Translations> = {
       factory: 'Factory',
       line: 'Line',
       period: 'Period:',
+      noLineAvailable: 'No Line Available (Empty)',
       role: 'Role:',
       roleViewer: 'Viewer (GM/Manager)',
       roleEditor: 'Editor (IE Staff)',
@@ -1183,6 +1482,61 @@ export const translations: Record<Language, Translations> = {
       targetIELabel: 'Line IE Target',
       rebalanceReadyLabel: 'Rebalance Readiness',
       footerVersion: 'Winners IE System v2.4',
+      searchPlaceholder: 'Search NIK or operator name...',
+      searchResultsTitle: 'Operator Search Results',
+      searchFoundCount: '{count} operators found',
+      searchNotFound: 'No operator found',
+      searchNotFoundDesc: 'Please check the NIK or spelling of the name.',
+      clearSearch: 'Clear Search',
+      tenureLabel: 'Tenure',
+      currentOpLabel: 'Current Operation',
+      machinePointsLabel: 'Machine Points',
+      skillLabel: 'Skills / Machines',
+      multiSkillTag: 'Multi-Skill ({count} Machines)',
+      singleSkillTag: 'Single-Skill (1 Machine)',
+      helperTag: 'Helper (Non-Machine)',
+      openMatrix: 'Open in Line Matrix',
+      totalPointsLabel: 'Total Points',
+      navSearch: 'Operator Search',
+      navSearchSub: 'Search NIK & Profiles',
+    },
+    searchTab: {
+      title: 'Operator Search & Profile Analysis',
+      subtitle: 'Centralized directory of all PT. Winners International operators by NIK or Name with tenure, line, active operation, machine scores, multi-skill status, and grade.',
+      searchPlaceholder: 'Type NIK (e.g. WI-...) or Operator Name...',
+      filterFactory: 'Filter Factory',
+      filterLine: 'Filter Line',
+      filterGrade: 'Filter Grade',
+      filterSkill: 'Filter Skill',
+      allFactories: 'All Factories',
+      allLines: 'All Lines',
+      allGrades: 'All Grades',
+      allSkills: 'All Skill Categories',
+      sortBy: 'Sort By',
+      sortNameAsc: 'Name (A - Z)',
+      sortNameDesc: 'Name (Z - A)',
+      sortTenureDesc: 'Highest Tenure',
+      sortTenureAsc: 'Lowest Tenure',
+      sortPointsDesc: 'Highest Machine Points',
+      sortNikAsc: 'Ordered NIK',
+      viewCard: 'Card View',
+      viewTable: 'Table View',
+      showingCount: 'Showing {count} of {total} operators',
+      clearFilters: 'Reset Filters',
+      noResults: 'No Operators Found',
+      noResultsDesc: 'No operators matched your current search keywords or filters.',
+      openInMatrix: 'Open in Line Matrix',
+      copyNikSuccess: 'NIK copied to clipboard!',
+      totalOperatorsFound: 'Total Operators',
+      multiSkillOperators: 'Multi-Skill Operators',
+      avgScore: 'Avg Machine Points',
+      avgTenure: 'Avg Tenure',
+      tenureHeader: 'Tenure',
+      currentOpHeader: 'Current Operation',
+      machinePointsHeader: 'Machine Points',
+      skillHeader: 'Skill Category',
+      gradeHeader: 'IE Grade',
+      actionsHeader: 'Actions',
     },
     metrics: {
       totalOperators: 'Total Line Operators',
@@ -1470,6 +1824,7 @@ export const translations: Record<Language, Translations> = {
       preview18ColTitle: "Preview of 18-Column 'by_worker' Format + Automatic Formulas:",
       copyFormulaBtn: 'Copy Sheets Row Formulas',
       copiedFormulaBtn: '18 Columns & Formulas Copied!',
+      copyTooltip: 'Copy 18 columns with XLOOKUP, DATEDIF, and INDEX MATCH formulas to clipboard',
       submitPlanting: 'Planting to by_worker...',
       submitPlantAndSave: 'Save & Plant to by_worker',
       submitSave: 'Save Operator Data',
@@ -1634,6 +1989,96 @@ export const translations: Record<Language, Translations> = {
       footerRights: 'PT. Winners International © 2026 — Industrial Engineering & Lean Manufacturing System',
       footerStandard: 'GSD & MOST Standard Compliance',
       retryBtn: 'Retry',
+    },
+    overallDashboard: {
+      tabTitle: 'Overall Dashboard',
+      tabSubtitle: 'Operator population performance & grade distribution across all lines',
+      avgScoreLabel: 'Average:',
+      multiSkillLabel: 'Multi-Skill:',
+      f3bWarningTitle: 'Factory 3B: No Data Available',
+      f3bWarningDesc: 'Factory 3B currently has no registered active operators in the spreadsheet. All population metrics, grades (S, A, B, C, Helper), and production lines are cleared to avoid confusion with other factories.',
+
+      // KPI Cards
+      totalOperatorCardTitle: 'Total Operators',
+      totalOperatorPopSubtitle: '{factory} Population',
+      multiSkillOfTotal: 'Multi-Skill:',
+      opUnit: 'Ops',
+
+      gradeSTitle: 'Grade S',
+      gradeATitle: 'Grade A',
+      gradeBTitle: 'Grade B',
+      gradeCTitle: 'Grade C',
+      helperTitle: 'Helper',
+      ofTotal: 'of total',
+      criteriaLabel: 'Criteria:',
+      criteriaS: '> 13 Points',
+      criteriaA: '8 – 13 Points',
+      criteriaB: '4 – 7 Points',
+      criteriaC: '1 – 3 Points',
+      criteriaHelper: '0 Points / Non-Sewing',
+
+      // Visual Distribution Bar
+      visualDistTitle: '{factory} Visual Grade Distribution ({period})',
+      totalOperatorsLabel: 'Total: {total} Operators',
+
+      // Line Breakdown Section
+      lineBreakdownTitle: 'Operator Breakdown Per Line in {factory}',
+      lineBreakdownSubtitle: 'List of production lines with grade composition and quick access to skill matrix',
+      searchLinePlaceholder: 'Search line or leader...',
+      thLine: 'Production Line',
+      thChief: 'Chief / Supervisor',
+      thTotalOp: 'Total Ops',
+      thGradeS: 'S',
+      thGradeA: 'A',
+      thGradeB: 'B',
+      thGradeC: 'C',
+      thHelper: 'Helper',
+      thMultiSkillPct: 'Multi-Skill %',
+      thAction: 'Action',
+      chiefRole: 'Chief Sewing',
+      openMatrixBtn: 'Open Matrix',
+      openMatrixTooltip: 'Open skill matrix for {factory} {line}',
+      emptyLinesF3B: 'Factory 3B has no production line or operator records in the system (Empty Data).',
+      emptyLinesOther: 'No production lines found for {factory} in this period.',
+
+      // Section 2: All Factories Benchmark
+      benchmarkTitle: 'All Factories Benchmark',
+      benchmarkSubtitle: 'Aggregate comparison of operator population and grade distribution (S, A, B, C, Helper) across all PT. Winners International factories',
+      companyTotalTitle: 'Enterprise Total Operators',
+      companyTotalOperators: '{count} Operators',
+      allFactoriesPill: 'All Factories',
+      enterpriseTotalOp: 'Enterprise Total Ops',
+      allFactoriesFoot: 'All Factories',
+      totalGradeSCompany: 'Total Grade S',
+      totalGradeACompany: 'Total Grade A',
+      totalGradeBCompany: 'Total Grade B',
+      totalGradeCCompany: 'Total Grade C',
+      totalHelperCompany: 'Total Helper',
+      companyWidePct: 'Enterprise',
+
+      // Factory Side-by-Side Cards
+      periodLabel: 'Period {period}',
+      selectedBadge: 'Selected',
+      noDataBadge: 'No Data',
+      noDataTitle: 'Operator data not yet available',
+      noDataDesc: 'Metrics for this factory are cleared to avoid confusion with active factories.',
+      viewingNow: 'Currently Viewing',
+      focusFactoryBtn: 'Focus {factory}',
+
+      // Comparison Table
+      compTableTitle: 'Cross-Factory Comparison Table ({period})',
+      compTableSubtitle: 'Comprehensive side-by-side summary of grade distribution and competency ratios across factories',
+      thFactoryName: 'Factory Name',
+      thGradeSHeader: 'Grade S (>13 Pts)',
+      thGradeAHeader: 'Grade A (8-13 Pts)',
+      thGradeBHeader: 'Grade B (4-7 Pts)',
+      thGradeCHeader: 'Grade C (1-3 Pts)',
+      thHelperHeader: 'Helper (0 Pts)',
+      thAvgPoints: 'Avg Points',
+      activeStatus: 'Active',
+      btnSelected: 'Selected',
+      btnSelect: 'Select',
+      totalCompanyRow: 'ENTERPRISE TOTAL',
     },
     months: {
       1: 'January',

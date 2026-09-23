@@ -5,6 +5,7 @@ import { MetricsOverview } from './components/MetricsOverview';
 import { SkillMatrixTab } from './components/SkillMatrixTab';
 import { MultiSkillDevelopmentTab } from './components/MultiSkillDevelopmentTab';
 import { OverallDashboardTab } from './components/OverallDashboardTab';
+import { UserSearchTab } from './components/UserSearchTab';
 import { FACTORIES, LINES, DEFAULT_LINE_LEADERS } from './data/mockData';
 import { Operator, LineLeader } from './types';
 import { 
@@ -420,6 +421,12 @@ export default function App() {
         totalActiveOperatorsCount={totalActiveOperatorsCount}
         userRole={userRole}
         onRoleChange={setUserRole}
+        operators={pointInTimeAllOperators && pointInTimeAllOperators.length > 0 ? pointInTimeAllOperators : operators}
+        onNavigateToLine={(fac, line) => {
+          setSelectedFactory(fac);
+          setSelectedLine(line);
+          setActiveTab('matrix');
+        }}
       />
 
       {/* MAIN CONTENT AREA */}
@@ -461,7 +468,7 @@ export default function App() {
         )}
 
         {/* METRICS KPI SUMMARY ROW - Only displayed on line-specific tabs */}
-        {activeTab !== 'overall' && (
+        {activeTab !== 'overall' && activeTab !== 'search' && (
           <MetricsOverview
             operators={displayedOperators}
             selectedLine={selectedLine}
@@ -517,6 +524,17 @@ export default function App() {
               selectedMonth={selectedMonth}
               selectedYear={selectedYear}
               lineLeaders={lineLeaders}
+            />
+          )}
+
+          {activeTab === 'search' && (
+            <UserSearchTab
+              operators={pointInTimeAllOperators && pointInTimeAllOperators.length > 0 ? pointInTimeAllOperators : operators}
+              onNavigateToLine={(fac, line) => {
+                setSelectedFactory(fac);
+                setSelectedLine(line);
+                setActiveTab('matrix');
+              }}
             />
           )}
         </div>
