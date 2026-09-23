@@ -310,6 +310,8 @@ export interface Translations {
     currentOperationCheckboxDesc: string;
     filterOperationTitle: string;
     allOperationsOption: string;
+    resetFilter: string;
+    resetZoom: string;
     multiSkillOnlyTitle: string;
     multiSkillOnlyDesc: string;
     auditBannerTitle: string;
@@ -341,6 +343,7 @@ export interface Translations {
     thNik: string;
     thOperatorName: string;
     thTenure: string;
+    thCurrentOperation: string;
     thLockstitch: string;
     thOverlock: string;
     thFlatseam: string;
@@ -766,9 +769,9 @@ export const translations: Record<Language, Translations> = {
       period: 'Periode:',
       noLineAvailable: 'Belum Ada Lini (Kosong)',
       role: 'Role:',
-      roleViewer: 'Viewer (GM/Manager)',
-      roleEditor: 'Editor (IE Staff)',
-      roleAdmin: 'Admin (Akses Penuh)',
+      roleViewer: 'Viewer',
+      roleEditor: 'Editor',
+      roleAdmin: 'Admin',
       syncTooltip: 'Segarkan Data Sistem',
       language: 'Bahasa',
       indonesian: 'Indonesia',
@@ -1014,6 +1017,8 @@ export const translations: Record<Language, Translations> = {
       currentOperationCheckboxDesc: 'Tampilkan nama proses/operasi kerja terkini di tabel',
       filterOperationTitle: 'Saring Berdasarkan Operasi',
       allOperationsOption: 'Semua Operasi',
+      resetFilter: 'Reset',
+      resetZoom: 'Reset 100%',
       multiSkillOnlyTitle: 'Saring: Hanya Multi-Skill (≥2)',
       multiSkillOnlyDesc: 'Hanya mencetak operator dengan 2+ jenis mesin',
       auditBannerTitle: 'Standar IE & MOST Terakreditasi',
@@ -1025,9 +1030,9 @@ export const translations: Record<Language, Translations> = {
       nextPageTooltip: 'Halaman Berikutnya',
       zoomOutTooltip: 'Perkecil (-)',
       zoomInTooltip: 'Perbesar (+)',
-      resetZoomTooltip: 'Reset 100%',
+      resetZoomTooltip: 'Reset Skala (100%)',
       openPdfTabBtn: 'Buka Tab Baru',
-      openPdfTabTooltip: 'Buka PDF di tab baru browser',
+      openPdfTabTooltip: 'Buka dokumen PDF di tab baru browser',
       companyTitle: 'PT.WINNERS INTERNATIONAL',
       documentTitle: 'MULTI SKILL OPERATOR DEVELOPMENT',
       factoryLineLabel: 'Pabrik / Lini',
@@ -1045,6 +1050,7 @@ export const translations: Record<Language, Translations> = {
       thNik: 'NIK',
       thOperatorName: 'NAMA OPERATOR',
       thTenure: 'MASA KERJA',
+      thCurrentOperation: 'PROSES / OPERASI KERJA',
       thLockstitch: 'Lock',
       thOverlock: 'Obras',
       thFlatseam: 'Flat',
@@ -1064,12 +1070,12 @@ export const translations: Record<Language, Translations> = {
       sigCreatedBy: 'DIBUAT OLEH (IE OFFICER)',
       sigCreatedDept: 'Industrial Engineering Dept.',
       sigCreatedRole: '( IE Specialist )',
-      sigVerifiedBy: 'DIVERIFIKASI (SPV SEWING)',
+      sigVerifiedBy: 'DIVERIFIKASI OLEH (SPV SEWING)',
       sigVerifiedDept: 'Sewing Production Line',
-      sigVerifiedRole: '( Supervisor Lini )',
-      sigApprovedBy: 'APPROVED BY (CHIEF)',
+      sigVerifiedRole: '( Supervisor {line} )',
+      sigApprovedBy: 'DISETUJUI OLEH (CHIEF SEWING)',
       sigApprovedDept: 'Sewing Production Dept.',
-      sigApprovedRole: '(Sewing Chief)',
+      sigApprovedRole: '( Chief Sewing )',
       paperFooterCompany: 'PT.WINNERS INTERNATIONAL',
       readyExportMessage: 'Siap mengekspor {count} data operator dalam format {orientation}',
       closeBtn: 'Tutup',
@@ -1452,9 +1458,9 @@ export const translations: Record<Language, Translations> = {
       period: 'Period:',
       noLineAvailable: 'No Line Available (Empty)',
       role: 'Role:',
-      roleViewer: 'Viewer (GM/Manager)',
-      roleEditor: 'Editor (IE Staff)',
-      roleAdmin: 'Admin (Full Access)',
+      roleViewer: 'Viewer',
+      roleEditor: 'Editor',
+      roleAdmin: 'Admin',
       syncTooltip: 'Refresh System Data',
       language: 'Language',
       indonesian: 'Indonesian',
@@ -1700,6 +1706,8 @@ export const translations: Record<Language, Translations> = {
       currentOperationCheckboxDesc: 'Display active sewing operation/process name in table',
       filterOperationTitle: 'Filter by Current Operation',
       allOperationsOption: 'All Operations',
+      resetFilter: 'Reset',
+      resetZoom: 'Reset 100%',
       multiSkillOnlyTitle: 'Multi-Skilled Operators Only (≥2)',
       multiSkillOnlyDesc: 'Only export operators who master 2 or more machine types',
       auditBannerTitle: 'Accredited IE & MOST Standard',
@@ -1711,9 +1719,9 @@ export const translations: Record<Language, Translations> = {
       nextPageTooltip: 'Next Page',
       zoomOutTooltip: 'Zoom Out (-)',
       zoomInTooltip: 'Zoom In (+)',
-      resetZoomTooltip: 'Reset 100%',
+      resetZoomTooltip: 'Reset Zoom (100%)',
       openPdfTabBtn: 'Open PDF',
-      openPdfTabTooltip: 'Open PDF in a new browser tab',
+      openPdfTabTooltip: 'Open PDF document in a new browser tab',
       companyTitle: 'PT.WINNERS INTERNATIONAL',
       documentTitle: 'MULTI SKILL OPERATOR DEVELOPMENT',
       factoryLineLabel: 'Factory / Line',
@@ -1731,6 +1739,7 @@ export const translations: Record<Language, Translations> = {
       thNik: 'NIK',
       thOperatorName: 'OPERATOR NAME',
       thTenure: 'TENURE',
+      thCurrentOperation: 'CURRENT OPERATION',
       thLockstitch: 'Lock',
       thOverlock: 'Overlock',
       thFlatseam: 'Flat',
@@ -1744,7 +1753,7 @@ export const translations: Record<Language, Translations> = {
       tenureMonthUnit: 'mos',
       machineUnit: 'Mch',
       statusActive: 'Active',
-      statusResigned: 'Resign',
+      statusResigned: 'Resigned',
       noOperatorsFound: 'No operator records found for this line in the selected period.',
       noOperatorsHint: 'Please verify that the selected factory and line have active operators, or adjust active filters.',
       sigCreatedBy: 'PREPARED BY (IE OFFICER)',
@@ -1753,9 +1762,9 @@ export const translations: Record<Language, Translations> = {
       sigVerifiedBy: 'VERIFIED BY (SEWING SPV)',
       sigVerifiedDept: 'Sewing Production Line',
       sigVerifiedRole: '( Sewing Line Supervisor )',
-      sigApprovedBy: 'APPROVED BY (CHIEF)',
+      sigApprovedBy: 'APPROVED BY (SEWING CHIEF)',
       sigApprovedDept: 'Sewing Production Dept.',
-      sigApprovedRole: '(Sewing Chief)',
+      sigApprovedRole: '( Sewing Chief )',
       paperFooterCompany: 'PT.WINNERS INTERNATIONAL',
       readyExportMessage: 'Ready to export {count} operator records in {orientation} format',
       closeBtn: 'Close',

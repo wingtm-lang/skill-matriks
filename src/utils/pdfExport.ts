@@ -9,6 +9,7 @@ import {
 } from '../data/mockData';
 import { 
   getOperatorMultiSkillCount, 
+  getOperatorActiveMachineColumn,
   MONTH_NAMES_ID,
   isOperatorResignedAtPeriod 
 } from './ieCalculations';
@@ -129,7 +130,9 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
   const currentMonthStr = isEn 
     ? now.toLocaleString('en-US', { month: 'long' }) 
     : (MONTH_NAMES_ID[now.getMonth()]?.label || `${now.getMonth() + 1}`);
-  const printDateStr = `${now.getDate()} ${currentMonthStr} ${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} WIB`;
+  const printDateStr = isEn
+    ? `${now.getDate()} ${currentMonthStr} ${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+    : `${now.getDate()} ${currentMonthStr} ${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} WIB`;
 
   // --- BRAND & REPORT HEADER (WITH OFFICIAL LOGO) ---
   const logoSize = isPortrait ? 6.5 : 7.2;
@@ -301,9 +304,9 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
     'NIK',
     isEn ? 'OPERATOR NAME' : 'NAMA OPERATOR',
     isEn ? 'TENURE' : 'MASA\nKERJA',
-    ...(includeCurrentOperation ? ['CURRENT\nOPERATION'] : []),
+    ...(includeCurrentOperation ? [isEn ? 'CURRENT\nOPERATION' : 'OPERASI\nKERJA'] : []),
     'SN\n(Lock)',
-    'OL\n(Obras)',
+    isEn ? 'OL\n(Overlock)' : 'OL\n(Obras)',
     'FS\n(Flat)',
     'SP\n(Special)',
     'BTN\n(Hole)',
@@ -327,7 +330,9 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
       return `${val}`;
     };
 
-    const tenureStr = op.workTimeMonths ? `${op.workTimeMonths} bln` : '-';
+    const tenureStr = op.workTimeMonths 
+      ? `${op.workTimeMonths} ${isEn ? 'mos' : 'bln'}` 
+      : '-';
 
     return [
       idx + 1,
@@ -341,7 +346,7 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
       formatSkillVal(op.special),
       formatSkillVal(op.buttonHole),
       formatSkillVal(op.buttonSet),
-      msCount > 0 ? `${msCount} Mesin` : '-',
+      msCount > 0 ? `${msCount} ${isEn ? 'Mch' : 'Mesin'}` : '-',
       totalPts,
       gradeObj.letter || gradeObj.label
     ];
@@ -455,9 +460,31 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
       if (data.section === 'body') {
         const rawRow = targetOperators[data.row.index];
         const isResigned = rawRow ? isOperatorResignedAtPeriod(rawRow, selectedMonth, selectedYear) : false;
+        const activeMachine = rawRow ? getOperatorActiveMachineColumn(rawRow) : null;
 
         if (isResigned) {
           data.cell.styles.textColor = [150, 150, 150];
+        }
+
+        // Highlight active machine points for Current Operation
+        if (activeMachine) {
+          const mchStartCol = includeCurrentOperation ? 5 : 4;
+          const colMachineMap: Record<number, string> = {
+            [mchStartCol]: 'LOCKSTITCH',
+            [mchStartCol + 1]: 'OVERLOCK',
+            [mchStartCol + 2]: 'FLATSEAM',
+            [mchStartCol + 3]: 'SPECIAL',
+            [mchStartCol + 4]: 'BUTTON_HOLE',
+            [mchStartCol + 5]: 'BUTTON_SET',
+          };
+          if (colMachineMap[data.column.index] === activeMachine) {
+            const rawVal = String(data.cell.raw || '').trim();
+            if (rawVal && rawVal !== '-') {
+              data.cell.styles.fillColor = [209, 250, 229]; // light emerald bg
+              data.cell.styles.textColor = [6, 95, 70]; // deep emerald text
+              data.cell.styles.fontStyle = 'bold';
+            }
+          }
         }
 
         // Color grade column
@@ -521,16 +548,16 @@ export function generateSkillMatrixPDF(options: PDFExportOptions): jsPDF {
         role: '(IE Specialist)'
       },
       {
-        title: isEn ? 'VERIFIED BY (SUPERVISOR)' : 'DIVERIFIKASI OLEH (SPV SEWING)',
+        title: isEn ? 'VERIFIED BY (SEWING SPV)' : 'DIVERIFIKASI OLEH (SPV SEWING)',
         subtitle: isEn ? 'Sewing Production Line' : 'Line Supervisor Sewing',
-        name: leader.supervisor && leader.supervisor !== '-' ? leader.supervisor : `${selectedLine} Supervisor`,
-        role: `(Supervisor ${selectedLine})`
+        name: leader.supervisor && leader.supervisor !== '-' ? leader.supervisor : (isEn ? `${selectedLine} Supervisor` : `Supervisor ${selectedLine}`),
+        role: isEn ? `(Supervisor ${selectedLine})` : `(Supervisor ${selectedLine})`
       },
       {
-        title: 'APPROVED BY (CHIEF)',
+        title: isEn ? 'APPROVED BY (SEWING CHIEF)' : 'DISETUJUI OLEH (CHIEF SEWING)',
         subtitle: isEn ? 'Sewing Production Dept.' : 'Sewing Production Dept.',
-        name: leader.chief && leader.chief !== '-' ? leader.chief : 'Sewing Chief',
-        role: '(Sewing Chief)'
+        name: leader.chief && leader.chief !== '-' ? leader.chief : (isEn ? 'Sewing Chief' : 'Chief Sewing'),
+        role: isEn ? '(Sewing Chief)' : '(Chief Sewing)'
       }
     ];
 

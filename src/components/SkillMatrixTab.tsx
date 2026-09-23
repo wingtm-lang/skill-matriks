@@ -25,7 +25,8 @@ import {
   Table,
   Copy,
   Check,
-  FileDown
+  FileDown,
+  Zap
 } from 'lucide-react';
 import { ExportPDFModal } from './ExportPDFModal';
 import { Operator, GradeType, MachineCategory, LineLeader } from '../types';
@@ -35,6 +36,7 @@ import {
   setOperatorResigned, 
   getGradeFromTotalPoints, 
   getOperatorTotalPoints,
+  getOperatorActiveMachineColumn,
   isOperatorResignedAtPeriod,
   calculateWorkTimeMonths,
   appendOperatorToByWorker,
@@ -580,16 +582,44 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
   };
 
   // Render cell point badge (Maksimal 3 Poin per mesin sesuai standarisasi Kolom N)
-  const renderCellPointBadge = (val: number | null | undefined) => {
+  // Bedakan warna pill poin untuk mesin yang sedang aktif digunakan pada Current Operation
+  const renderCellPointBadge = (val: number | null | undefined, isCurrentOpMachine: boolean = false, isHelper: boolean = false) => {
     if (val === null || val === undefined || typeof val !== 'number' || isNaN(val) || val <= 0) {
+      if (isCurrentOpMachine && !isHelper) {
+        return (
+          <span 
+            className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs font-mono"
+            title={language === 'id' ? 'Mesin sedang aktif digunakan pada Operasi Saat Ini (Belum ada sertifikasi poin)' : 'Active machine in Current Operation (No recorded points yet)'}
+          >
+            <span>Active</span>
+          </span>
+        );
+      }
       return <span className="text-[#98A8A8] font-mono text-xs">-</span>;
     }
     const cappedPoint = Math.min(3, Math.max(1, Math.round(val)));
     if (isNaN(cappedPoint)) {
       return <span className="text-[#98A8A8] font-mono text-xs">-</span>;
     }
+
+    // PILL MESIN YANG SEDANG DIGUNAKAN PADA CURRENT OPERATION (Warna Khusus Emerald High-Contrast)
+    if (isCurrentOpMachine && !isHelper) {
+      return (
+        <span 
+          className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-600 text-white border border-emerald-700 shadow-sm ring-2 ring-emerald-400/40 tracking-tight font-mono cursor-default"
+          title={language === 'id' ? 'Poin Mesin yang Sedang Digunakan pada Operasi Saat Ini (Current Operation)' : 'Machine Points Currently in Use for Active Current Operation'}
+        >
+          <span>{cappedPoint} {t.common.points}</span>
+        </span>
+      );
+    }
+
+    // PILL MESIN STANDBY / KOMPETENSI LAINNYA
     return (
-      <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#E0F0F0] text-[#2AAFA3] border border-[#C8D8D8] shadow-2xs tracking-tight font-mono">
+      <span 
+        className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-800 border border-gray-300 shadow-2xs tracking-tight font-mono hover:bg-gray-200 transition-colors"
+        title={language === 'id' ? 'Kompetensi Mesin Tersertifikasi (Standby)' : 'Certified Machine Competency (Standby)'}
+      >
         {cappedPoint} {t.common.points}
       </span>
     );
@@ -862,17 +892,17 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-[#F8F8F8] border-b border-[#E0E8E8] text-[#405858] font-bold text-[11px] uppercase tracking-wider select-none">
+              <tr className="bg-[#F8F8F8] border-b border-gray-200 text-[#405858] font-bold text-[11px] uppercase tracking-wider select-none">
                 <th 
                   onClick={() => handleSort('no')}
-                  className="py-3 px-3.5 text-center cursor-pointer hover:text-[#2AAFA3] w-12"
+                  className="py-3 px-4 text-center cursor-pointer hover:text-[#2AAFA3] w-12"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>{t.matrix.thNo}</span>
                     <ArrowUpDown className="w-3 h-3 text-[#98A8A8]" />
                   </div>
                 </th>
-                <th className="py-3 px-3 text-left w-28">{t.matrix.thNik}</th>
+                <th className="py-3 px-4 text-center w-28">{t.matrix.thNik}</th>
                 <th 
                   onClick={() => handleSort('name')}
                   className="py-3 px-4 text-left cursor-pointer hover:text-[#2AAFA3]"
@@ -884,7 +914,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 </th>
                 <th 
                   onClick={() => handleSort('workTime')}
-                  className="py-3 px-3 text-center cursor-pointer hover:text-[#2AAFA3] w-20"
+                  className="py-3 px-4 text-center cursor-pointer hover:text-[#2AAFA3] w-20"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>{t.matrix.thTenure}</span>
@@ -895,7 +925,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 {/* Current Operation Column */}
                 <th 
                   onClick={() => handleSort('currentOperation')}
-                  className="py-3 px-3.5 text-left cursor-pointer hover:text-[#2AAFA3] min-w-[200px]"
+                  className="py-3 px-4 text-left cursor-pointer hover:text-[#2AAFA3] min-w-[200px]"
                 >
                   <div className="flex items-center gap-1">
                     <span>{t.matrix.thCurrentOperation || 'Current Operation'}</span>
@@ -904,17 +934,17 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 </th>
                 
                 {/* Machine Columns - Note: Machine names are kept untranslated per user instruction */}
-                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-x border-[#E0E8E8] w-28">Lockstitch</th>
-                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-[#E0E8E8] w-28">Overlock</th>
-                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-[#E0E8E8] w-28">Flatseam</th>
-                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-[#E0E8E8] w-28">Special / Press</th>
-                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-[#E0E8E8] w-28">Button Hole</th>
-                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-[#E0E8E8] w-28">Button Set</th>
+                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-l border-r border-gray-150 w-28">Lockstitch</th>
+                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-gray-150 w-28">Overlock</th>
+                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-gray-150 w-28">Flatseam</th>
+                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-gray-150 w-28">Special / Press</th>
+                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-gray-150 w-28">Button Hole</th>
+                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-gray-150 w-28">Button Set</th>
                 
                 {/* Aggregate Columns */}
                 <th 
                   onClick={() => handleSort('multiskill')}
-                  className="py-3 px-3 text-center cursor-pointer hover:text-[#2AAFA3] w-20"
+                  className="py-3 px-4 text-center cursor-pointer hover:text-[#2AAFA3] w-20"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>{t.matrix.thSkill}</span>
@@ -923,7 +953,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 </th>
                 <th 
                   onClick={() => handleSort('avgRate')}
-                  className="py-3 px-3.5 text-center cursor-pointer hover:text-[#2AAFA3] w-28"
+                  className="py-3 px-4 text-center cursor-pointer hover:text-[#2AAFA3] w-28"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>{t.matrix.thGrade}</span>
@@ -932,12 +962,12 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 </th>
 
                 {(userRole === 'EDITOR' || userRole === 'ADMIN') && (
-                  <th className="py-3 px-3 text-center w-20">{t.matrix.thAction}</th>
+                  <th className="py-3 px-4 text-center w-20">{t.matrix.thAction}</th>
                 )}
               </tr>
             </thead>
             
-            <tbody className="divide-y divide-[#E0E8E8]">
+            <tbody className="divide-y divide-gray-200">
               {filteredOperators.length === 0 ? (
                 <tr>
                   <td colSpan={14} className="py-12 text-center text-[#788888]">
@@ -955,76 +985,73 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
               ) : (
                 filteredOperators.map((op, idx) => {
                   const totalPoints = getOperatorTotalPoints(op);
-                  const isHelper = op.status?.toUpperCase() === 'HELPER' || (op as any).grade === 'HELPER';
+                  const isHelper = op.status?.toUpperCase() === 'HELPER' || (op as any).grade === 'HELPER' || totalPoints <= 0;
                   const gradeInfo = getGradeFromTotalPoints(totalPoints, isHelper);
+                  const isHelperOperator = isHelper || gradeInfo.grade === 'HELPER' || totalPoints <= 0;
                   const multiCount = getOperatorMultiSkillCount(op);
+                  const activeMachine = getOperatorActiveMachineColumn(op);
 
                   return (
                     <tr 
                       key={op.id}
-                      className="hover:bg-[#F8FBFB] transition-colors group"
+                      className={`${idx % 2 === 1 ? 'bg-[#F2F6F6]' : 'bg-white'} hover:bg-[#E8F4F3] transition-colors group`}
                     >
                       {/* No */}
-                      <td className="py-3 px-3.5 text-center font-mono text-[#788888] text-xs">
+                      <td className="py-3 px-4 text-center font-mono text-gray-500 text-xs">
                         {idx + 1}
                       </td>
 
                       {/* NIK */}
-                      <td className="py-3 px-3 font-mono font-semibold text-[#405858] text-xs">
+                      <td className="py-3 px-4 text-center font-mono font-semibold text-gray-700 text-xs">
                         {op.nik}
                       </td>
 
                       {/* Nama Operator */}
-                      <td className="py-3 px-4">
-                        <div className="flex items-center space-x-2.5">
-                          <div className="w-7 h-7 rounded-full bg-[#E0F0F0] text-[#405858] font-bold text-xs flex items-center justify-center border border-[#C8D8D8] shrink-0">
-                            {op.name.slice(0, 2).toUpperCase()}
-                          </div>
-                          <div>
-                            <span className="font-bold text-[#304848] text-xs block group-hover:text-[#2AAFA3] transition-colors">
-                              {op.name}
-                            </span>
-                            <span className="text-[10px] text-[#98A8A8]">
-                              DOJ: {formatDate(op.doj)}
-                            </span>
-                          </div>
+                      <td className="py-3 px-4 text-left">
+                        <div>
+                          <span className="font-bold text-gray-800 text-xs block group-hover:text-[#2AAFA3] transition-colors">
+                            {op.name}
+                          </span>
+                          <span className="text-[10px] text-gray-400">
+                            DOJ: {formatDate(op.doj)}
+                          </span>
                         </div>
                       </td>
 
                       {/* Masa Kerja */}
-                      <td className="py-3 px-3 text-center text-xs font-mono text-[#506868]">
+                      <td className="py-3 px-4 text-center text-xs font-mono text-gray-600">
                         {!isNaN(Number(op.workTimeMonths)) && op.workTimeMonths !== null && op.workTimeMonths !== undefined && Number(op.workTimeMonths) > 0 
                           ? op.workTimeMonths 
                           : (calculateWorkTimeMonths(op.doj) || 0)}
                       </td>
 
                       {/* Current Operation */}
-                      <td className="py-2.5 px-3.5 text-xs text-[#304848] font-medium min-w-[200px]">
+                      <td className="py-3 px-4 text-left text-xs text-gray-700 font-medium min-w-[200px]">
                         {(op.process && op.process !== '-') || (op.currentOperation && op.currentOperation !== '-') ? (
                           <div className="flex items-center gap-1.5" title={op.process || op.currentOperation}>
-                            <span className="font-semibold text-[#203838] group-hover:text-[#2AAFA3] transition-colors leading-snug">
+                            <span className="font-semibold text-gray-800 group-hover:text-[#2AAFA3] transition-colors leading-snug">
                               {op.process || op.currentOperation}
                             </span>
                           </div>
                         ) : (
-                          <span className="text-[#98A8A8] font-mono text-xs">-</span>
+                          <span className="text-gray-400 font-mono text-xs">-</span>
                         )}
                       </td>
 
-                      {/* Machine Rates */}
-                      <td className="py-2.5 px-2 text-center border-x border-[#E0E8E8] w-28">{renderCellPointBadge(op.lockstitch)}</td>
-                      <td className="py-2.5 px-2 text-center border-r border-[#E0E8E8] w-28">{renderCellPointBadge(op.overlock)}</td>
-                      <td className="py-2.5 px-2 text-center border-r border-[#E0E8E8] w-28">{renderCellPointBadge(op.flatseam)}</td>
-                      <td className="py-2.5 px-2 text-center border-r border-[#E0E8E8] w-28">{renderCellPointBadge(op.special)}</td>
-                      <td className="py-2.5 px-2 text-center border-r border-[#E0E8E8] w-28">{renderCellPointBadge(op.buttonHole)}</td>
-                      <td className="py-2.5 px-2 text-center border-r border-[#E0E8E8] w-28">{renderCellPointBadge(op.buttonSet)}</td>
+                      {/* Machine Rates - Border vertikal proporsional border-gray-150 */}
+                      <td className="py-2.5 px-2 text-center border-l border-r border-gray-150 w-28">{renderCellPointBadge(op.lockstitch, activeMachine === 'LOCKSTITCH', isHelperOperator)}</td>
+                      <td className="py-2.5 px-2 text-center border-r border-gray-150 w-28">{renderCellPointBadge(op.overlock, activeMachine === 'OVERLOCK', isHelperOperator)}</td>
+                      <td className="py-2.5 px-2 text-center border-r border-gray-150 w-28">{renderCellPointBadge(op.flatseam, activeMachine === 'FLATSEAM', isHelperOperator)}</td>
+                      <td className="py-2.5 px-2 text-center border-r border-gray-150 w-28">{renderCellPointBadge(op.special, activeMachine === 'SPECIAL', isHelperOperator)}</td>
+                      <td className="py-2.5 px-2 text-center border-r border-gray-150 w-28">{renderCellPointBadge(op.buttonHole, activeMachine === 'BUTTON_HOLE', isHelperOperator)}</td>
+                      <td className="py-2.5 px-2 text-center border-r border-gray-150 w-28">{renderCellPointBadge(op.buttonSet, activeMachine === 'BUTTON_SET', isHelperOperator)}</td>
 
                       {/* Multiskill Count */}
-                      <td className="py-3 px-3 text-center">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                      <td className="py-3 px-4 text-center">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
                           multiCount >= 2 
                             ? 'badge-gold' 
-                            : 'bg-[#F0F4F4] text-[#788888]'
+                            : 'bg-gray-100 text-gray-600'
                         }`}>
                           {multiCount >= 2 && <Star className="w-3 h-3 fill-current text-[#D0A018]" />}
                           <span>{multiCount}</span>
@@ -1032,17 +1059,17 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                       </td>
 
                       {/* Average Rate & Grade Badge */}
-                      <td className="py-3 px-3.5 text-center">
+                      <td className="py-3 px-4 text-center">
                         <div className="flex flex-col items-center justify-center">
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${gradeInfo.cssBadge} shadow-2xs whitespace-nowrap`}>
                             {gradeInfo.label}
                           </span>
                           {totalPoints > 0 ? (
-                            <span className="text-[10px] text-[#788888] font-mono mt-0.5">
+                            <span className="text-[10px] text-gray-500 font-mono mt-0.5">
                               {totalPoints} {t.common.points}
                             </span>
                           ) : (
-                            <span className="text-[10px] text-[#98A8A8] font-mono mt-0.5">
+                            <span className="text-[10px] text-gray-400 font-mono mt-0.5">
                               0 {t.common.points}
                             </span>
                           )}
@@ -1051,18 +1078,18 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
 
                       {/* Actions */}
                       {(userRole === 'EDITOR' || userRole === 'ADMIN') && (
-                        <td className="py-3 px-3 text-center">
+                        <td className="py-3 px-4 text-center">
                           <div className="flex items-center justify-center space-x-1">
                             <button
                               onClick={() => handleOpenEdit(op)}
-                              className="p-1.5 rounded-lg text-[#405858] hover:bg-[#E0E8E8] transition-colors cursor-pointer"
+                              className="p-1.5 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
                               title="Edit Data Operator"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => setResignTargetOp(op)}
-                              className="p-1.5 rounded-lg text-[#788888] hover:text-[#e11d48] hover:bg-[#FDECEC] transition-colors cursor-pointer"
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                               title="Tandai Operator Resign (Kirim ke Google Sheets)"
                             >
                               <UserX className="w-3.5 h-3.5" />
@@ -1078,22 +1105,41 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
           </table>
         </div>
 
-        {/* BOTTOM GRADE BENCHMARKS REFERENCE */}
-        <div className="p-4 bg-[#F8F8F8] border-t border-[#E0E8E8]">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-[#405858] mb-2.5">
-            <Award className="w-4 h-4 text-[#D0A018]" />
-            <span>{t.matrix.gradeStandard}:</span>
+        {/* BOTTOM GRADE BENCHMARKS & PILL POINTS LEGEND */}
+        <div className="py-4 px-6 bg-gray-50 border-t-2 border-gray-200 flex flex-col lg:flex-row lg:items-center justify-between gap-6 select-none">
+          {/* Section 1: Operator Grade / Evaluation Standardization */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-700 shrink-0">
+              <Award className="w-4 h-4 text-amber-500 shrink-0" />
+              <span>{t.matrix.gradeStandard}:</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-[11px]">
+              {GRADE_BENCHMARKS.map((b) => (
+                <span 
+                  key={b.grade} 
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full font-bold shadow-2xs ${b.cssBadge}`}
+                  title={b.description}
+                >
+                  {b.label}
+                </span>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2 text-[11px]">
-            {GRADE_BENCHMARKS.map((b) => (
-              <span 
-                key={b.grade} 
-                className={`px-3 py-1 rounded-full font-bold shadow-2xs ${b.cssBadge}`}
-                title={b.description}
-              >
-                {b.label}
+
+          {/* Divider vertikal jelas (border-l-2 border-gray-300) antara section "Operator Grade" dan "Machine Point Status" */}
+          <div className="flex flex-wrap items-center gap-3 pt-3 lg:pt-0 border-t lg:border-t-0 lg:border-l-2 lg:border-gray-300 lg:pl-6">
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-700 shrink-0">
+              <Zap className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{language === 'id' ? 'Status Poin Mesin:' : 'Machine Point Status:'}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white border border-emerald-700 shadow-2xs ring-2 ring-emerald-400/30">
+                <span>{language === 'id' ? 'Sedang Digunakan (Current Operation)' : 'Currently in Use (Current Op)'}</span>
               </span>
-            ))}
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-800 border border-gray-300 shadow-2xs">
+                <span>{language === 'id' ? 'Kompetensi Standby' : 'Standby Competency'}</span>
+              </span>
+            </div>
           </div>
         </div>
 

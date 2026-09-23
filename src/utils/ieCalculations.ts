@@ -105,6 +105,60 @@ export function getOperatorSkillForMachine(operator: Operator, machine: MachineC
   }
 }
 
+export type MachineColumnType = 'LOCKSTITCH' | 'OVERLOCK' | 'FLATSEAM' | 'SPECIAL' | 'BUTTON_HOLE' | 'BUTTON_SET';
+
+/**
+ * Mendeteksi jenis kolom mesin yang sedang aktif digunakan oleh operator
+ * berdasarkan atribut currentOperation, process, machine, dan machineCategory.
+ */
+export function getOperatorActiveMachineColumn(operator: Operator): MachineColumnType | null {
+  if (!operator) return null;
+
+  // 1. Cek Kategori Mesin (Kolom Q dari master/by_worker sheet)
+  const cat = (operator.machineCategory || '').toUpperCase().trim();
+  if (cat) {
+    if (cat.includes('BUTTON_HOLE') || cat.includes('BUTTON HOLE') || cat === 'BH' || cat.includes('LUBANG KANCING')) return 'BUTTON_HOLE';
+    if (cat.includes('BUTTON_SET') || cat.includes('BUTTON SET') || cat === 'BS' || cat.includes('PASANG KANCING')) return 'BUTTON_SET';
+    if (cat.includes('OVERLOCK') || cat.includes('OBRAS') || cat === 'OL' || cat.includes('2NEEDLE')) return 'OVERLOCK';
+    if (cat.includes('FLATSEAM') || cat.includes('FLAT SEAM') || cat.includes('COVERSTITCH') || cat === 'FS' || cat.includes('KAM')) return 'FLATSEAM';
+    if (cat.includes('SPECIAL') || cat === 'SP' || cat.includes('PRESS') || cat.includes('BARTACK') || cat.includes('BAR TACK') || cat === 'BT' || cat.includes('KANSAI') || cat.includes('CHAINSTITCH') || cat === 'CS' || cat.includes('OTOMATIS')) return 'SPECIAL';
+    if (cat.includes('LOCKSTITCH') || cat.includes('SINGLE NEEDLE') || cat.includes('1NEEDLE') || cat.includes('1-NEEDLE') || cat === 'SN') return 'LOCKSTITCH';
+  }
+
+  // 2. Cek Nama Mesin (Kolom H dari master/by_worker sheet)
+  const mch = (operator.machine || operator.machineName || '').toUpperCase().trim();
+  if (mch) {
+    if (mch.includes('BUTTON_HOLE') || mch.includes('BUTTON HOLE') || mch.includes('LUBANG KANCING') || mch === 'BH') return 'BUTTON_HOLE';
+    if (mch.includes('BUTTON_SET') || mch.includes('BUTTON SET') || mch.includes('PASANG KANCING') || mch === 'BS') return 'BUTTON_SET';
+    if (mch.includes('OVERLOCK') || mch.includes('OBRAS') || mch.includes('OL') || mch.includes('2NEEDLE')) return 'OVERLOCK';
+    if (mch.includes('FLAT SEAM') || mch.includes('FLATSEAM') || mch.includes('COVERSTITCH') || mch.includes('KAM') || mch.includes('FS')) return 'FLATSEAM';
+    if (mch.includes('SPECIAL') || mch.includes('PRESS') || mch.includes('BARTACK') || mch.includes('BAR TACK') || mch.includes('HEAT TRANSFER') || mch.includes('KANSAI') || mch.includes('CHAINSTITCH') || mch === 'SP') return 'SPECIAL';
+    if (mch.includes('LOCKSTITCH') || mch.includes('SINGLE NEEDLE') || mch.includes('1NEEDLE') || mch.includes('1-NEEDLE') || mch.includes('SN')) return 'LOCKSTITCH';
+  }
+
+  // 3. Cek Teks Process / Current Operation (Kolom J)
+  const proc = (operator.currentOperation || operator.process || '').toUpperCase().trim();
+  if (proc && proc !== '-') {
+    // Regex word boundary matching
+    if (/\b(BUTTON\s*HOLE|LUBANG\s*KANCING|BH)\b/i.test(proc)) return 'BUTTON_HOLE';
+    if (/\b(BUTTON\s*SET|PASANG\s*KANCING|BS)\b/i.test(proc)) return 'BUTTON_SET';
+    if (/\b(OVERLOCK|OBRAS|OL)\b/i.test(proc)) return 'OVERLOCK';
+    if (/\b(FLATSEAM|FLAT\s*SEAM|COVERSTITCH|KAM|FS)\b/i.test(proc)) return 'FLATSEAM';
+    if (/\b(SPECIAL|PRESS|BARTACK|BAR\s*TACK|BT|KANSAI|CHAINSTITCH|CS|OTOMATIS)\b/i.test(proc)) return 'SPECIAL';
+    if (/\b(LOCKSTITCH|SINGLE\s*NEEDLE|1NEEDLE|1-NEEDLE|SN)\b/i.test(proc)) return 'LOCKSTITCH';
+
+    // Substring fallback
+    if (proc.includes('BUTTON HOLE') || proc.includes('LUBANG KANCING') || proc.includes('HOLE')) return 'BUTTON_HOLE';
+    if (proc.includes('BUTTON SET') || proc.includes('PASANG KANCING') || proc.includes('BUTTON')) return 'BUTTON_SET';
+    if (proc.includes('OVERLOCK') || proc.includes('OBRAS') || proc.includes('OL ')) return 'OVERLOCK';
+    if (proc.includes('FLATSEAM') || proc.includes('COVERSTITCH') || proc.includes(' KAM') || proc.includes('KAM ')) return 'FLATSEAM';
+    if (proc.includes('SPECIAL') || proc.includes('PRESS') || proc.includes('BARTACK') || proc.includes('HEAT TRANSFER')) return 'SPECIAL';
+    if (proc.includes('LOCKSTITCH') || proc.includes('JAHIT') || proc.includes('SEW') || proc.includes('STITCH')) return 'LOCKSTITCH';
+  }
+
+  return null;
+}
+
 export function getOperatorMultiSkillCount(operator: Operator): number {
   let count = 0;
   const rates = [

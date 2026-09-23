@@ -16,7 +16,8 @@ import {
   ShieldCheck,
   Search,
   SlidersHorizontal,
-  ExternalLink
+  ExternalLink,
+  Info
 } from 'lucide-react';
 import { Operator, LineLeader } from '../types';
 import { 
@@ -321,10 +322,16 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
               <span className="text-xs font-semibold text-[#247F77] bg-[#D9F1EF] px-2.5 py-0.5 rounded-md border border-[#247F77]/20">
                 {monthLabel} {selectedYear}
               </span>
+              <div className="relative group/info inline-flex items-center cursor-help ml-0.5" title={t.overallDashboard.tabSubtitle}>
+                <Info className="w-4 h-4 text-slate-400 hover:text-slate-600 transition-colors" />
+                <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover/info:flex flex-col items-center z-50 pointer-events-none w-max max-w-xs sm:max-w-sm">
+                  <div className="bg-slate-900 text-white text-[11px] font-normal leading-normal px-2.5 py-1.5 rounded-lg shadow-lg border border-slate-700 text-center">
+                    {t.overallDashboard.tabSubtitle}
+                  </div>
+                  <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1 border-r border-b border-slate-700" />
+                </div>
+              </div>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              {t.overallDashboard.tabSubtitle}
-            </p>
           </div>
         </div>
 
@@ -389,119 +396,139 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
           </div>
 
           {/* 2. Grade S Card */}
-          <div className="bg-white rounded-2xl p-4 border-2 border-emerald-500/30 hover:border-emerald-500 transition-all duration-200 shadow-2xs flex flex-col justify-between">
+          <div className="bg-white rounded-xl p-3.5 sm:p-4 border border-slate-200/80 border-l-4 border-l-emerald-500 flex flex-col justify-between transition-colors">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                  {t.overallDashboard.gradeSTitle}
-                </span>
-                <Sparkles className="w-4 h-4 text-emerald-600" />
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                    {t.overallDashboard.gradeSTitle}
+                  </span>
+                </div>
+                <div 
+                  className="cursor-help text-slate-400 hover:text-slate-600 transition-colors p-0.5"
+                  title={`${t.overallDashboard.criteriaLabel} ${t.overallDashboard.criteriaS}`}
+                >
+                  <Info className="w-3.5 h-3.5" />
+                </div>
               </div>
-              <div className="text-2xl sm:text-3xl font-black text-emerald-950 mt-2">
+              <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-2 font-mono">
                 {factoryStats.countS}
               </div>
-              <p className="text-[11px] text-emerald-700 font-semibold mt-0.5">
-                {factoryStats.pctS}% {t.overallDashboard.ofTotal}
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                <span className="font-bold text-slate-700">{factoryStats.pctS}%</span> {t.overallDashboard.ofTotal}
               </p>
-            </div>
-            <div className="mt-3 pt-2 border-t border-slate-100 text-[10px] text-slate-500 flex justify-between">
-              <span>{t.overallDashboard.criteriaLabel}</span>
-              <span className="font-semibold text-slate-700">{t.overallDashboard.criteriaS}</span>
             </div>
           </div>
 
           {/* 3. Grade A Card */}
-          <div className="bg-white rounded-2xl p-4 border-2 border-teal-500/30 hover:border-teal-500 transition-all duration-200 shadow-2xs flex flex-col justify-between">
+          <div className="bg-white rounded-xl p-3.5 sm:p-4 border border-slate-200/80 border-l-4 border-l-teal-500 flex flex-col justify-between transition-colors">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-teal-800 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
-                  {t.overallDashboard.gradeATitle}
-                </span>
-                <Award className="w-4 h-4 text-teal-600" />
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-teal-500 shrink-0" />
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                    {t.overallDashboard.gradeATitle}
+                  </span>
+                </div>
+                <div 
+                  className="cursor-help text-slate-400 hover:text-slate-600 transition-colors p-0.5"
+                  title={`${t.overallDashboard.criteriaLabel} ${t.overallDashboard.criteriaA}`}
+                >
+                  <Info className="w-3.5 h-3.5" />
+                </div>
               </div>
-              <div className="text-2xl sm:text-3xl font-black text-teal-950 mt-2">
+              <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-2 font-mono">
                 {factoryStats.countA}
               </div>
-              <p className="text-[11px] text-teal-700 font-semibold mt-0.5">
-                {factoryStats.pctA}% {t.overallDashboard.ofTotal}
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                <span className="font-bold text-slate-700">{factoryStats.pctA}%</span> {t.overallDashboard.ofTotal}
               </p>
-            </div>
-            <div className="mt-3 pt-2 border-t border-slate-100 text-[10px] text-slate-500 flex justify-between">
-              <span>{t.overallDashboard.criteriaLabel}</span>
-              <span className="font-semibold text-slate-700">{t.overallDashboard.criteriaA}</span>
             </div>
           </div>
 
           {/* 4. Grade B Card */}
-          <div className="bg-white rounded-2xl p-4 border-2 border-sky-500/30 hover:border-sky-500 transition-all duration-200 shadow-2xs flex flex-col justify-between">
+          <div className="bg-white rounded-xl p-3.5 sm:p-4 border border-slate-200/80 border-l-4 border-l-sky-500 flex flex-col justify-between transition-colors">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-sky-800 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200">
-                  {t.overallDashboard.gradeBTitle}
-                </span>
-                <TrendingUp className="w-4 h-4 text-sky-600" />
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-sky-500 shrink-0" />
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                    {t.overallDashboard.gradeBTitle}
+                  </span>
+                </div>
+                <div 
+                  className="cursor-help text-slate-400 hover:text-slate-600 transition-colors p-0.5"
+                  title={`${t.overallDashboard.criteriaLabel} ${t.overallDashboard.criteriaB}`}
+                >
+                  <Info className="w-3.5 h-3.5" />
+                </div>
               </div>
-              <div className="text-2xl sm:text-3xl font-black text-sky-950 mt-2">
+              <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-2 font-mono">
                 {factoryStats.countB}
               </div>
-              <p className="text-[11px] text-sky-700 font-semibold mt-0.5">
-                {factoryStats.pctB}% {t.overallDashboard.ofTotal}
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                <span className="font-bold text-slate-700">{factoryStats.pctB}%</span> {t.overallDashboard.ofTotal}
               </p>
-            </div>
-            <div className="mt-3 pt-2 border-t border-slate-100 text-[10px] text-slate-500 flex justify-between">
-              <span>{t.overallDashboard.criteriaLabel}</span>
-              <span className="font-semibold text-slate-700">{t.overallDashboard.criteriaB}</span>
             </div>
           </div>
 
           {/* 5. Grade C Card */}
-          <div className="bg-white rounded-2xl p-4 border-2 border-amber-500/30 hover:border-amber-500 transition-all duration-200 shadow-2xs flex flex-col justify-between">
+          <div className="bg-white rounded-xl p-3.5 sm:p-4 border border-slate-200/80 border-l-4 border-l-amber-500 flex flex-col justify-between transition-colors">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
-                  {t.overallDashboard.gradeCTitle}
-                </span>
-                <Layers className="w-4 h-4 text-amber-600" />
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                    {t.overallDashboard.gradeCTitle}
+                  </span>
+                </div>
+                <div 
+                  className="cursor-help text-slate-400 hover:text-slate-600 transition-colors p-0.5"
+                  title={`${t.overallDashboard.criteriaLabel} ${t.overallDashboard.criteriaC}`}
+                >
+                  <Info className="w-3.5 h-3.5" />
+                </div>
               </div>
-              <div className="text-2xl sm:text-3xl font-black text-amber-950 mt-2">
+              <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-2 font-mono">
                 {factoryStats.countC}
               </div>
-              <p className="text-[11px] text-amber-700 font-semibold mt-0.5">
-                {factoryStats.pctC}% {t.overallDashboard.ofTotal}
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                <span className="font-bold text-slate-700">{factoryStats.pctC}%</span> {t.overallDashboard.ofTotal}
               </p>
-            </div>
-            <div className="mt-3 pt-2 border-t border-slate-100 text-[10px] text-slate-500 flex justify-between">
-              <span>{t.overallDashboard.criteriaLabel}</span>
-              <span className="font-semibold text-slate-700">{t.overallDashboard.criteriaC}</span>
             </div>
           </div>
 
           {/* 6. Helper Card */}
-          <div className="bg-white rounded-2xl p-4 border-2 border-slate-400/30 hover:border-slate-500 transition-all duration-200 shadow-2xs flex flex-col justify-between">
+          <div className="bg-white rounded-xl p-3.5 sm:p-4 border border-slate-200/80 border-l-4 border-l-slate-400 flex flex-col justify-between transition-colors">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-300">
-                  {t.overallDashboard.helperTitle}
-                </span>
-                <ShieldCheck className="w-4 h-4 text-slate-600" />
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                    {t.overallDashboard.helperTitle}
+                  </span>
+                </div>
+                <div 
+                  className="cursor-help text-slate-400 hover:text-slate-600 transition-colors p-0.5"
+                  title={`${t.overallDashboard.criteriaLabel} ${t.overallDashboard.criteriaHelper}`}
+                >
+                  <Info className="w-3.5 h-3.5" />
+                </div>
               </div>
-              <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">
+              <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-2 font-mono">
                 {factoryStats.countHelper}
               </div>
-              <p className="text-[11px] text-slate-600 font-semibold mt-0.5">
-                {factoryStats.pctHelper}% {t.overallDashboard.ofTotal}
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                <span className="font-bold text-slate-700">{factoryStats.pctHelper}%</span> {t.overallDashboard.ofTotal}
               </p>
-            </div>
-            <div className="mt-3 pt-2 border-t border-slate-100 text-[10px] text-slate-500 flex justify-between">
-              <span>{t.overallDashboard.criteriaLabel}</span>
-              <span className="font-semibold text-slate-700">{t.overallDashboard.criteriaHelper}</span>
             </div>
           </div>
 
         </div>
 
         {/* VISUAL SEGMENTED GRADE DISTRIBUTION PROGRESS BAR */}
-        <div className="bg-white rounded-2xl p-5 border border-[#D5E2E2] shadow-2xs space-y-3">
+        <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200/80 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
               <BarChart2 className="w-4 h-4 text-[#244646]" />
@@ -513,76 +540,52 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
           </div>
 
           {/* The Multi-Segment Bar */}
-          <div className="h-5 w-full bg-slate-100 rounded-xl overflow-hidden flex shadow-inner">
+          <div className="h-6 w-full bg-slate-100 rounded-xl overflow-hidden flex shadow-inner">
             {factoryStats.countS > 0 && (
               <div 
                 style={{ width: `${factoryStats.pctS}%` }} 
-                className="bg-[#059669] hover:brightness-110 transition-all relative group cursor-pointer flex items-center justify-center text-[10px] text-white font-bold"
+                className="bg-[#059669] hover:brightness-110 transition-all relative group cursor-pointer flex items-center justify-center text-[11px] text-white font-bold"
                 title={`Grade S: ${factoryStats.countS} ${t.overallDashboard.opUnit} (${factoryStats.pctS}%)`}
               >
-                {parseFloat(factoryStats.pctS) >= 7 && `S: ${factoryStats.pctS}%`}
+                {parseFloat(factoryStats.pctS) >= 5 && `${factoryStats.pctS}%`}
               </div>
             )}
             {factoryStats.countA > 0 && (
               <div 
                 style={{ width: `${factoryStats.pctA}%` }} 
-                className="bg-[#0d9488] hover:brightness-110 transition-all relative group cursor-pointer flex items-center justify-center text-[10px] text-white font-bold"
+                className="bg-[#0d9488] hover:brightness-110 transition-all relative group cursor-pointer flex items-center justify-center text-[11px] text-white font-bold"
                 title={`Grade A: ${factoryStats.countA} ${t.overallDashboard.opUnit} (${factoryStats.pctA}%)`}
               >
-                {parseFloat(factoryStats.pctA) >= 7 && `A: ${factoryStats.pctA}%`}
+                {parseFloat(factoryStats.pctA) >= 5 && `${factoryStats.pctA}%`}
               </div>
             )}
             {factoryStats.countB > 0 && (
               <div 
                 style={{ width: `${factoryStats.pctB}%` }} 
-                className="bg-[#0284c7] hover:brightness-110 transition-all relative group cursor-pointer flex items-center justify-center text-[10px] text-white font-bold"
+                className="bg-[#0284c7] hover:brightness-110 transition-all relative group cursor-pointer flex items-center justify-center text-[11px] text-white font-bold"
                 title={`Grade B: ${factoryStats.countB} ${t.overallDashboard.opUnit} (${factoryStats.pctB}%)`}
               >
-                {parseFloat(factoryStats.pctB) >= 7 && `B: ${factoryStats.pctB}%`}
+                {parseFloat(factoryStats.pctB) >= 5 && `${factoryStats.pctB}%`}
               </div>
             )}
             {factoryStats.countC > 0 && (
               <div 
                 style={{ width: `${factoryStats.pctC}%` }} 
-                className="bg-[#d97706] hover:brightness-110 transition-all relative group cursor-pointer flex items-center justify-center text-[10px] text-white font-bold"
+                className="bg-[#d97706] hover:brightness-110 transition-all relative group cursor-pointer flex items-center justify-center text-[11px] text-white font-bold"
                 title={`Grade C: ${factoryStats.countC} ${t.overallDashboard.opUnit} (${factoryStats.pctC}%)`}
               >
-                {parseFloat(factoryStats.pctC) >= 7 && `C: ${factoryStats.pctC}%`}
+                {parseFloat(factoryStats.pctC) >= 5 && `${factoryStats.pctC}%`}
               </div>
             )}
             {factoryStats.countHelper > 0 && (
               <div 
                 style={{ width: `${factoryStats.pctHelper}%` }} 
-                className="bg-[#475569] hover:brightness-110 transition-all relative group cursor-pointer flex items-center justify-center text-[10px] text-white font-bold"
+                className="bg-[#64748b] hover:brightness-110 transition-all relative group cursor-pointer flex items-center justify-center text-[11px] text-white font-bold"
                 title={`Helper: ${factoryStats.countHelper} ${t.overallDashboard.opUnit} (${factoryStats.pctHelper}%)`}
               >
-                {parseFloat(factoryStats.pctHelper) >= 7 && `H: ${factoryStats.pctHelper}%`}
+                {parseFloat(factoryStats.pctHelper) >= 5 && `${factoryStats.pctHelper}%`}
               </div>
             )}
-          </div>
-
-          {/* Legend Items */}
-          <div className="flex flex-wrap items-center gap-4 text-xs pt-1">
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-md bg-[#059669]" />
-              <span className="text-slate-600 font-medium">Grade S: <strong className="text-slate-900">{factoryStats.countS}</strong> ({factoryStats.pctS}%)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-md bg-[#0d9488]" />
-              <span className="text-slate-600 font-medium">Grade A: <strong className="text-slate-900">{factoryStats.countA}</strong> ({factoryStats.pctA}%)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-md bg-[#0284c7]" />
-              <span className="text-slate-600 font-medium">Grade B: <strong className="text-slate-900">{factoryStats.countB}</strong> ({factoryStats.pctB}%)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-md bg-[#d97706]" />
-              <span className="text-slate-600 font-medium">Grade C: <strong className="text-slate-900">{factoryStats.countC}</strong> ({factoryStats.pctC}%)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-md bg-[#475569]" />
-              <span className="text-slate-600 font-medium">Helper: <strong className="text-slate-900">{factoryStats.countHelper}</strong> ({factoryStats.pctHelper}%)</span>
-            </div>
           </div>
         </div>
 
@@ -592,11 +595,17 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
             <div>
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Layers className="w-4 h-4 text-[#244646]" />
-                {t.overallDashboard.lineBreakdownTitle.replace('{factory}', selectedFactory)}
+                <span>{t.overallDashboard.lineBreakdownTitle.replace('{factory}', selectedFactory)}</span>
+                <div className="relative group/info inline-flex items-center cursor-help ml-0.5" title={t.overallDashboard.lineBreakdownSubtitle}>
+                  <Info className="w-3.5 h-3.5 text-slate-400 hover:text-slate-600 transition-colors" />
+                  <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover/info:flex flex-col items-center z-50 pointer-events-none w-max max-w-xs sm:max-w-sm">
+                    <div className="bg-slate-900 text-white text-[11px] font-normal leading-normal px-2.5 py-1.5 rounded-lg shadow-lg border border-slate-700 text-center">
+                      {t.overallDashboard.lineBreakdownSubtitle}
+                    </div>
+                    <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1 border-r border-b border-slate-700" />
+                  </div>
+                </div>
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {t.overallDashboard.lineBreakdownSubtitle}
-              </p>
             </div>
 
             {/* Quick Line Search */}
@@ -728,10 +737,10 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
       {/* SECTION 2: OVERALL MASING-MASING FACTORY PADA BULAN AKTIF NYA */}
       <section className="space-y-6 pt-6 border-t-2 border-[#D5E2E2]">
         
-        {/* Section 2 Header Card: Elevated White Container Grounded Cleanly */}
-        <div className="bg-white rounded-2xl border border-[#E0E8E8] p-4 sm:p-5 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Section 2 Header Card: Consolidated subtitle with period text */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-[#D0A018]/15 flex items-center justify-center text-[#B58500] shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0">
               <Layers className="w-5 h-5" />
             </div>
             <div>
@@ -739,95 +748,54 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
                 <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                   {t.overallDashboard.benchmarkTitle}
                 </h2>
-                <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200">
-                  {monthLabel} {selectedYear}
-                </span>
+                <div className="relative group/info inline-flex items-center cursor-help ml-0.5" title={`${t.overallDashboard.benchmarkSubtitle} (${monthLabel} ${selectedYear})`}>
+                  <Info className="w-4 h-4 text-slate-400 hover:text-slate-600 transition-colors" />
+                  <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover/info:flex flex-col items-center z-50 pointer-events-none w-max max-w-xs sm:max-w-sm">
+                    <div className="bg-slate-900 text-white text-[11px] font-normal leading-normal px-2.5 py-1.5 rounded-lg shadow-lg border border-slate-700 text-center">
+                      {t.overallDashboard.benchmarkSubtitle} • {monthLabel} {selectedYear}
+                    </div>
+                    <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1 border-r border-b border-slate-700" />
+                  </div>
+                </div>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {t.overallDashboard.benchmarkSubtitle}
-              </p>
             </div>
           </div>
 
           {/* Grand Summary Tag */}
-          <div className="bg-[#244646] text-white px-4 py-2.5 rounded-xl flex items-center gap-3 shadow-2xs self-start md:self-auto">
+          <div className="bg-[#244646] text-white px-4 py-2.5 rounded-xl flex items-center gap-4 self-start md:self-auto shadow-xs">
             <div>
-              <span className="text-[10px] text-[#A0B5B5] uppercase font-bold tracking-wider block">{t.overallDashboard.companyTotalTitle}</span>
-              <span className="text-base sm:text-lg font-black text-[#D0A018]">{t.overallDashboard.companyTotalOperators.replace('{count}', String(enterpriseTotals.grandTotal))}</span>
+              <span className="text-[10px] text-slate-300 uppercase font-bold tracking-wider block">{t.overallDashboard.companyTotalTitle}</span>
+              <span className="text-base sm:text-lg font-black text-white font-mono">{t.overallDashboard.companyTotalOperators.replace('{count}', String(enterpriseTotals.grandTotal))}</span>
             </div>
             <span className="h-7 w-px bg-white/15" />
             <div>
-              <span className="text-[10px] text-[#A0B5B5] uppercase font-bold tracking-wider block">{t.overallDashboard.multiSkillLabel}</span>
-              <span className="text-sm font-black text-white">{enterpriseTotals.msRate}%</span>
+              <span className="text-[10px] text-slate-300 uppercase font-bold tracking-wider block">{t.overallDashboard.multiSkillLabel}</span>
+              <span className="text-sm font-black text-emerald-400 font-mono">{enterpriseTotals.msRate}%</span>
             </div>
-          </div>
-        </div>
-
-        {/* ENTERPRISE KPI SUMMARY STRIP */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 bg-white p-4 rounded-2xl border border-[#D5E2E2] shadow-2xs">
-          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-            <span className="text-[10px] uppercase font-bold text-slate-500 block">{t.overallDashboard.enterpriseTotalOp}</span>
-            <span className="text-xl font-black text-slate-900 mt-0.5 block">{enterpriseTotals.grandTotal}</span>
-            <span className="text-[10px] text-slate-400">{t.overallDashboard.allFactoriesPill}</span>
-          </div>
-          <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200">
-            <span className="text-[10px] uppercase font-bold text-emerald-800 block">{t.overallDashboard.totalGradeSCompany}</span>
-            <span className="text-xl font-black text-emerald-950 mt-0.5 block">{enterpriseTotals.s}</span>
-            <span className="text-[10px] text-emerald-700 font-semibold">
-              {enterpriseTotals.grandTotal > 0 ? ((enterpriseTotals.s / enterpriseTotals.grandTotal) * 100).toFixed(1) : 0}% {t.overallDashboard.companyWidePct}
-            </span>
-          </div>
-          <div className="p-3 bg-teal-50 rounded-xl border border-teal-200">
-            <span className="text-[10px] uppercase font-bold text-teal-800 block">{t.overallDashboard.totalGradeACompany}</span>
-            <span className="text-xl font-black text-teal-950 mt-0.5 block">{enterpriseTotals.a}</span>
-            <span className="text-[10px] text-teal-700 font-semibold">
-              {enterpriseTotals.grandTotal > 0 ? ((enterpriseTotals.a / enterpriseTotals.grandTotal) * 100).toFixed(1) : 0}% {t.overallDashboard.companyWidePct}
-            </span>
-          </div>
-          <div className="p-3 bg-sky-50 rounded-xl border border-sky-200">
-            <span className="text-[10px] uppercase font-bold text-sky-800 block">{t.overallDashboard.totalGradeBCompany}</span>
-            <span className="text-xl font-black text-sky-950 mt-0.5 block">{enterpriseTotals.b}</span>
-            <span className="text-[10px] text-sky-700 font-semibold">
-              {enterpriseTotals.grandTotal > 0 ? ((enterpriseTotals.b / enterpriseTotals.grandTotal) * 100).toFixed(1) : 0}% {t.overallDashboard.companyWidePct}
-            </span>
-          </div>
-          <div className="p-3 bg-amber-50 rounded-xl border border-amber-200">
-            <span className="text-[10px] uppercase font-bold text-amber-800 block">{t.overallDashboard.totalGradeCCompany}</span>
-            <span className="text-xl font-black text-amber-950 mt-0.5 block">{enterpriseTotals.c}</span>
-            <span className="text-[10px] text-amber-700 font-semibold">
-              {enterpriseTotals.grandTotal > 0 ? ((enterpriseTotals.c / enterpriseTotals.grandTotal) * 100).toFixed(1) : 0}% {t.overallDashboard.companyWidePct}
-            </span>
-          </div>
-          <div className="p-3 bg-slate-100 rounded-xl border border-slate-300">
-            <span className="text-[10px] uppercase font-bold text-slate-700 block">{t.overallDashboard.totalHelperCompany}</span>
-            <span className="text-xl font-black text-slate-900 mt-0.5 block">{enterpriseTotals.helper}</span>
-            <span className="text-[10px] text-slate-500 font-semibold">
-              {enterpriseTotals.grandTotal > 0 ? ((enterpriseTotals.helper / enterpriseTotals.grandTotal) * 100).toFixed(1) : 0}% {t.overallDashboard.companyWidePct}
-            </span>
           </div>
         </div>
 
         {/* SIDE-BY-SIDE FACTORY CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {allFactoriesComparison.map((item) => {
             const isSelected = item.factory === selectedFactory;
             return (
               <div 
                 key={item.factory}
-                className={`bg-white rounded-3xl p-5 border-2 transition-all duration-200 shadow-sm flex flex-col justify-between ${
+                className={`bg-white rounded-2xl p-6 border transition-all duration-200 flex flex-col justify-between h-full shadow-xs ${
                   isSelected 
-                    ? 'border-[#244646] ring-2 ring-[#244646]/20 shadow-md' 
-                    : 'border-[#D5E2E2] hover:border-slate-400'
+                    ? 'border-slate-300 border-l-4 border-l-emerald-600 bg-slate-50/40' 
+                    : 'border-slate-200/90 border-l-4 border-l-transparent hover:border-slate-300'
                 }`}
               >
                 <div>
                   {/* Card Header */}
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs ${
-                        isSelected ? 'bg-[#244646] text-white' : 'bg-slate-100 text-slate-700'
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${
+                        isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-700'
                       }`}>
-                        <Building2 className="w-4 h-4" />
+                        <Building2 className="w-4.5 h-4.5" />
                       </div>
                       <div>
                         <h4 className="text-base font-black text-slate-900 tracking-tight">
@@ -840,86 +808,74 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
                     </div>
 
                     {isSelected && (
-                      <span className="text-[10px] font-bold bg-[#244646] text-[#D0A018] px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md uppercase tracking-wider">
                         {t.overallDashboard.selectedBadge}
                       </span>
                     )}
                   </div>
 
                   {item.hasNoData ? (
-                    /* Tampilan Pabrik yang Datanya Masih Kosong (Factory 3B) */
-                    <div className="mt-4 p-4 rounded-2xl bg-amber-50/60 border border-amber-200/70 flex flex-col items-center text-center space-y-2">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-full border border-amber-200">
-                        {t.overallDashboard.noDataBadge}
-                      </span>
-                      <p className="text-xs text-amber-800 font-semibold">
-                        {t.overallDashboard.noDataTitle}
-                      </p>
-                      <p className="text-[11px] text-amber-700/80 leading-relaxed">
-                        {t.overallDashboard.noDataDesc}
-                      </p>
-                    </div>
-                  ) : (
+                    /* Factory 3B (No Data) with identical structure and height */
                     <>
-                      {/* Total Op Big Number */}
-                      <div className="mt-4 bg-[#F5F8F8] p-3 rounded-2xl border border-[#E0E8E8] flex items-center justify-between">
+                      {/* Total Op Big Number Box (Matching Height) */}
+                      <div className="mt-5 bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 flex items-center justify-between">
                         <div>
                           <span className="text-[10px] uppercase font-bold text-slate-500 block">{t.overallDashboard.totalOperatorCardTitle}</span>
-                          <span className="text-2xl font-black text-slate-900 leading-tight">{item.total}</span>
+                          <span className="text-2xl font-black text-slate-300 leading-tight font-mono">-</span>
                         </div>
                         <div className="text-right">
                           <span className="text-[10px] uppercase font-bold text-slate-500 block">{t.overallDashboard.multiSkillLabel}</span>
-                          <span className="text-sm font-bold text-[#D0A018] font-mono">{item.multiSkillRate}%</span>
+                          <span className="text-base font-bold text-slate-300 font-mono">-</span>
                         </div>
                       </div>
 
-                      {/* Mini Stacked Progress Bar */}
-                      <div className="mt-3.5 space-y-1">
-                        <div className="h-3 w-full bg-slate-100 rounded-lg overflow-hidden flex">
+                      {/* Progress Bar Area (Matching Height) */}
+                      <div className="mt-4 space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-amber-700 font-medium">{t.overallDashboard.noDataTitle}</span>
+                          <span className="text-[10px] uppercase font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded border border-amber-200/80">{t.overallDashboard.noDataBadge}</span>
+                        </div>
+                        <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                          <div className="w-full h-full bg-slate-200/60" />
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* Total Op Big Number Box */}
+                      <div className="mt-5 bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-500 block">{t.overallDashboard.totalOperatorCardTitle}</span>
+                          <span className="text-2xl font-black text-slate-900 leading-tight font-mono">{item.total}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] uppercase font-bold text-slate-500 block">{t.overallDashboard.multiSkillLabel}</span>
+                          <span className="text-base font-bold text-emerald-600 font-mono">{item.multiSkillRate}%</span>
+                        </div>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="mt-4 space-y-1.5">
+                        <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+                          <span>Skill Distribution</span>
+                          <span className="font-mono text-slate-700 font-semibold">{item.total} Ops</span>
+                        </div>
+                        <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
                           {item.countS > 0 && (
-                            <div style={{ width: `${item.pctS}%` }} className="bg-[#059669]" title={`S: ${item.countS}`} />
+                            <div style={{ width: `${item.pctS}%` }} className="bg-emerald-600" title={`Grade S: ${item.countS} (${item.pctS}%)`} />
                           )}
                           {item.countA > 0 && (
-                            <div style={{ width: `${item.pctA}%` }} className="bg-[#0d9488]" title={`A: ${item.countA}`} />
+                            <div style={{ width: `${item.pctA}%` }} className="bg-emerald-500" title={`Grade A: ${item.countA} (${item.pctA}%)`} />
                           )}
                           {item.countB > 0 && (
-                            <div style={{ width: `${item.pctB}%` }} className="bg-[#0284c7]" title={`B: ${item.countB}`} />
+                            <div style={{ width: `${item.pctB}%` }} className="bg-slate-300" title={`Grade B: ${item.countB} (${item.pctB}%)`} />
                           )}
                           {item.countC > 0 && (
-                            <div style={{ width: `${item.pctC}%` }} className="bg-[#d97706]" title={`C: ${item.countC}`} />
+                            <div style={{ width: `${item.pctC}%` }} className="bg-amber-500" title={`Grade C: ${item.countC} (${item.pctC}%)`} />
                           )}
                           {item.countHelper > 0 && (
-                            <div style={{ width: `${item.pctHelper}%` }} className="bg-[#475569]" title={`Helper: ${item.countHelper}`} />
+                            <div style={{ width: `${item.pctHelper}%` }} className="bg-slate-400" title={`Helper: ${item.countHelper} (${item.pctHelper}%)`} />
                           )}
-                        </div>
-                      </div>
-
-                      {/* Grade Breakdown Grid for this factory */}
-                      <div className="mt-4 grid grid-cols-5 gap-1.5 text-center">
-                        <div className="bg-emerald-50 border border-emerald-200/80 rounded-xl p-1.5">
-                          <span className="text-[9px] font-black text-emerald-800 block">S</span>
-                          <span className="text-xs font-bold text-emerald-950 font-mono block mt-0.5">{item.countS}</span>
-                          <span className="text-[8px] text-emerald-700 block">{item.pctS}%</span>
-                        </div>
-                        <div className="bg-teal-50 border border-teal-200/80 rounded-xl p-1.5">
-                          <span className="text-[9px] font-black text-teal-800 block">A</span>
-                          <span className="text-xs font-bold text-teal-950 font-mono block mt-0.5">{item.countA}</span>
-                          <span className="text-[8px] text-teal-700 block">{item.pctA}%</span>
-                        </div>
-                        <div className="bg-sky-50 border border-sky-200/80 rounded-xl p-1.5">
-                          <span className="text-[9px] font-black text-sky-800 block">B</span>
-                          <span className="text-xs font-bold text-sky-950 font-mono block mt-0.5">{item.countB}</span>
-                          <span className="text-[8px] text-sky-700 block">{item.pctB}%</span>
-                        </div>
-                        <div className="bg-amber-50 border border-amber-200/80 rounded-xl p-1.5">
-                          <span className="text-[9px] font-black text-amber-800 block">C</span>
-                          <span className="text-xs font-bold text-amber-950 font-mono block mt-0.5">{item.countC}</span>
-                          <span className="text-[8px] text-amber-700 block">{item.pctC}%</span>
-                        </div>
-                        <div className="bg-slate-100 border border-slate-300 rounded-xl p-1.5">
-                          <span className="text-[9px] font-black text-slate-700 block">H</span>
-                          <span className="text-xs font-bold text-slate-900 font-mono block mt-0.5">{item.countHelper}</span>
-                          <span className="text-[8px] text-slate-500 block">{item.pctHelper}%</span>
                         </div>
                       </div>
                     </>
@@ -927,12 +883,12 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
                 </div>
 
                 {/* Focus Button */}
-                <div className="mt-4 pt-3 border-t border-slate-100">
+                <div className="mt-6 pt-4 border-t border-slate-100">
                   <button
                     onClick={() => onFactoryChange(item.factory)}
-                    className={`w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                       isSelected
-                        ? 'bg-[#244646] text-white'
+                        ? 'bg-[#244646] text-white shadow-xs'
                         : 'bg-slate-100 hover:bg-[#244646] text-slate-700 hover:text-white'
                     }`}
                   >
@@ -946,30 +902,36 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
         </div>
 
         {/* COMPARISON TABLE ALL FACTORIES */}
-        <div className="bg-white rounded-3xl p-6 border border-[#D5E2E2] shadow-sm space-y-4">
+        <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <BarChart2 className="w-4 h-4 text-[#244646]" />
-                {t.overallDashboard.compTableTitle.replace('{period}', `${monthLabel} ${selectedYear}`)}
+                <span>{t.overallDashboard.compTableTitle.replace('{period}', `${monthLabel} ${selectedYear}`)}</span>
+                <div className="relative group/info inline-flex items-center cursor-help ml-0.5" title={t.overallDashboard.compTableSubtitle}>
+                  <Info className="w-3.5 h-3.5 text-slate-400 hover:text-slate-600 transition-colors" />
+                  <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover/info:flex flex-col items-center z-50 pointer-events-none w-max max-w-xs sm:max-w-sm">
+                    <div className="bg-slate-900 text-white text-[11px] font-normal leading-normal px-2.5 py-1.5 rounded-lg shadow-lg border border-slate-700 text-center">
+                      {t.overallDashboard.compTableSubtitle}
+                    </div>
+                    <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1 border-r border-b border-slate-700" />
+                  </div>
+                </div>
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {t.overallDashboard.compTableSubtitle}
-              </p>
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-slate-200">
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-[#244646] text-white font-bold uppercase tracking-wider text-[10px]">
                   <th className="py-3 px-4">{t.overallDashboard.thFactoryName}</th>
                   <th className="py-3 px-3 text-center">{t.overallDashboard.thTotalOp}</th>
-                  <th className="py-3 px-3 text-center bg-emerald-800/80">{t.overallDashboard.thGradeSHeader}</th>
-                  <th className="py-3 px-3 text-center bg-teal-800/80">{t.overallDashboard.thGradeAHeader}</th>
-                  <th className="py-3 px-3 text-center bg-sky-800/80">{t.overallDashboard.thGradeBHeader}</th>
-                  <th className="py-3 px-3 text-center bg-amber-800/80">{t.overallDashboard.thGradeCHeader}</th>
-                  <th className="py-3 px-3 text-center bg-slate-700/80">{t.overallDashboard.thHelperHeader}</th>
+                  <th className="py-3 px-3 text-center">{t.overallDashboard.thGradeSHeader}</th>
+                  <th className="py-3 px-3 text-center">{t.overallDashboard.thGradeAHeader}</th>
+                  <th className="py-3 px-3 text-center">{t.overallDashboard.thGradeBHeader}</th>
+                  <th className="py-3 px-3 text-center">{t.overallDashboard.thGradeCHeader}</th>
+                  <th className="py-3 px-3 text-center">{t.overallDashboard.thHelperHeader}</th>
                   <th className="py-3 px-3 text-center">{t.overallDashboard.thMultiSkillPct}</th>
                   <th className="py-3 px-3 text-center">{t.overallDashboard.thAvgPoints}</th>
                   <th className="py-3 px-4 text-right">{t.overallDashboard.thAction}</th>
@@ -988,7 +950,7 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
                           <Building2 className={`w-4 h-4 ${isCurrent ? 'text-[#244646]' : 'text-slate-400'}`} />
                           <span className="font-bold text-slate-900">{f.factory}</span>
                           {isCurrent && (
-                            <span className="text-[9px] font-bold bg-[#D0A018] text-white px-2 py-0.5 rounded-full">
+                            <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full">
                               {t.overallDashboard.activeStatus}
                             </span>
                           )}
@@ -1010,57 +972,57 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
                           </span>
                         )}
                       </td>
-                      <td className="py-3.5 px-3 text-center bg-emerald-50/40 whitespace-nowrap">
+                      <td className="py-3.5 px-3 text-center whitespace-nowrap">
                         {f.hasNoData ? (
                           <span className="text-slate-400 font-mono">-</span>
                         ) : (
                           <>
-                            <span className="font-mono font-bold text-emerald-800">{f.countS}</span>
+                            <span className="font-mono font-bold text-emerald-700">{f.countS}</span>
                             <span className="text-[10px] text-emerald-600 block">({f.pctS}%)</span>
                           </>
                         )}
                       </td>
-                      <td className="py-3.5 px-3 text-center bg-teal-50/40 whitespace-nowrap">
+                      <td className="py-3.5 px-3 text-center whitespace-nowrap">
                         {f.hasNoData ? (
                           <span className="text-slate-400 font-mono">-</span>
                         ) : (
                           <>
-                            <span className="font-mono font-bold text-teal-800">{f.countA}</span>
-                            <span className="text-[10px] text-teal-600 block">({f.pctA}%)</span>
+                            <span className="font-mono font-bold text-emerald-700">{f.countA}</span>
+                            <span className="text-[10px] text-emerald-600 block">({f.pctA}%)</span>
                           </>
                         )}
                       </td>
-                      <td className="py-3.5 px-3 text-center bg-sky-50/40 whitespace-nowrap">
+                      <td className="py-3.5 px-3 text-center whitespace-nowrap">
                         {f.hasNoData ? (
                           <span className="text-slate-400 font-mono">-</span>
                         ) : (
                           <>
-                            <span className="font-mono font-bold text-sky-800">{f.countB}</span>
-                            <span className="text-[10px] text-sky-600 block">({f.pctB}%)</span>
+                            <span className="font-mono font-bold text-slate-700">{f.countB}</span>
+                            <span className="text-[10px] text-slate-500 block">({f.pctB}%)</span>
                           </>
                         )}
                       </td>
-                      <td className="py-3.5 px-3 text-center bg-amber-50/40 whitespace-nowrap">
+                      <td className="py-3.5 px-3 text-center whitespace-nowrap">
                         {f.hasNoData ? (
                           <span className="text-slate-400 font-mono">-</span>
                         ) : (
                           <>
-                            <span className="font-mono font-bold text-amber-800">{f.countC}</span>
+                            <span className="font-mono font-bold text-amber-700">{f.countC}</span>
                             <span className="text-[10px] text-amber-600 block">({f.pctC}%)</span>
                           </>
                         )}
                       </td>
-                      <td className="py-3.5 px-3 text-center bg-slate-50/60 whitespace-nowrap">
+                      <td className="py-3.5 px-3 text-center whitespace-nowrap">
                         {f.hasNoData ? (
                           <span className="text-slate-400 font-mono">-</span>
                         ) : (
                           <>
-                            <span className="font-mono font-bold text-slate-800">{f.countHelper}</span>
+                            <span className="font-mono font-bold text-slate-700">{f.countHelper}</span>
                             <span className="text-[10px] text-slate-500 block">({f.pctHelper}%)</span>
                           </>
                         )}
                       </td>
-                      <td className="py-3.5 px-3 text-center whitespace-nowrap font-mono font-bold text-[#D0A018]">
+                      <td className="py-3.5 px-3 text-center whitespace-nowrap font-mono font-bold text-emerald-600">
                         {f.hasNoData ? <span className="text-slate-400 font-normal">-</span> : `${f.multiSkillRate}%`}
                       </td>
                       <td className="py-3.5 px-3 text-center whitespace-nowrap font-mono font-semibold text-slate-700">
@@ -1085,7 +1047,7 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
               <tfoot>
                 <tr className="bg-[#244646] text-white font-bold text-xs border-t-2 border-[#1a3333]">
                   <td className="py-3 px-4">{t.overallDashboard.totalCompanyRow}</td>
-                  <td className="py-3 px-3 text-center font-mono font-black text-sm text-[#D0A018]">
+                  <td className="py-3 px-3 text-center font-mono font-black text-sm text-white">
                     {enterpriseTotals.grandTotal}
                   </td>
                   <td className="py-3 px-3 text-center font-mono">{enterpriseTotals.s}</td>
@@ -1093,7 +1055,7 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
                   <td className="py-3 px-3 text-center font-mono">{enterpriseTotals.b}</td>
                   <td className="py-3 px-3 text-center font-mono">{enterpriseTotals.c}</td>
                   <td className="py-3 px-3 text-center font-mono">{enterpriseTotals.helper}</td>
-                  <td className="py-3 px-3 text-center font-mono text-[#D0A018]">{enterpriseTotals.msRate}%</td>
+                  <td className="py-3 px-3 text-center font-mono text-emerald-400">{enterpriseTotals.msRate}%</td>
                   <td className="py-3 px-3 text-center font-mono">-</td>
                   <td className="py-3 px-4 text-right text-[10px] text-[#A0B5B5]">{t.overallDashboard.allFactoriesFoot}</td>
                 </tr>

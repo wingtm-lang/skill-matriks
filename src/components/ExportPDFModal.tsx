@@ -28,7 +28,8 @@ import {
 } from '../utils/pdfExport';
 import { 
   isOperatorResignedAtPeriod, 
-  getOperatorMultiSkillCount
+  getOperatorMultiSkillCount,
+  getOperatorActiveMachineColumn
 } from '../utils/ieCalculations';
 import { 
   getOperatorTotalPoints, 
@@ -544,7 +545,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                         onClick={() => setSelectedOperationFilter('ALL')}
                         className="text-[10px] font-semibold text-teal-700 hover:text-teal-900 cursor-pointer"
                       >
-                        Reset
+                        {pdfT.resetFilter}
                       </button>
                     )}
                   </div>
@@ -654,7 +655,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                     className="px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 hover:text-slate-900 rounded hover:bg-slate-200 cursor-pointer border-l border-slate-300"
                     title={pdfT.resetZoomTooltip}
                   >
-                    Reset
+                    {pdfT.resetFilter}
                   </button>
                 </div>
 
@@ -806,7 +807,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                           <th className={`py-1.5 px-2 text-left border-r border-teal-800 ${includeCurrentOperation ? 'min-w-[130px]' : 'min-w-[170px]'}`}>{pdfT.thOperatorName}</th>
                           <th className="py-1.5 px-1 w-14 border-r border-teal-800">{pdfT.thTenure}</th>
                           {includeCurrentOperation && (
-                            <th className="py-1.5 px-1.5 w-28 border-r border-teal-800 text-left">Current Operation</th>
+                            <th className="py-1.5 px-1.5 w-28 border-r border-teal-800 text-left">{pdfT.thCurrentOperation}</th>
                           )}
                           <th className="py-1 px-1 w-8 border-r border-teal-800 leading-tight">SN<br/><span className="text-[8px] font-normal">{pdfT.thLockstitch}</span></th>
                           <th className="py-1 px-1 w-8 border-r border-teal-800 leading-tight">OL<br/><span className="text-[8px] font-normal">{pdfT.thOverlock}</span></th>
@@ -834,9 +835,17 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                             const isHelper = op.status?.toUpperCase() === 'HELPER' || (op as any).grade === 'HELPER' || (op as any).grade === 'H';
                             const gradeObj = getGradeFromTotalPoints(totalPts, isHelper);
                             const msCount = getOperatorMultiSkillCount(op);
+                            const activeMachine = getOperatorActiveMachineColumn(op);
 
-                            const renderVal = (v: number | null | undefined) => {
+                            const renderVal = (v: number | null | undefined, isCurrent: boolean = false) => {
                               if (!v || v <= 0) return <span className="text-slate-300">-</span>;
+                              if (isCurrent) {
+                                return (
+                                  <span className="inline-block px-1.5 py-0.2 rounded-full font-black text-[9px] bg-emerald-600 text-white shadow-2xs" title="Mesin Aktif Current Operation">
+                                    {v}
+                                  </span>
+                                );
+                              }
                               return <span className="font-semibold text-slate-800">{v}</span>;
                             };
 
@@ -856,12 +865,12 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                                     {op.process || op.currentOperation || '-'}
                                   </td>
                                 )}
-                                <td className="py-1 px-1 border-r border-slate-200">{renderVal(op.lockstitch)}</td>
-                                <td className="py-1 px-1 border-r border-slate-200">{renderVal(op.overlock)}</td>
-                                <td className="py-1 px-1 border-r border-slate-200">{renderVal(op.flatseam)}</td>
-                                <td className="py-1 px-1 border-r border-slate-200">{renderVal(op.special)}</td>
-                                <td className="py-1 px-1 border-r border-slate-200">{renderVal(op.buttonHole)}</td>
-                                <td className="py-1 px-1 border-r border-slate-200">{renderVal(op.buttonSet)}</td>
+                                <td className="py-1 px-1 border-r border-slate-200">{renderVal(op.lockstitch, activeMachine === 'LOCKSTITCH')}</td>
+                                <td className="py-1 px-1 border-r border-slate-200">{renderVal(op.overlock, activeMachine === 'OVERLOCK')}</td>
+                                <td className="py-1 px-1 border-r border-slate-200">{renderVal(op.flatseam, activeMachine === 'FLATSEAM')}</td>
+                                <td className="py-1 px-1 border-r border-slate-200">{renderVal(op.special, activeMachine === 'SPECIAL')}</td>
+                                <td className="py-1 px-1 border-r border-slate-200">{renderVal(op.buttonHole, activeMachine === 'BUTTON_HOLE')}</td>
+                                <td className="py-1 px-1 border-r border-slate-200">{renderVal(op.buttonSet, activeMachine === 'BUTTON_SET')}</td>
                                 <td className={`py-1 px-1 font-bold border-r border-slate-200 ${msCount >= 2 ? 'text-emerald-700' : 'text-slate-400'}`}>
                                   {msCount > 0 ? `${msCount} ${pdfT.machineUnit}` : '-'}
                                 </td>
@@ -922,7 +931,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                             <p className="text-[9px] font-bold text-[#244646] uppercase">{pdfT.sigApprovedBy}</p>
                             <p className="text-[8px] text-slate-400 mb-5">{pdfT.sigApprovedDept}</p>
                             <div className="border-b border-dashed border-slate-300 mx-3 mb-1" />
-                            <p className="text-[9px] font-bold text-slate-800">{leaderInfo.chief && leaderInfo.chief !== '-' ? leaderInfo.chief : 'Sewing Chief'}</p>
+                            <p className="text-[9px] font-bold text-slate-800">{leaderInfo.chief && leaderInfo.chief !== '-' ? leaderInfo.chief : (language === 'id' ? 'Chief Sewing' : 'Sewing Chief')}</p>
                             <p className="text-[7.5px] text-slate-400">{pdfT.sigApprovedRole}</p>
                           </div>
                         </div>
@@ -957,7 +966,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
             <span>
               {pdfT.readyExportMessage
                 .replace('{count}', String(filteredOperators.length))
-                .replace('{orientation}', orientation)}
+                .replace('{orientation}', orientation === 'portrait' ? pdfT.portraitOption : pdfT.landscapeOption)}
             </span>
           </div>
 

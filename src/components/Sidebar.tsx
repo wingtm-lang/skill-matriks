@@ -52,7 +52,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: t.sidebar.navOverall,
       sublabel: t.sidebar.navOverallSub,
       icon: LayoutDashboard,
-      badge: 'Main',
     },
     {
       id: 'matrix',
@@ -71,7 +70,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: t.sidebar.navSearch,
       sublabel: t.sidebar.navSearchSub,
       icon: Search,
-      badge: 'NIK',
     },
   ];
 
@@ -148,9 +146,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <Search className="w-3.5 h-3.5 text-[#2AAFA3] group-hover:scale-110 transition-transform shrink-0" />
               <span className="truncate text-[11px]">{t.sidebar.searchPlaceholder}</span>
             </div>
-            <span className="text-[9px] font-mono font-bold bg-white/10 text-[#C8D8D8] px-1.5 py-0.5 rounded shrink-0">
-              NIK
-            </span>
+            <ChevronRight className="w-3.5 h-3.5 text-[#C8D8D8]/40 group-hover:text-white transition-colors shrink-0" />
           </button>
         </div>
 
@@ -257,21 +253,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           {/* Role Access Selector */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2 text-[#C8D8D8]">
-                <ShieldCheck className="w-4 h-4 text-[#D0A018]" />
-                <span className="font-bold text-white text-xs">{t.header.role} {language === 'en' ? 'Access' : 'Akses'}</span>
-              </div>
-              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                userRole === 'ADMIN'
-                  ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30'
-                  : userRole === 'EDITOR'
-                  ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/30'
-                  : 'bg-sky-400/20 text-sky-300 border border-sky-400/30'
-              }`}>
-                {userRole}
-              </span>
+          <div className="space-y-1.5">
+            <div className="flex items-center space-x-1.5 text-[#C8D8D8]">
+              <ShieldCheck className="w-4 h-4 text-[#D0A018]" />
+              <span className="font-bold text-white text-xs">Role</span>
             </div>
 
             <div className="relative">
@@ -281,22 +266,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 className="w-full bg-black/30 hover:bg-black/40 text-white font-medium text-xs border border-white/15 focus:border-[#2AAFA3] rounded-xl px-3 py-2 outline-none cursor-pointer transition-colors shadow-2xs"
               >
                 <option value="VIEWER" className="bg-[#2C3E3E] text-white">
-                  👁️ {t.header.roleViewer} ({language === 'en' ? 'View Only' : 'Hanya Lihat'})
+                  Viewer
                 </option>
                 <option value="EDITOR" className="bg-[#2C3E3E] text-white">
-                  ✏️ {t.header.roleEditor} ({language === 'en' ? 'Input & Edit' : 'Input & Edit'})
+                  Editor
                 </option>
                 <option value="ADMIN" className="bg-[#2C3E3E] text-white">
-                  ⚡ {t.header.roleAdmin} ({language === 'en' ? 'Full Access' : 'Akses Penuh'})
+                  Admin
                 </option>
               </select>
             </div>
-
-            <p className="text-[10px] text-[#A0B5B5] leading-relaxed">
-              {userRole === 'ADMIN' && (language === 'en' ? 'Full access: Add, edit, plant, & delete data.' : 'Akses penuh: Tambah, edit, tanam, & hapus data.')}
-              {userRole === 'EDITOR' && (language === 'en' ? 'Editor access: Add, edit scores & save data.' : 'Akses editor: Tambah, edit nilai & simpan data.')}
-              {userRole === 'VIEWER' && (language === 'en' ? 'Viewer mode: Visualizations & reports only.' : 'Mode pratinjau: Hanya dapat melihat visualisasi.')}
-            </p>
           </div>
 
           <div className="border-t border-white/10 pt-2.5">
