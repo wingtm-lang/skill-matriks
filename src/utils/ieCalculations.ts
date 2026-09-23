@@ -1336,8 +1336,14 @@ export async function lookupNikFromDateOfJoin(nikToSearch: string): Promise<NikL
 
   // 1. Tier 1: Coba Express backend /api/sheets/date-of-join (berfungsi di AI Studio & backend container)
   try {
-    const res = await fetch(`/api/sheets/date-of-join?nik=${encodeURIComponent(cleanNik)}`);
-    if (res.ok) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const res = await fetch(`/api/sheets/date-of-join?nik=${encodeURIComponent(cleanNik)}`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    const contentType = res.headers.get('content-type') || '';
+    if (res.ok && contentType.includes('application/json')) {
       const json = await res.json();
       if (json.success && json.found && json.data) {
         return {
@@ -1352,7 +1358,7 @@ export async function lookupNikFromDateOfJoin(nikToSearch: string): Promise<NikL
       }
     }
   } catch (backendErr) {
-    console.warn('Backend lookup tidak tersedia, beralih ke Vercel direct client-side lookup:', backendErr);
+    console.info('Backend lookup tidak tersedia, beralih ke Vercel direct client-side lookup.');
   }
 
   // 2. Tier 2: Direct Google Visualization CSV query (100% BEKERJA DI VERCEL, CORS OPEN, TANPA BUTUH API KEY)
@@ -1892,15 +1898,20 @@ export async function appendOperatorToByWorker(
 
     // 3. Coba kirim via Express Backend API Proxy
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
       const res = await fetch('/api/sheets/append-by-worker', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
 
-      if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
         const json = await res.json();
         if (json.success) {
           networkSuccess = true;
@@ -1908,7 +1919,7 @@ export async function appendOperatorToByWorker(
         }
       }
     } catch (apiErr) {
-      console.warn("Backend append-by-worker error, mencoba direct GAS fallback:", apiErr);
+      // Backend proxy offline / Vercel static host
     }
 
     // 4. Fallback ke Google Apps Script Web App (Metode GET Query Params yang terbukti menanamkan baris ke by_worker)

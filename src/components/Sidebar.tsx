@@ -152,9 +152,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* MIDDLE SECTION: MAIN NAVIGATION */}
         <div className="flex-1 px-4 py-2 space-y-1.5 overflow-y-auto no-scrollbar">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-[#C8D8D8]/70 px-3 mb-2 flex items-center justify-between">
-            <span>Main Navigation</span>
-            <span className="text-[9px] font-mono text-[#2AAFA3] font-bold">4 MODUL</span>
+          <div className="text-[10px] font-bold uppercase tracking-wider text-[#C8D8D8]/70 px-3 mb-2">
+            Main Navigation
           </div>
 
           {navItems.map((item) => {

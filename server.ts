@@ -1080,66 +1080,151 @@ async function generateGeminiWithFallback(
   throw lastError || new Error("All Gemini models are temporarily unavailable");
 }
 
-// Retraining Roadmap Generator
+// Retraining Roadmap Generator with Structured JSON
 app.post("/api/gemini/retraining-plan", async (req, res) => {
   try {
-    const { operator, targetMachine } = req.body;
+    const { operator, targetMachine, line, factory } = req.body;
 
     if (!operator) {
       return res.status(400).json({ error: "Data operator diperlukan" });
     }
 
-    const target = targetMachine || "Overlock / Flatseam";
+    const target = targetMachine || "OVERLOCK";
     const opName = operator.name || "Operator";
     const opNik = operator.nik || "-";
     const workMonths = operator.workTimeMonths ?? 12;
+    const currentPoints = (operator.lockstitch ?? 0) + (operator.overlock ?? 0) + (operator.flatseam ?? 0) + (operator.special ?? 0) + (operator.buttonHole ?? 0) + (operator.buttonSet ?? 0);
 
-    const fallbackPlan = `### Roadmap Pelatihan Multi-Skill 4 Minggu: ${opName} (NIK: ${opNik})
-**Target Kompetensi:** Penguasaan Mesin **${target}** (Target Kelulusan: Grade B / Efisiensi ≥ 80%)
-
----
-
-#### 📅 Minggu 1: Dasar Mesin & Kontrol Presisi (Skill Level 1)
-- **Fokus:** Pengenalan anatomi mesin ${target}, threading (jalur benang), penyesuaian tegangan (tension control), dan penggantian jarum.
-- **Latihan Mandiri:** Menjahit lurus dan melengkung pada kain perca (scrap fabric) 150 pcs/hari.
-- **Target KPI:** Memahami *troubleshooting* dasar (benang putus/loncat), efisiensi awal 45%.
-
-#### 📅 Minggu 2: Latihan Operasi Komponen Semi-Kritis (Skill Level 2)
-- **Fokus:** Menjahit bagian sub-assembly (misal: jahit bis, sambung pundak, pasang rib leher/manset).
-- **Aspek Ergonomi & K3:** Posisi duduk tegak 90°, penggunaan pelindung jari (*finger guard*), dan penataan *bundle feeder* ergonomis.
-- **Target KPI:** Efisiensi mencapai 60% tanpa defect loncat jahitan atau *fabric puckering*.
-
-#### 📅 Minggu 3: Integrasi ke Line Produksi Nyata (Skill Level 3)
-- **Fokus:** Masuk ke line jahit dengan pendampingan instruktur / tandem sewing bersama operator Grade S.
-- **Latihan:** Mengikuti alur *piece-rate* dan menjaga *cycle time* stabil mendekati Pitch Time line.
-- **Target KPI:** Efisiensi mencapai 70-75%, defect rate < 1.5%.
-
-#### 📅 Minggu 4: Uji Kompetensi Mandiri & Sertifikasi Skill Matrix (Grade B)
-- **Fokus:** Evaluasi mandiri kecepatan dan kualitas 1 hari kerja penuh (8 jam).
-- **Verifikasi QC:** Pemeriksaan SPI (Stitch Per Inch), kelurusan jahitan, dan kekuatan tarikan benang.
-- **Target Kelulusan:** Lolos uji Skill Matrix dengan skor efisiensi rata-rata ≥ 80% (Grade B).`;
+    const fallbackPlanData = {
+      operator_name: opName,
+      nik: opNik,
+      factory: factory || "Factory 1",
+      line: line || "Line 01",
+      current_points: currentPoints,
+      tenure_months: workMonths,
+      target_machine: target,
+      goal_summary: `Mencapai kompetensi Level 3 (3 Poin Penuh) pada mesin ${target} dengan Pitch Time stabil, bebas cacat kualitas (Zero Defect), serta siap line balancing.`,
+      total_weeks: 4,
+      weeks: [
+        {
+          week_number: 1,
+          title: "Dasar Mesin, Threading & Kontrol Tension",
+          target_points: 1,
+          technical_focus: `Pemahaman jalur benang (threading path) mesin ${target}, penyetelan tegangan benang (tension balance), nomor jarum (#9-#14), dan 5S harian.`,
+          hands_on_drills: "Latihan menjahit kain perca (scrap fabric) 150 pcs/hari dengan kerapatan jahitan SPI (10-12) yang lurus dan konsisten.",
+          safety_ergonomics: "Posisi duduk tegak 90°, penggunaan finger guard pengaman jarum, dan kontrol injakan pedal gas bertahap.",
+          kpi_target: "Memahami troubleshooting dasar (benang putus/loncat), lulus kualifikasi dasar Level 1 (1 Poin)."
+        },
+        {
+          week_number: 2,
+          title: "Latihan Operasi Komponen Semi-Kritis",
+          target_points: 2,
+          technical_focus: "Pengerjaan proses sub-assembly garmen nyata (seperti sambung pundak, jahit rib leher/manset, kelim samping, atau pasang elastic band).",
+          hands_on_drills: "Penerapan prinsip ekonomi gerakan (motion economy MOST/GSD) saat mengambil bundle dan membuang komponen (pickup & dispose).",
+          safety_ergonomics: "Penataan bundle feeder sejajar meja jahit untuk mengurangi putaran pinggang.",
+          kpi_target: "Mencapai milestone kompetensi 2 Poin dengan defect rate < 1.0% dan toleransi lebar kampuh ±1.0 mm."
+        },
+        {
+          week_number: 3,
+          title: "Integrasi ke Lini Produksi Nyata & Line Balancing",
+          target_points: 2,
+          technical_focus: "Masuk ke lini produksi aktif dengan metode pendampingan tandem bersama operator senior Grade S.",
+          hands_on_drills: "Menjaga Cycle Time stasiun kerja stabil mendekati Pitch Time lini (efisiensi output 80-90%) pada variasi style garmen.",
+          safety_ergonomics: "Pencegahan kelelahan otot pergelangan tangan dengan teknik relaksasi jeda antar-bundle.",
+          kpi_target: "Efisiensi mencapai standar target, deviasi Cycle Time ≤ 5% terhadap target SMV IE."
+        },
+        {
+          week_number: 4,
+          title: "Uji Kompetensi Mandiri & Sertifikasi Skill Matrix",
+          target_points: 3,
+          technical_focus: "Evaluasi mandiri kecepatan dan kualitas 1 hari kerja penuh (8 jam) pada pesanan garmen buyer.",
+          hands_on_drills: "Audit kerapian jahitan pada 10 bundle berturut-turut serta verifikasi uji tarik jahitan (seam pull test ≥ 15 lbs).",
+          safety_ergonomics: "Pemeriksaan akhir kepatuhan APD dan kebersihan stasiun kerja 5S.",
+          kpi_target: "Lulus sertifikasi resmi Skill Matrix IE PT. Winners International dengan skor +3 Poin pada kategori mesin target."
+        }
+      ]
+    };
 
     if (!process.env.GEMINI_API_KEY) {
-      return res.json({ plan: fallbackPlan });
+      return res.json({ planData: fallbackPlanData, plan: JSON.stringify(fallbackPlanData) });
     }
 
     const prompt = `
-Buat program pelatihan (Retraining / Multi-Skilling Roadmap) intensif 4 minggu untuk operator garmen berikut:
+Anda adalah Senior Industrial Engineering (IE) & Technical Garment Trainer di PT. Winners International.
+Buat program pelatihan (Multi-Skilling Retraining Roadmap) intensif 4 minggu untuk operator garmen berikut dalam format JSON STRICT:
 - Nama: ${opName}
 - NIK: ${opNik}
+- Pabrik & Lini: ${factory || "Factory 1"} / ${line || "Line 01"}
 - Masa Kerja: ${workMonths} bulan
+- Total Poin Skill Saat Ini: ${currentPoints} Poin
 - Mesin Target Pengembangan: ${target}
-- Skill saat ini: Lockstitch: ${operator.lockstitch ?? '-'}%, Overlock: ${operator.overlock ?? '-'}%, Flatseam: ${operator.flatseam ?? '-'}%, Special: ${operator.special ?? '-'}%
 
-Berikan kurikulum mingguan (Week 1-4), KPI target efisiensi, aspek K3 & ergonomi, serta standar verifikasi Quality Control (tidak ada loncat jahitan, pucker, atau seam slippage).
+Kembalikan HANYA JSON murni (valid JSON format) tanpa teks pengantar atau penutup, dengan struktur persis seperti ini:
+{
+  "operator_name": "${opName}",
+  "nik": "${opNik}",
+  "factory": "${factory || "Factory 1"}",
+  "line": "${line || "Line 01"}",
+  "current_points": ${currentPoints},
+  "tenure_months": ${workMonths},
+  "target_machine": "${target}",
+  "goal_summary": "Sasaran kelulusan kompetensi teknis",
+  "total_weeks": 4,
+  "weeks": [
+    {
+      "week_number": 1,
+      "title": "Judul Modul Minggu 1",
+      "target_points": 1,
+      "technical_focus": "Fokus teknis mesin dan parameter",
+      "hands_on_drills": "Latihan pengerjaan garmen nyata / scrap fabric",
+      "safety_ergonomics": "Aspek K3, ergonomi duduk, dan proteksi keselamatan",
+      "kpi_target": "Milestone target KPI & kelulusan poin"
+    },
+    {
+      "week_number": 2,
+      "title": "Judul Modul Minggu 2",
+      "target_points": 2,
+      "technical_focus": "Fokus teknis sub-assembly",
+      "hands_on_drills": "Latihan motion economy MOST/GSD",
+      "safety_ergonomics": "Aspek ergonomi",
+      "kpi_target": "Target KPI efisiensi & quality"
+    },
+    {
+      "week_number": 3,
+      "title": "Judul Modul Minggu 3",
+      "target_points": 2,
+      "technical_focus": "Integrasi line & tandem sewing",
+      "hands_on_drills": "Line balancing & matching pitch time",
+      "safety_ergonomics": "Pencegahan kelelahan otot",
+      "kpi_target": "Target KPI Cycle Time SMV"
+    },
+    {
+      "week_number": 4,
+      "title": "Judul Modul Minggu 4",
+      "target_points": 3,
+      "technical_focus": "Uji mandiri 8 jam & QA audit",
+      "hands_on_drills": "Pull test & SPI verification",
+      "safety_ergonomics": "5S & APD check",
+      "kpi_target": "Sertifikasi akhir +3 Poin Skill Matrix"
+    }
+  ]
+}
 `;
 
     try {
-      const generatedPlan = await generateGeminiWithFallback(prompt, IE_SYSTEM_INSTRUCTION, 0.6);
-      return res.json({ plan: generatedPlan });
+      const generatedText = await generateGeminiWithFallback(prompt, IE_SYSTEM_INSTRUCTION, 0.4);
+      
+      // Clean possible markdown code fences
+      const cleanJsonStr = generatedText
+        .replace(/```json/gi, "")
+        .replace(/```/g, "")
+        .trim();
+
+      const parsedData = JSON.parse(cleanJsonStr);
+      return res.json({ planData: parsedData, plan: JSON.stringify(parsedData) });
     } catch (planErr: any) {
-      console.info("Serving standard IE retraining curriculum fallback.");
-      return res.json({ plan: fallbackPlan });
+      console.info("Serving standard IE retraining structured fallback.");
+      return res.json({ planData: fallbackPlanData, plan: JSON.stringify(fallbackPlanData) });
     }
   } catch (error: any) {
     console.error("Error in /api/gemini/retraining-plan:", error);

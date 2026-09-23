@@ -28,6 +28,7 @@ import {
   sortLinesNumerically,
   sortFactoriesNumerically
 } from '../utils/ieCalculations';
+import { fetchDirectFromGoogleSheets, getStoredOperatorsCache } from '../utils/sheetParser';
 import { useLanguage } from '../i18n/LanguageContext';
 
 interface UserSearchTabProps {
@@ -144,12 +145,45 @@ export const UserSearchTab: React.FC<UserSearchTabProps> = ({
     return () => clearTimeout(timer);
   }, [searchInput]);
 
+// Helper multi-field search matcher (cocok untuk NIK, Nama, Proses/Operasi, Lini, Pabrik, Mesin, Style)
+function matchOperatorRecord(op: any, rawQuery: string): boolean {
+  if (!rawQuery) return false;
+  const q = rawQuery.trim().toLowerCase();
+  if (!q) return false;
+
+  const nik = String(op.nik || op.id || '').toLowerCase();
+  const name = String(op.name || '').toLowerCase();
+  const proc = String(op.process || op.currentOperation || op.operation || '').toLowerCase();
+  const line = String(op.line || '').toLowerCase();
+  const factory = String(op.factory || '').toLowerCase();
+  const machine = String(op.machine || op.machineCategory || '').toLowerCase();
+  const styleNo = String(op.styleNo || '').toLowerCase();
+
+  // Memecah kata kunci jika ada beberapa token (contoh: "Siti Line 1" -> harus mencakup kata "siti", "line", "1")
+  const tokens = q.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return false;
+
+  return tokens.every(token => 
+    nik.includes(token) || 
+    name.includes(token) || 
+    proc.includes(token) || 
+    line.includes(token) || 
+    factory.includes(token) ||
+    machine.includes(token) ||
+    styleNo.includes(token)
+  );
+}
+
   // ============================================================================
-  // STRATEGI FETCH DATA DENGAN BACKEND & CLIENT CACHING:
+  // STRATEGI FETCH DATA DENGAN BACKEND & CLIENT CACHING (KOMPATIBEL DENGAN VERCEL):
   // 1. Cek in-memory client cache (TTL 5 menit) untuk query saat ini.
-  // 2. Jika miss, fetch ke backend proxy (/api/sheets/operators?q=...)
-  //    Backend juga menerapkan cache in-memory 5-10 menit terhadap Google Sheets API v4.
-  // 3. Fallback: Jika offline atau server proxy gagal, lakukan filter dari prop operators.
+  // 2. Coba fetch ke Backend Proxy (/api/sheets/operators?q=...) jika tersedia.
+  // 3. Khusus Vercel / Static Hosting (di mana backend express tidak aktif):
+  //    - Ambil kumpulan operator dari props `operators`
+  //    - Atau ambil dari LocalStorage `getStoredOperatorsCache()`
+  //    - Atau lakukan fetch direct ke Google Sheets API v4 jika pool masih kosong.
+  //    - Jalankan pemfilteran ketat `matchOperatorRecord` sehingga HANYA data yang sesuai
+  //      yang ditampilkan dan TIDAK PERNAH menampilkan seluruh data jika tidak cocok!
   // ============================================================================
   useEffect(() => {
     const q = debouncedQuery.trim().toLowerCase();
@@ -177,42 +211,67 @@ export const UserSearchTab: React.FC<UserSearchTabProps> = ({
         return;
       }
 
-      // 2. Fetch ke Backend Proxy dengan search query
+      // 2. Fetch ke Backend Proxy dengan search query (jika respons bertipe application/json)
+      let backendMatchedOps: Operator[] | null = null;
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 6000);
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
 
         const res = await fetch(`/api/sheets/operators?q=${encodeURIComponent(q)}`, {
           signal: controller.signal
         });
         clearTimeout(timeoutId);
 
-        if (res.ok) {
+        const contentType = res.headers.get('content-type') || '';
+        // Penting: Hanya proses JSON jika backend aktif (di Vercel, SPA rewrite mengembalikan text/html 200 OK)
+        if (res.ok && contentType.includes('application/json')) {
           const json = await res.json();
           if (json.success && Array.isArray(json.operators)) {
-            if (isSubscribed) {
-              searchCacheRef.current.set(q, { data: json.operators, timestamp: Date.now() });
-              setRawSearchResults(json.operators);
-              setVisibleCount(BATCH_SIZE);
-              setIsLoading(false);
-            }
-            return;
+            // Verifikasi kembali agar benar-benar terfilter dengan matchOperatorRecord
+            backendMatchedOps = json.operators.filter((op: any) => matchOperatorRecord(op, q));
           }
         }
       } catch (networkErr) {
-        // Backend proxy offline / static host fallback
+        // Backend proxy offline / Vercel static host
       }
 
-      // 3. Fallback: Filter dataset operators lokal yang sudah ada
+      if (backendMatchedOps !== null) {
+        if (isSubscribed) {
+          searchCacheRef.current.set(q, { data: backendMatchedOps, timestamp: Date.now() });
+          setRawSearchResults(backendMatchedOps);
+          setVisibleCount(BATCH_SIZE);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      // 3. Fallback Client-Side Search (Sangat Handal untuk Vercel / Netlify / Static Hosting)
       if (isSubscribed) {
-        const filteredFallback = (operators || []).filter((op) => {
-          const nik = String(op.nik || op.id || '').toLowerCase();
-          const name = String(op.name || '').toLowerCase();
-          const proc = String(op.process || op.currentOperation || '').toLowerCase();
-          const line = String(op.line || '').toLowerCase();
-          const factory = String(op.factory || '').toLowerCase();
-          return nik.includes(q) || name.includes(q) || proc.includes(q) || line.includes(q) || factory.includes(factory);
-        });
+        let datasetPool: Operator[] = (operators && operators.length > 0) ? operators : [];
+
+        // Jika props operators kosong (misal user langsung buka tab search sebelum App selesai loading),
+        // ambil dari LocalStorage cache
+        if (datasetPool.length === 0) {
+          const stored = getStoredOperatorsCache();
+          if (stored && Array.isArray(stored.operators) && stored.operators.length > 0) {
+            datasetPool = stored.operators;
+          }
+        }
+
+        // Jika masih kosong, fetch langsung dari Google Sheets API v4
+        if (datasetPool.length === 0) {
+          try {
+            const direct = await fetchDirectFromGoogleSheets();
+            if (direct && Array.isArray(direct.operators) && direct.operators.length > 0) {
+              datasetPool = direct.operators;
+            }
+          } catch (directErr) {
+            console.warn('Direct Google Sheets fallback in search failed:', directErr);
+          }
+        }
+
+        // Filter ketat dataset: HANYA operator yang cocok dengan kata kunci yang dikembalikan
+        const filteredFallback = datasetPool.filter((op) => matchOperatorRecord(op, q));
 
         searchCacheRef.current.set(q, { data: filteredFallback, timestamp: Date.now() });
         setRawSearchResults(filteredFallback);
