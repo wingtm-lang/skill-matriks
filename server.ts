@@ -1234,22 +1234,11 @@ Kembalikan HANYA JSON murni (valid JSON format) tanpa teks pengantar atau penutu
 
 // Vite & Static file setup
 async function startServer() {
-  const isProduction =
-    process.env.NODE_ENV === "production" ||
-    (typeof __filename !== "undefined" && __filename.endsWith(".cjs"));
-
+  const isProduction = process.env.NODE_ENV === "production";
   let viteServer: any = null;
 
   if (isProduction) {
-    const candidatePaths = [
-      typeof __dirname !== "undefined" ? __dirname : null,
-      path.resolve(process.cwd(), "dist"),
-      typeof __dirname !== "undefined" ? path.resolve(__dirname, "dist") : null,
-      process.cwd(),
-    ].filter(Boolean) as string[];
-
-    const distPath = candidatePaths.find((p) => fs.existsSync(path.join(p, "index.html"))) || path.resolve(process.cwd(), "dist");
-
+    const distPath = path.resolve(process.cwd(), "dist");
     console.log(`[Production] Serving static files from: ${distPath}`);
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
@@ -1276,42 +1265,20 @@ async function startServer() {
   }
 
   // Port configuration:
-  // In development, the dev server must bind strictly to port 3000 (proxied by Nginx).
-  // In production (Cloud Run), Cloud Run injects process.env.PORT (typically 8080) and sends health checks to it.
-  const primaryPort = isProduction && process.env.PORT
-    ? parseInt(process.env.PORT, 10)
-    : 3000;
+  // In development, port is 3000. In Cloud Run, PORT is injected (e.g., 8080).
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
-  const servers: any[] = [];
-
-  const mainServer = app.listen(primaryPort, "0.0.0.0", () => {
-    console.log(`Server running on http://0.0.0.0:${primaryPort} (Mode: ${isProduction ? "Production" : "Development"})`);
+  const server = app.listen(port, "0.0.0.0", () => {
+    console.log(`Server running on http://0.0.0.0:${port} (Mode: ${isProduction ? "Production" : "Development"})`);
   });
-  servers.push(mainServer);
 
-  mainServer.on("error", (err: any) => {
+  server.on("error", (err: any) => {
     if (err.code === "EADDRINUSE") {
-      console.error(`Port ${primaryPort} is already in use.`);
+      console.error(`Port ${port} is already in use.`);
     } else {
-      console.error(`Server error on port ${primaryPort}:`, err);
+      console.error(`Server error on port ${port}:`, err);
     }
   });
-
-  // In production, if primaryPort is not 3000, also bind to port 3000 as a secondary listener
-  // to ensure backwards compatibility with any internal probes or proxy routes expecting 3000.
-  if (isProduction && primaryPort !== 3000) {
-    try {
-      const fallbackServer = app.listen(3000, "0.0.0.0", () => {
-        console.log(`Secondary listener active on http://0.0.0.0:3000`);
-      });
-      fallbackServer.on("error", (err: any) => {
-        console.warn(`Port 3000 secondary listener notice: ${err.message}`);
-      });
-      servers.push(fallbackServer);
-    } catch (err: any) {
-      console.warn(`Could not bind secondary port 3000: ${err.message}`);
-    }
-  }
 
   const shutdown = async () => {
     console.log("Shutting down server...");
@@ -1322,12 +1289,10 @@ async function startServer() {
         // ignore
       }
     }
-    for (const s of servers) {
-      try {
-        s.close();
-      } catch (err) {
-        // ignore
-      }
+    try {
+      server.close();
+    } catch (err) {
+      // ignore
     }
     process.exit(0);
   };

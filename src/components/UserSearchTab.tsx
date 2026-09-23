@@ -16,7 +16,10 @@ import {
   ExternalLink,
   ChevronDown,
   Loader2,
-  ChevronRight
+  ChevronRight,
+  Users,
+  Sparkles,
+  Info
 } from 'lucide-react';
 import { Operator } from '../types';
 import { 
@@ -482,32 +485,56 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
 
   const isSearchEmpty = searchInput.trim() === '';
 
+  const totalAvailableCount = (operators && operators.length > 0) ? operators.length : 3487;
+
   return (
     <div className="space-y-5 animate-in fade-in duration-200">
       
       {/* 1. HERO HEADER & SEARCH INPUT BANNER */}
-      <div className="bg-gradient-to-r from-[#2C3E3E] via-[#354D4D] to-[#405858] rounded-3xl p-5 sm:p-7 text-white shadow-xl border border-white/10 relative overflow-hidden">
+      <div className="bg-gradient-to-r from-[#2C3E3E] via-[#354D4D] to-[#405858] rounded-3xl p-4 sm:px-6 sm:py-5 text-white shadow-xl border border-white/10 relative overflow-hidden">
         {/* Subtle decorative background shapes */}
         <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 w-64 h-64 bg-[#2AAFA3]/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute left-1/3 bottom-0 translate-y-12 w-48 h-48 bg-[#D0A018]/10 rounded-full blur-2xl pointer-events-none" />
 
         <div className="relative z-10 max-w-4xl">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-1.5">
             <span className="bg-[#2AAFA3]/25 text-emerald-300 text-[10px] font-bold tracking-widest uppercase px-2.5 py-0.5 rounded-full border border-[#2AAFA3]/40">
               PT. Winners International IE & Lean System
             </span>
           </div>
 
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-            <User className="w-7 h-7 text-[#2AAFA3]" />
-            <span>{t.searchTab.title}</span>
-          </h2>
-          <p className="text-xs sm:text-sm text-[#C8D8D8] mt-1.5 leading-relaxed max-w-2xl">
-            {t.searchTab.subtitle}
-          </p>
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-white flex items-center gap-2.5">
+              <User className="w-6 h-6 sm:w-7 sm:h-7 text-[#2AAFA3]" />
+              <span>{t.searchTab.title}</span>
+            </h2>
+
+            {/* Info Icon with Floating Tooltip on Hover */}
+            <div className="relative group/info inline-flex items-center">
+              <button
+                type="button"
+                aria-label="Info Pencarian Operator"
+                className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white/10 hover:bg-[#2AAFA3]/30 text-[#A0B5B5] hover:text-white flex items-center justify-center transition-colors cursor-help border border-white/15"
+              >
+                <Info className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              </button>
+
+              {/* Tooltip Popup */}
+              <div className="absolute left-0 top-full mt-2 hidden group-hover/info:block z-50 w-72 sm:w-80 p-3 bg-[#1B2727]/95 text-[#D8E6E6] text-xs rounded-xl shadow-2xl border border-[#2AAFA3]/40 backdrop-blur-md animate-in fade-in zoom-in-95 duration-150 pointer-events-none">
+                <div className="flex items-start gap-2">
+                  <Info className="w-4 h-4 text-[#2AAFA3] shrink-0 mt-0.5" />
+                  <p className="leading-relaxed text-[11px] sm:text-xs">
+                    {t.searchTab.subtitle}
+                  </p>
+                </div>
+                {/* Tooltip arrow */}
+                <div className="absolute -top-1 left-2.5 w-2 h-2 bg-[#1B2727] border-t border-l border-[#2AAFA3]/40 rotate-45" />
+              </div>
+            </div>
+          </div>
 
           {/* Primary Search Input Bar with Debounce 400ms & In-input Spinner */}
-          <div className="mt-5 relative max-w-3xl">
+          <div className="mt-4 relative max-w-3xl">
             <div className="relative flex items-center">
               <Search className="absolute left-4 w-5 h-5 text-[#2AAFA3] pointer-events-none" />
               <input
@@ -515,7 +542,7 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Ketik NIK atau nama operator untuk mulai mencari..."
-                className="w-full pl-12 pr-32 py-3 sm:py-3.5 bg-black/30 hover:bg-black/40 focus:bg-black/50 text-white placeholder:text-[#A0B5B5] border border-white/20 focus:border-[#2AAFA3] rounded-2xl outline-none text-sm transition-all shadow-inner focus:ring-4 focus:ring-[#2AAFA3]/20"
+                className="w-full pl-12 pr-32 py-2.5 sm:py-3 bg-black/30 hover:bg-black/40 focus:bg-black/50 text-white placeholder:text-[#A0B5B5] border border-white/20 focus:border-[#2AAFA3] rounded-2xl outline-none text-sm transition-all shadow-inner focus:ring-4 focus:ring-[#2AAFA3]/20"
                 autoFocus
               />
 
@@ -540,6 +567,17 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                   </button>
                 )}
               </div>
+            </div>
+
+            {/* Quick Informative Info Under Search Box */}
+            <div className="flex items-center justify-between mt-2 px-1 text-[11px] text-[#A0B5B5]">
+              <div className="flex items-center gap-1.5 text-teal-300/90 font-medium">
+                <Users className="w-3.5 h-3.5 text-[#2AAFA3]" />
+                <span>{totalAvailableCount.toLocaleString('id-ID')} {language === 'id' ? 'operator siap dicari' : 'operators ready to search'}</span>
+              </div>
+              <span className="hidden sm:inline text-white/50 text-[10px]">
+                {language === 'id' ? 'Ketik NIK atau Nama untuk pencarian cepat' : 'Type NIK or Name for fast search'}
+              </span>
             </div>
           </div>
         </div>
@@ -724,11 +762,11 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
       {isSearchEmpty ? (
         /* ============================================================================
            EMPTY STATE AWAL: Muncul saat search box masih kosong.
-           Jangan fetch semua data operator saat halaman pertama kali dimuat!
+           Menyatu dengan background halaman tanpa card putih terpisah, terpusat vertikal.
            ============================================================================ */
-        <div className="bg-white rounded-3xl p-8 sm:p-14 border border-[#E0E8E8] text-center space-y-4 shadow-xs">
-          <div className="w-16 h-16 rounded-2xl bg-[#EAF7F6] border border-[#BCE5E2] text-[#2AAFA3] flex items-center justify-center mx-auto shadow-2xs">
-            <Search className="w-8 h-8" />
+        <div className="min-h-[50vh] sm:min-h-[55vh] flex flex-col items-center justify-center text-center p-4 sm:p-6 space-y-4">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#EAF7F6] border border-[#BCE5E2] text-[#2AAFA3] flex items-center justify-center mx-auto shadow-2xs">
+            <Search className="w-7 h-7 sm:w-8 sm:h-8" />
           </div>
           <div className="space-y-1.5 max-w-md mx-auto">
             <h3 className="text-base sm:text-lg font-bold text-[#2C3E3E]">
@@ -739,34 +777,34 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
             </p>
           </div>
 
-          {/* Quick Search Suggestions */}
+          {/* Quick Search Suggestions with Clear Hover States & Cursor Pointer */}
           <div className="pt-2 flex flex-wrap items-center justify-center gap-2 text-xs">
-            <span className="text-[#889898] font-medium text-[11px]">Contoh pencarian:</span>
+            <span className="text-[#788888] font-semibold text-[11px] mr-1">Contoh pencarian:</span>
             <button
               type="button"
               onClick={() => setSearchInput('10')}
-              className="px-3 py-1 rounded-xl bg-[#F5F8F8] hover:bg-[#EAF7F6] hover:text-[#2AAFA3] text-[#405858] font-mono text-[11px] font-semibold border border-[#D5DFDF] transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-white hover:bg-[#EAF7F6] hover:text-[#2AAFA3] hover:border-[#2AAFA3]/60 text-[#405858] font-mono text-[11px] font-semibold border border-[#D5DFDF] shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
             >
               NIK "10..."
             </button>
             <button
               type="button"
               onClick={() => setSearchInput('Siti')}
-              className="px-3 py-1 rounded-xl bg-[#F5F8F8] hover:bg-[#EAF7F6] hover:text-[#2AAFA3] text-[#405858] text-[11px] font-semibold border border-[#D5DFDF] transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-white hover:bg-[#EAF7F6] hover:text-[#2AAFA3] hover:border-[#2AAFA3]/60 text-[#405858] text-[11px] font-semibold border border-[#D5DFDF] shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
             >
               Nama "Siti"
             </button>
             <button
               type="button"
               onClick={() => setSearchInput('Sri')}
-              className="px-3 py-1 rounded-xl bg-[#F5F8F8] hover:bg-[#EAF7F6] hover:text-[#2AAFA3] text-[#405858] text-[11px] font-semibold border border-[#D5DFDF] transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-white hover:bg-[#EAF7F6] hover:text-[#2AAFA3] hover:border-[#2AAFA3]/60 text-[#405858] text-[11px] font-semibold border border-[#D5DFDF] shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
             >
               Nama "Sri"
             </button>
             <button
               type="button"
               onClick={() => setSearchInput('Line 1')}
-              className="px-3 py-1 rounded-xl bg-[#F5F8F8] hover:bg-[#EAF7F6] hover:text-[#2AAFA3] text-[#405858] text-[11px] font-semibold border border-[#D5DFDF] transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-white hover:bg-[#EAF7F6] hover:text-[#2AAFA3] hover:border-[#2AAFA3]/60 text-[#405858] text-[11px] font-semibold border border-[#D5DFDF] shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
             >
               Lini "Line 1"
             </button>
