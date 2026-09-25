@@ -135,6 +135,32 @@ export interface Translations {
     skillHeader: string;
     gradeHeader: string;
     actionsHeader: string;
+    infoTooltipLabel: string;
+    searchingText: string;
+    operatorsReady: string;
+    quickSearchHint: string;
+    filterLabel: string;
+    skillMulti: string;
+    skillSingle: string;
+    skillHelper: string;
+    emptyInitialTitle: string;
+    emptyInitialDesc: string;
+    exampleSearchLabel: string;
+    exampleNik: string;
+    exampleNameSiti: string;
+    exampleNameSri: string;
+    exampleLine: string;
+    resetSearchAndFilters: string;
+    copyNik: string;
+    clickToCopyNik: string;
+    activeBadge: string;
+    machinePointsWithActiveCount: string;
+    pointsUnit: string;
+    pointTooltipActive: string;
+    pointTooltipStandard: string;
+    loadMoreOperators: string;
+    thOperatorName: string;
+    thLocation: string;
   };
 
   // Metrics Overview
@@ -854,6 +880,32 @@ export const translations: Record<Language, Translations> = {
       skillHeader: 'Kategori Skill',
       gradeHeader: 'Grade IE',
       actionsHeader: 'Aksi',
+      infoTooltipLabel: 'Info Pencarian Operator',
+      searchingText: 'Mencari...',
+      operatorsReady: '{count} operator siap dicari',
+      quickSearchHint: 'Ketik NIK atau Nama untuk pencarian cepat',
+      filterLabel: 'Filter:',
+      skillMulti: 'Multi-Skill (≥2 Mesin)',
+      skillSingle: 'Single-Skill (1 Mesin)',
+      skillHelper: 'Helper (Non-Mesin)',
+      emptyInitialTitle: 'Ketik NIK atau nama operator untuk mulai mencari',
+      emptyInitialDesc: 'Ketik minimal 1 karakter pada kotak pencarian di atas untuk memuat profil operator, rincian keahlian mesin, grade IE, dan penempatan lini.',
+      exampleSearchLabel: 'Contoh pencarian:',
+      exampleNik: 'NIK "10..."',
+      exampleNameSiti: 'Nama "Siti"',
+      exampleNameSri: 'Nama "Sri"',
+      exampleLine: 'Lini "Line 1"',
+      resetSearchAndFilters: 'Reset Pencarian & Filter',
+      copyNik: 'Salin NIK',
+      clickToCopyNik: 'Klik untuk salin NIK',
+      activeBadge: 'Aktif',
+      machinePointsWithActiveCount: 'Poin Mesin ({count} Mesin Aktif)',
+      pointsUnit: 'Poin',
+      pointTooltipActive: '{label}: {points} Poin (Sedang Digunakan pada Operasi Saat Ini: {operation})',
+      pointTooltipStandard: '{label}: {points} Poin',
+      loadMoreOperators: 'Muat Lebih Banyak ({count} Operator Lagi)',
+      thOperatorName: 'Nama Operator',
+      thLocation: 'Lokasi (Pabrik & Lini)',
     },
     metrics: {
       totalOperators: 'Total Operator Line',
@@ -1543,6 +1595,32 @@ export const translations: Record<Language, Translations> = {
       skillHeader: 'Skill Category',
       gradeHeader: 'IE Grade',
       actionsHeader: 'Actions',
+      infoTooltipLabel: 'Operator Search Information',
+      searchingText: 'Searching...',
+      operatorsReady: '{count} operators ready to search',
+      quickSearchHint: 'Type NIK or Name for fast search',
+      filterLabel: 'Filter:',
+      skillMulti: 'Multi-Skill (≥2 Machines)',
+      skillSingle: 'Single-Skill (1 Machine)',
+      skillHelper: 'Helper (Non-Machine)',
+      emptyInitialTitle: 'Type NIK or operator name to start searching',
+      emptyInitialDesc: 'Type at least 1 character in the search box above to load operator profiles, machine competencies, IE grade, and line placement.',
+      exampleSearchLabel: 'Search examples:',
+      exampleNik: 'NIK "10..."',
+      exampleNameSiti: 'Name "Siti"',
+      exampleNameSri: 'Name "Sri"',
+      exampleLine: 'Line "Line 1"',
+      resetSearchAndFilters: 'Reset Search & Filters',
+      copyNik: 'Copy NIK',
+      clickToCopyNik: 'Click to copy NIK',
+      activeBadge: 'Active',
+      machinePointsWithActiveCount: 'Machine Points ({count} Active Machines)',
+      pointsUnit: 'Points',
+      pointTooltipActive: '{label}: {points} Points (Currently Used in Active Operation: {operation})',
+      pointTooltipStandard: '{label}: {points} Points',
+      loadMoreOperators: 'Load More ({count} More Operators)',
+      thOperatorName: 'Operator Name',
+      thLocation: 'Location (Factory & Line)',
     },
     metrics: {
       totalOperators: 'Total Line Operators',
