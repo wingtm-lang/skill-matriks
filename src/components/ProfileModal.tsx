@@ -117,8 +117,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
-      <div className="bg-white rounded-[16px] max-w-md w-full shadow-2xl border border-[#D8E5E5] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[25pt] p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn overflow-y-auto">
+      <div className="bg-white rounded-[16px] max-w-md w-full shadow-2xl border border-[#D8E5E5] overflow-hidden my-auto sm:my-0">
         
         {/* Header without Account Details */}
         <div className="bg-[#214E49] text-white p-5 sm:p-6 flex items-center justify-between relative overflow-hidden">
