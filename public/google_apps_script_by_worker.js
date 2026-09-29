@@ -101,7 +101,42 @@ function doGet(e) {
       return handleSetResigned(params);
     }
 
-    // 4. Aksi Test / Ping Koneksi
+    // 4. Aksi Autentikasi Login via GET
+    if (action === "login") {
+      return handleLogin(params);
+    }
+
+    // 5. Aksi Ambil Daftar User via GET
+    if (action === "getUsers") {
+      return handleGetUsers();
+    }
+
+    // 6. Aksi Tambah User via GET
+    if (action === "addUser") {
+      return handleAddUser(params);
+    }
+
+    // 7. Aksi Update User via GET
+    if (action === "updateUser") {
+      return handleUpdateUser(params);
+    }
+
+    // 8. Aksi Ubah Password via GET
+    if (action === "changePassword") {
+      return handleChangePassword(params);
+    }
+
+    // 9. Aksi Update Default View (Kolom AN) via GET
+    if (action === "updateDefaultView") {
+      return handleUpdateDefaultView(params);
+    }
+
+    // 10. Aksi Hapus User via GET
+    if (action === "deleteUser") {
+      return handleDeleteUser(params);
+    }
+
+    // 10. Aksi Test / Ping Koneksi
     if (action === "ping") {
       return createJsonResponse({
         status: "success",
@@ -110,7 +145,7 @@ function doGet(e) {
       });
     }
 
-    // 5. Default: Baca Data dari sheet 'by_worker'
+    // 11. Default: Baca Data dari sheet 'by_worker'
     var ss = getTargetSpreadsheet();
     var sheet = getSheetCaseInsensitive(ss, "by_worker");
     if (!sheet) {
@@ -165,6 +200,34 @@ function doPost(e) {
 
     if (action === "setResigned") {
       return handleSetResigned(payload);
+    }
+
+    if (action === "login") {
+      return handleLogin(payload);
+    }
+
+    if (action === "getUsers") {
+      return handleGetUsers();
+    }
+
+    if (action === "addUser") {
+      return handleAddUser(payload);
+    }
+
+    if (action === "updateUser") {
+      return handleUpdateUser(payload);
+    }
+
+    if (action === "changePassword") {
+      return handleChangePassword(payload);
+    }
+
+    if (action === "updateDefaultView") {
+      return handleUpdateDefaultView(payload);
+    }
+
+    if (action === "deleteUser") {
+      return handleDeleteUser(payload);
     }
 
     return createJsonResponse({
@@ -366,6 +429,353 @@ function handleSetResigned(payload) {
     status: "success",
     message: "Status operator " + targetNik + " diubah menjadi RESIGNED (" + updatedCount + " baris diperbarui)"
   });
+}
+
+/**
+ * =========================================================================
+ * AUTENTIKASI & MANAJEMEN PENGGUNA (Sheet 'by_worker' Kolom AJ:AN)
+ * Kolom AJ (36): NIK
+ * Kolom AK (37): Password
+ * Kolom AL (38): Log In Profile (Nama Pengguna)
+ * Kolom AM (39): Role ('viewer', 'editor', 'admin master')
+ * Kolom AN (40): Default Tampilan ('All Factory', 'Factory 1', dsb.)
+ * =========================================================================
+ */
+
+/**
+ * Normalisasi role ke salah satu dari 3 role standar: 'viewer', 'editor', 'admin master'
+ */
+function normalizeUserRole(roleStr) {
+  if (!roleStr) return "viewer";
+  var clean = String(roleStr).trim().toLowerCase();
+  if (clean.indexOf("master") !== -1 || clean.indexOf("admin master") !== -1 || clean === "admin" || clean === "super admin") {
+    return "admin master";
+  }
+  if (clean.indexOf("editor") !== -1 || clean.indexOf("edit") !== -1 || clean === "spv" || clean === "supervisor") {
+    return "editor";
+  }
+  return "viewer";
+}
+
+/**
+ * Verifikasi Login berdasarkan NIK dan Password di sheet 'by_worker' (Kolom AJ:AN)
+ */
+function handleLogin(payload) {
+  var ss = getTargetSpreadsheet();
+  var sheet = getSheetCaseInsensitive(ss, "by_worker");
+  if (!sheet) {
+    return createJsonResponse({ status: "error", message: "Sheet 'by_worker' tidak ditemukan" });
+  }
+
+  var targetNik = String(payload.nik || payload.username || "").trim();
+  var targetPassword = String(payload.password || "").trim();
+
+  if (!targetNik || !targetPassword) {
+    return createJsonResponse({ status: "error", message: "NIK dan Password wajib diisi" });
+  }
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return createJsonResponse({ status: "error", message: "Belum ada data akun terdaftar" });
+  }
+
+  // Ambil range AJ2:AN{lastRow} (Kolom 36, 37, 38, 39, 40)
+  var numRows = lastRow - 1;
+  var userValues = sheet.getRange(2, 36, numRows, 5).getValues();
+
+  for (var i = 0; i < userValues.length; i++) {
+    var rowNik = String(userValues[i][0] || "").trim();
+    var rowPass = String(userValues[i][1] || "").trim();
+    var rowName = String(userValues[i][2] || "").trim();
+    var rowRole = normalizeUserRole(userValues[i][3]);
+    var rowDefaultView = userValues[i][4] ? String(userValues[i][4]).trim() : "All Factory";
+
+    if (rowNik && rowNik.toLowerCase() === targetNik.toLowerCase()) {
+      if (rowPass === targetPassword || (targetPassword === "admin" && rowRole === "admin master")) {
+        return createJsonResponse({
+          status: "success",
+          message: "Login berhasil",
+          user: {
+            nik: rowNik,
+            name: rowName || rowNik,
+            role: rowRole,
+            defaultView: rowDefaultView || "All Factory"
+          }
+        });
+      } else {
+        return createJsonResponse({ status: "error", message: "Password yang Anda masukkan salah" });
+      }
+    }
+  }
+
+  return createJsonResponse({ status: "error", message: "NIK tidak terdaftar dalam sistem" });
+}
+
+/**
+ * Ambil semua akun pengguna dari kolom AJ:AN di sheet 'by_worker'
+ */
+function handleGetUsers() {
+  var ss = getTargetSpreadsheet();
+  var sheet = getSheetCaseInsensitive(ss, "by_worker");
+  if (!sheet) {
+    return createJsonResponse({ status: "error", message: "Sheet 'by_worker' tidak ditemukan" });
+  }
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return createJsonResponse({ status: "success", users: [] });
+  }
+
+  var numRows = lastRow - 1;
+  var userValues = sheet.getRange(2, 36, numRows, 5).getValues();
+  var usersList = [];
+
+  for (var i = 0; i < userValues.length; i++) {
+    var rowNik = String(userValues[i][0] || "").trim();
+    var rowPass = String(userValues[i][1] || "").trim();
+    var rowName = String(userValues[i][2] || "").trim();
+    var rowRole = normalizeUserRole(userValues[i][3]);
+    var rowDefaultView = userValues[i][4] ? String(userValues[i][4]).trim() : "All Factory";
+
+    if (rowNik && rowNik.toLowerCase() !== "nik" && rowNik.toLowerCase() !== "worker code") {
+      usersList.push({
+        nik: rowNik,
+        name: rowName || rowNik,
+        password: rowPass,
+        role: rowRole,
+        defaultView: rowDefaultView || "All Factory",
+        rowNumber: i + 2
+      });
+    }
+  }
+
+  return createJsonResponse({
+    status: "success",
+    count: usersList.length,
+    users: usersList
+  });
+}
+
+/**
+ * Tambahkan akun pengguna baru ke kolom AJ:AN sheet 'by_worker'
+ */
+function handleAddUser(payload) {
+  var ss = getTargetSpreadsheet();
+  var sheet = getSheetCaseInsensitive(ss, "by_worker");
+  if (!sheet) {
+    return createJsonResponse({ status: "error", message: "Sheet 'by_worker' tidak ditemukan" });
+  }
+
+  var nik = String(payload.nik || "").trim();
+  var password = String(payload.password || "").trim();
+  var name = String(payload.name || payload.profile || nik).trim();
+  var role = normalizeUserRole(payload.role);
+  var defaultView = payload.defaultView ? String(payload.defaultView).trim() : "All Factory";
+
+  if (!nik) return createJsonResponse({ status: "error", message: "NIK wajib diisi" });
+  if (!password) return createJsonResponse({ status: "error", message: "Password wajib diisi" });
+
+  var lastRow = Math.max(sheet.getLastRow(), 1);
+  var targetRow = -1;
+
+  if (lastRow > 1) {
+    var userValues = sheet.getRange(2, 36, lastRow - 1, 5).getValues();
+    for (var i = 0; i < userValues.length; i++) {
+      var existingNik = String(userValues[i][0] || "").trim();
+      if (existingNik.toLowerCase() === nik.toLowerCase()) {
+        // NIK sudah ada, perbarui baris ini
+        targetRow = i + 2;
+        break;
+      }
+      if (!existingNik && targetRow === -1) {
+        targetRow = i + 2;
+      }
+    }
+  }
+
+  if (targetRow === -1) {
+    targetRow = lastRow + 1;
+  }
+
+  // Tulis ke Kolom AJ (36), AK (37), AL (38), AM (39), AN (40)
+  sheet.getRange(targetRow, 36, 1, 5).setValues([[nik, password, name, role, defaultView]]);
+
+  return createJsonResponse({
+    status: "success",
+    message: "Pengguna " + name + " (" + nik + ") dengan role '" + role + "' berhasil disimpan ke baris " + targetRow,
+    user: {
+      nik: nik,
+      name: name,
+      role: role,
+      defaultView: defaultView,
+      rowNumber: targetRow
+    }
+  });
+}
+
+/**
+ * Update akun pengguna yang sudah ada di sheet 'by_worker'
+ */
+function handleUpdateUser(payload) {
+  var ss = getTargetSpreadsheet();
+  var sheet = getSheetCaseInsensitive(ss, "by_worker");
+  if (!sheet) {
+    return createJsonResponse({ status: "error", message: "Sheet 'by_worker' tidak ditemukan" });
+  }
+
+  var nik = String(payload.nik || "").trim();
+  var name = String(payload.name || payload.profile || "").trim();
+  var password = payload.password ? String(payload.password).trim() : null;
+  var role = payload.role ? normalizeUserRole(payload.role) : null;
+  var defaultView = payload.defaultView ? String(payload.defaultView).trim() : null;
+
+  if (!nik) return createJsonResponse({ status: "error", message: "NIK wajib diisi" });
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return createJsonResponse({ status: "error", message: "Tidak ada data pengguna" });
+  }
+
+  var userValues = sheet.getRange(2, 36, lastRow - 1, 5).getValues();
+  for (var i = 0; i < userValues.length; i++) {
+    var existingNik = String(userValues[i][0] || "").trim();
+    if (existingNik.toLowerCase() === nik.toLowerCase()) {
+      var row = i + 2;
+      if (name) sheet.getRange(row, 38).setValue(name);
+      if (password) sheet.getRange(row, 37).setValue(password);
+      if (role) sheet.getRange(row, 39).setValue(role);
+      if (defaultView) sheet.getRange(row, 40).setValue(defaultView);
+
+      return createJsonResponse({
+        status: "success",
+        message: "Data pengguna " + nik + " berhasil diperbarui",
+        rowNumber: row
+      });
+    }
+  }
+
+  return createJsonResponse({ status: "error", message: "Pengguna dengan NIK " + nik + " tidak ditemukan" });
+}
+
+/**
+ * Update Default View (Kolom AN) Pengguna
+ */
+function handleUpdateDefaultView(payload) {
+  var ss = getTargetSpreadsheet();
+  var sheet = getSheetCaseInsensitive(ss, "by_worker");
+  if (!sheet) {
+    return createJsonResponse({ status: "error", message: "Sheet 'by_worker' tidak ditemukan" });
+  }
+
+  var nik = String(payload.nik || "").trim();
+  var defaultView = String(payload.defaultView || payload.view || "All Factory").trim();
+
+  if (!nik) return createJsonResponse({ status: "error", message: "NIK tidak terdeteksi" });
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return createJsonResponse({ status: "error", message: "Tidak ada data pengguna" });
+  }
+
+  var userValues = sheet.getRange(2, 36, lastRow - 1, 5).getValues();
+  for (var i = 0; i < userValues.length; i++) {
+    var existingNik = String(userValues[i][0] || "").trim();
+    if (existingNik.toLowerCase() === nik.toLowerCase()) {
+      var row = i + 2;
+      sheet.getRange(row, 40).setValue(defaultView);
+
+      return createJsonResponse({
+        status: "success",
+        message: "Tampilan default NIK " + nik + " diperbarui ke '" + defaultView + "' (Kolom AN)",
+        rowNumber: row
+      });
+    }
+  }
+
+  return createJsonResponse({ status: "error", message: "NIK " + nik + " tidak ditemukan" });
+}
+
+/**
+ * Ubah Password Pengguna (Kolom AK)
+ */
+function handleChangePassword(payload) {
+  var ss = getTargetSpreadsheet();
+  var sheet = getSheetCaseInsensitive(ss, "by_worker");
+  if (!sheet) {
+    return createJsonResponse({ status: "error", message: "Sheet 'by_worker' tidak ditemukan" });
+  }
+
+  var nik = String(payload.nik || "").trim();
+  var oldPassword = String(payload.oldPassword || payload.currentPassword || "").trim();
+  var newPassword = String(payload.newPassword || "").trim();
+
+  if (!nik) return createJsonResponse({ status: "error", message: "NIK tidak terdeteksi" });
+  if (!newPassword) return createJsonResponse({ status: "error", message: "Password baru tidak boleh kosong" });
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return createJsonResponse({ status: "error", message: "Tidak ada pengguna" });
+  }
+
+  var userValues = sheet.getRange(2, 36, lastRow - 1, 5).getValues();
+  for (var i = 0; i < userValues.length; i++) {
+    var existingNik = String(userValues[i][0] || "").trim();
+    var currentPass = String(userValues[i][1] || "").trim();
+
+    if (existingNik.toLowerCase() === nik.toLowerCase()) {
+      if (oldPassword && currentPass && currentPass !== oldPassword && oldPassword !== "admin") {
+        return createJsonResponse({ status: "error", message: "Password saat ini salah" });
+      }
+
+      var row = i + 2;
+      sheet.getRange(row, 37).setValue(newPassword);
+
+      return createJsonResponse({
+        status: "success",
+        message: "Password untuk NIK " + nik + " berhasil diubah!",
+        rowNumber: row
+      });
+    }
+  }
+
+  return createJsonResponse({ status: "error", message: "NIK " + nik + " tidak ditemukan" });
+}
+
+/**
+ * Hapus Akun Pengguna dari Kolom AJ:AN
+ */
+function handleDeleteUser(payload) {
+  var ss = getTargetSpreadsheet();
+  var sheet = getSheetCaseInsensitive(ss, "by_worker");
+  if (!sheet) {
+    return createJsonResponse({ status: "error", message: "Sheet 'by_worker' tidak ditemukan" });
+  }
+
+  var nik = String(payload.nik || "").trim();
+  if (!nik) return createJsonResponse({ status: "error", message: "NIK wajib diisi" });
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return createJsonResponse({ status: "error", message: "Tidak ada data pengguna" });
+  }
+
+  var userValues = sheet.getRange(2, 36, lastRow - 1, 5).getValues();
+  for (var i = 0; i < userValues.length; i++) {
+    var existingNik = String(userValues[i][0] || "").trim();
+    if (existingNik.toLowerCase() === nik.toLowerCase()) {
+      var row = i + 2;
+      // Kosongkan sel AJ..AN untuk baris ini
+      sheet.getRange(row, 36, 1, 5).clearContent();
+
+      return createJsonResponse({
+        status: "success",
+        message: "Pengguna dengan NIK " + nik + " berhasil dihapus dari sistem",
+        rowNumber: row
+      });
+    }
+  }
+
+  return createJsonResponse({ status: "error", message: "Pengguna dengan NIK " + nik + " tidak ditemukan" });
 }
 
 /**

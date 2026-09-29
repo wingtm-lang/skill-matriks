@@ -45,7 +45,7 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
 
   const totalCount = activeOperators.length;
   
-  // Hitung rata-rata grade operator line dalam satuan poin (berdasarkan akumulasi poin tiap mesin)
+  // Hitung rata-rata grade operator line dalam satuan poin
   const allPoints = activeOperators.map(op => {
     const p = getOperatorTotalPoints(op);
     return isNaN(p) ? 0 : p;
@@ -64,81 +64,90 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
 
   return (
     <div className="mb-6 space-y-4">
-      {/* 3 TOP KPI SUMMARY CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+      {/* 3 TOP PRIMARY KPI SUMMARY CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         
         {/* 1. Total Operator Active Card */}
-        <div className="bg-white border border-[#E0E8E8] rounded-[20px] p-5 shadow-[0_8px_30px_rgba(48,72,72,0.06)] hover:shadow-[0_12px_36px_rgba(48,72,72,0.10)] transition-all duration-200">
+        <div className="ops-card ops-card-hover p-5 flex flex-col justify-between">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-semibold text-[#788888] uppercase tracking-wider">
+              <p className="text-[11px] font-bold text-[#647878] uppercase tracking-wider">
                 {t.metrics.totalOperators}
               </p>
-              <h3 className="text-2xl sm:text-3xl font-bold text-[#304848] mt-1.5 font-sans">
-                {totalCount} <span className="text-xs font-normal text-[#788888]">{t.common.personnel}</span>
+              <h3 className="text-3xl sm:text-[32px] font-bold text-[#102A2A] mt-1.5 tracking-tight tabular-nums">
+                {totalCount.toLocaleString()} <span className="text-xs font-normal text-[#647878]">{t.common.personnel}</span>
               </h3>
+              <p className="text-[12px] text-[#647878] mt-1">
+                Active production workforce
+              </p>
             </div>
-            <div className="p-3 bg-[#E0F0F0] text-[#405858] rounded-2xl border border-[#C8D8D8]">
+            <div className="p-2.5 bg-[#EAF5F5] text-[#214E49] rounded-[10px] border border-[#D8E5E5] shrink-0">
               <Users className="w-5 h-5" />
             </div>
           </div>
-          <div className="mt-4 pt-3 border-t border-[#E0E8E8] flex items-center justify-between text-xs">
-            <span className="text-[#2AAFA3] font-semibold flex items-center gap-1.5">
+          <div className="mt-4 pt-3 border-t border-[#D8E5E5] flex items-center justify-between text-xs">
+            <span className="text-[#12B886] font-semibold flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5" />
               {t.metrics.readyToWork}
             </span>
-            <span className="text-[#98A8A8] font-medium">{selectedFactory} • {selectedLine}</span>
+            <span className="text-[#647878] font-medium">{selectedFactory} • {selectedLine}</span>
           </div>
         </div>
 
         {/* 2. Rata-Rata Grade Operator Line Card */}
-        <div className="bg-white border border-[#E0E8E8] rounded-[20px] p-5 shadow-[0_8px_30px_rgba(48,72,72,0.06)] hover:shadow-[0_12px_36px_rgba(48,72,72,0.10)] transition-all duration-200">
+        <div className="ops-card ops-card-hover p-5 flex flex-col justify-between">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-semibold text-[#788888] uppercase tracking-wider">
+              <p className="text-[11px] font-bold text-[#647878] uppercase tracking-wider">
                 {t.metrics.avgLineGrade}
               </p>
-              <h3 className="text-2xl sm:text-3xl font-bold text-[#304848] mt-1.5 font-sans">
+              <h3 className="text-3xl sm:text-[32px] font-bold text-[#102A2A] mt-1.5 tracking-tight tabular-nums">
                 {lineAvgPoints > 0 ? `${lineAvgPoints.toFixed(1)} ${t.common.points}` : `0 ${t.common.points}`}
               </h3>
+              <p className="text-[12px] text-[#647878] mt-1">
+                Average skill level index
+              </p>
             </div>
-            <div className="p-3 bg-[#F5EAC5] text-[#8A6A08] rounded-2xl border border-[#E8D499]">
+            <div className="p-2.5 bg-[#FEF6E7] text-[#C77E05] rounded-[10px] border border-[#FCDCA0] shrink-0">
               <TrendingUp className="w-5 h-5" />
             </div>
           </div>
-          <div className="mt-4 pt-3 border-t border-[#E0E8E8] flex items-center justify-between text-xs">
+          <div className="mt-4 pt-3 border-t border-[#D8E5E5] flex items-center justify-between text-xs">
             <div className="flex items-center gap-1.5">
-              <span className={`w-5 h-5 flex items-center justify-center text-[11px] font-bold rounded-full ${gradeInfo.cssBadge}`}>
+              <span className={`w-5 h-5 flex items-center justify-center text-[10px] font-bold rounded-[6px] ${gradeInfo.cssBadge}`}>
                 {gradeInfo.letter || gradeInfo.grade.charAt(0)}
               </span>
-              <span className="text-[11px] font-semibold text-[#506868]">
+              <span className="text-[11px] font-semibold text-[#102A2A]">
                 {gradeInfo.label}
               </span>
             </div>
-            <span className="text-[#788888] font-medium">{t.metrics.targetIE}: {targetGrade}</span>
+            <span className="text-[#647878] font-medium">{t.metrics.targetIE}: {targetGrade}</span>
           </div>
         </div>
 
         {/* 3. Multiskill Operator Card */}
-        <div className="bg-white border border-[#E0E8E8] rounded-[20px] p-5 shadow-[0_8px_30px_rgba(48,72,72,0.06)] hover:shadow-[0_12px_36px_rgba(48,72,72,0.10)] transition-all duration-200">
+        <div className="ops-card ops-card-hover p-5 flex flex-col justify-between">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-semibold text-[#788888] uppercase tracking-wider">
+              <p className="text-[11px] font-bold text-[#647878] uppercase tracking-wider">
                 {t.metrics.multiSkillTitle}
               </p>
-              <h3 className="text-2xl sm:text-3xl font-bold text-[#304848] mt-1.5 font-sans">
-                {multiskillCount} <span className="text-xs font-normal text-[#788888]">{t.common.personnel}</span>
+              <h3 className="text-3xl sm:text-[32px] font-bold text-[#102A2A] mt-1.5 tracking-tight tabular-nums">
+                {multiskillCount.toLocaleString()} <span className="text-xs font-normal text-[#647878]">{t.common.personnel}</span>
               </h3>
+              <p className="text-[12px] text-[#647878] mt-1">
+                {multiskillCount} operators master ≥2 machines
+              </p>
             </div>
-            <div className="p-3 bg-[#D9F1EF] text-[#247F77] rounded-2xl border border-[#BDE5E2]">
+            <div className="p-2.5 bg-[#EBF6FC] text-[#0F78AC] rounded-[10px] border border-[#BEDFF4] shrink-0">
               <Cpu className="w-5 h-5" />
             </div>
           </div>
-          <div className="mt-4 pt-3 border-t border-[#E0E8E8] flex items-center justify-between text-xs">
-            <span className="text-[#2AAFA3] font-semibold">
+          <div className="mt-4 pt-3 border-t border-[#D8E5E5] flex items-center justify-between text-xs">
+            <span className="text-[#1477B8] font-semibold">
               {multiskillPct}% {t.metrics.ofPopulation}
             </span>
-            <span className="text-[#788888]">{t.metrics.rebalancingReadiness}</span>
+            <span className="text-[#647878] font-medium">{t.metrics.rebalancingReadiness}</span>
           </div>
         </div>
 
@@ -147,45 +156,45 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
       {/* PIMPINAN LINI: CHIEF, SUPERVISOR, IE */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* CHIEF */}
-        <div className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-[#E0E8E8] shadow-[0_4px_16px_rgba(48,72,72,0.04)]">
-          <div className="w-9 h-9 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-700 font-bold shrink-0">
-            <Award className="w-4 h-4 text-teal-600" />
+        <div className="flex items-center gap-3 p-3 rounded-[12px] bg-white border border-[#D8E5E5]">
+          <div className="w-8 h-8 rounded-[8px] bg-[#E8F8F2] border border-[#B8EBD8] flex items-center justify-center text-[#0E936B] font-bold shrink-0">
+            <Award className="w-4 h-4 text-[#0E936B]" />
           </div>
           <div className="min-w-0 flex-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#2AAFA3]">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#0E936B] block">
               {t.metrics.chiefLabel}
             </span>
-            <p className="text-sm font-bold text-[#244646] truncate" title={currentLeader.chief}>
+            <p className="text-[13px] font-bold text-[#102A2A] truncate" title={currentLeader.chief}>
               {currentLeader.chief && currentLeader.chief !== "-" ? currentLeader.chief : "-"}
             </p>
           </div>
         </div>
 
         {/* SUPERVISOR */}
-        <div className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-[#E0E8E8] shadow-[0_4px_16px_rgba(48,72,72,0.04)]">
-          <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-700 font-bold shrink-0">
-            <UserCheck className="w-4 h-4 text-cyan-700" />
+        <div className="flex items-center gap-3 p-3 rounded-[12px] bg-white border border-[#D8E5E5]">
+          <div className="w-8 h-8 rounded-[8px] bg-[#EBF6FC] border border-[#BEDFF4] flex items-center justify-center text-[#0F78AC] font-bold shrink-0">
+            <UserCheck className="w-4 h-4 text-[#0F78AC]" />
           </div>
           <div className="min-w-0 flex-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#244646]">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#0F78AC] block">
               {t.metrics.supervisorLabel}
             </span>
-            <p className="text-sm font-bold text-[#244646] truncate" title={currentLeader.supervisor}>
+            <p className="text-[13px] font-bold text-[#102A2A] truncate" title={currentLeader.supervisor}>
               {currentLeader.supervisor && currentLeader.supervisor !== "-" ? currentLeader.supervisor : "-"}
             </p>
           </div>
         </div>
 
         {/* INDUSTRIAL ENGINEER / IE */}
-        <div className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-[#E0E8E8] shadow-[0_4px_16px_rgba(48,72,72,0.04)]">
-          <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-700 font-bold shrink-0">
-            <Cog className="w-4 h-4 text-amber-600" />
+        <div className="flex items-center gap-3 p-3 rounded-[12px] bg-white border border-[#D8E5E5]">
+          <div className="w-8 h-8 rounded-[8px] bg-[#FEF6E7] border border-[#FCDCA0] flex items-center justify-center text-[#C77E05] font-bold shrink-0">
+            <Cog className="w-4 h-4 text-[#C77E05]" />
           </div>
           <div className="min-w-0 flex-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#C77E05] block">
               {t.metrics.ieLabel}
             </span>
-            <p className="text-sm font-bold text-[#244646] truncate" title={currentLeader.ie}>
+            <p className="text-[13px] font-bold text-[#102A2A] truncate" title={currentLeader.ie}>
               {currentLeader.ie && currentLeader.ie !== "-" ? currentLeader.ie : "-"}
             </p>
           </div>
@@ -194,5 +203,3 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
     </div>
   );
 };
-
-

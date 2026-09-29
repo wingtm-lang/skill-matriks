@@ -6,6 +6,27 @@ export type GradeType =
   | 'HELPER'
   | 'S+' | 'A+' | 'B+' | 'C+' | 'D+' | 'D' | 'E+' | 'E' | 'F';
 
+export type UserRole = 'viewer' | 'editor' | 'admin master' | 'VIEWER' | 'EDITOR' | 'ADMIN';
+
+export interface AuthUser {
+  nik: string;
+  name: string; // Log In Profile (Kolom AL)
+  role: 'viewer' | 'editor' | 'admin master';
+  defaultView?: string; // Default Tampilan (Kolom AN)
+  token?: string;
+  avatarUrl?: string;
+}
+
+export interface UserAccount {
+  nik: string;
+  name: string; // Log In Profile (Kolom AL)
+  password?: string; // Password (Kolom AK)
+  role: 'viewer' | 'editor' | 'admin master';
+  defaultView?: string; // Default Tampilan (Kolom AN)
+  rowNumber?: number;
+  lastLogin?: string;
+}
+
 export type MachineCategory = 
   | 'LOCKSTITCH' 
   | 'OVERLOCK' 

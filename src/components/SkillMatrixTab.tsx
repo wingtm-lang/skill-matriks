@@ -69,7 +69,7 @@ interface SkillMatrixTabProps {
   onAddOperator: (operator: Operator) => void;
   onUpdateOperator: (operator: Operator) => void;
   onDeleteOperator: (id: string) => void;
-  userRole: 'VIEWER' | 'EDITOR' | 'ADMIN';
+  userRole?: string;
   selectedLine: string;
   selectedFactory: string;
   selectedMonth?: number;
@@ -82,7 +82,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
   onAddOperator,
   onUpdateOperator,
   onDeleteOperator,
-  userRole,
+  userRole = 'viewer',
   selectedLine,
   selectedFactory,
   selectedMonth = 9,
@@ -90,6 +90,8 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
   lineLeaders,
 }) => {
   const { t, language } = useLanguage();
+  const roleClean = String(userRole || 'viewer').toLowerCase();
+  const canEdit = roleClean.includes('editor') || roleClean.includes('master') || roleClean === 'admin';
   const addOpT = t.addOperatorModal;
   const [searchTerm, setSearchTerm] = useState('');
   const [machineFilter, setMachineFilter] = useState<string>('ALL');
@@ -838,7 +840,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
             </button>
 
             {/* Add Operator (Visible for Editor and Admin) */}
-            {(userRole === 'EDITOR' || userRole === 'ADMIN') && (
+            {canEdit && (
               <button
                 onClick={handleOpenAdd}
                 className="bg-[#D0A018] hover:bg-[#B88C10] text-white text-xs font-semibold px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
@@ -961,7 +963,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                   </div>
                 </th>
 
-                {(userRole === 'EDITOR' || userRole === 'ADMIN') && (
+                {canEdit && (
                   <th className="py-3 px-4 text-center w-20">{t.matrix.thAction}</th>
                 )}
               </tr>
@@ -970,7 +972,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
             <tbody className="divide-y divide-gray-200">
               {filteredOperators.length === 0 ? (
                 <tr>
-                  <td colSpan={14} className="py-12 text-center text-[#788888]">
+                  <td colSpan={canEdit ? 14 : 13} className="py-12 text-center text-[#788888]">
                     <div className="flex flex-col items-center justify-center">
                       <User className="w-10 h-10 text-[#C8D8D8] mb-2" />
                       <p className="font-semibold text-sm text-[#304848]">{t.matrix.noOperators}</p>
@@ -1038,7 +1040,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                         )}
                       </td>
 
-                      {/* Machine Rates - Border vertikal proporsional border-gray-150 */}
+                      {/* Machine Rates - Border vertikal proporsional border-gray-150 (weight-150) */}
                       <td className="py-2.5 px-2 text-center border-l border-r border-gray-150 w-28">{renderCellPointBadge(op.lockstitch, activeMachine === 'LOCKSTITCH', isHelperOperator)}</td>
                       <td className="py-2.5 px-2 text-center border-r border-gray-150 w-28">{renderCellPointBadge(op.overlock, activeMachine === 'OVERLOCK', isHelperOperator)}</td>
                       <td className="py-2.5 px-2 text-center border-r border-gray-150 w-28">{renderCellPointBadge(op.flatseam, activeMachine === 'FLATSEAM', isHelperOperator)}</td>
@@ -1077,7 +1079,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                       </td>
 
                       {/* Actions */}
-                      {(userRole === 'EDITOR' || userRole === 'ADMIN') && (
+                      {canEdit && (
                         <td className="py-3 px-4 text-center">
                           <div className="flex items-center justify-center space-x-1">
                             <button

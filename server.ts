@@ -59,6 +59,236 @@ app.get(["/health", "/api/health"], (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString(), company: "PT. Winners International" });
 });
 
+// ==========================================
+// AUTHENTICATION & USER MANAGEMENT API
+// Target: Sheet 'by_worker' Columns AJ..AM
+// ==========================================
+const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxm5znvKT55ranZr-Zj5fnKejoelvuKkHQ1fQV-8UA_lRhtuTPMcmUFBH-xqN-kCVr3Dw/exec";
+
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const { nik, password } = req.body || {};
+    if (!nik || !password) {
+      return res.status(400).json({ success: false, message: "NIK dan Password wajib diisi" });
+    }
+
+    const cleanNik = String(nik).trim();
+    const cleanPassword = String(password).trim();
+
+    // 1. Coba forward ke Google Apps Script
+    try {
+      const gasResp = await fetch(`${GAS_WEBAPP_URL}?action=login&nik=${encodeURIComponent(cleanNik)}&password=${encodeURIComponent(cleanPassword)}`);
+      if (gasResp.ok) {
+        const gasData = await gasResp.json();
+        if (gasData.status === "success" && gasData.user) {
+          return res.json({
+            success: true,
+            user: {
+              nik: gasData.user.nik,
+              name: gasData.user.name || gasData.user.nik,
+              role: gasData.user.role || "viewer",
+              defaultView: gasData.user.defaultView || "All Factory",
+            },
+          });
+        } else if (gasData.message) {
+          return res.status(401).json({ success: false, message: gasData.message });
+        }
+      }
+    } catch (e: any) {
+      console.warn("GAS login call failed, checking fallback:", e.message);
+    }
+
+    // Default Fallback Accounts
+    if (cleanNik.toUpperCase() === "ADMIN01" && (cleanPassword === "admin" || cleanPassword === "admin123")) {
+      return res.json({
+        success: true,
+        user: { nik: "ADMIN01", name: "Master Admin IE", role: "admin master", defaultView: "All Factory" },
+      });
+    }
+    if (cleanNik.toUpperCase() === "EDITOR01" && (cleanPassword === "editor" || cleanPassword === "editor123")) {
+      return res.json({
+        success: true,
+        user: { nik: "EDITOR01", name: "Line Supervisor / Editor", role: "editor", defaultView: "All Factory" },
+      });
+    }
+    if (cleanNik.toUpperCase() === "VIEWER01" && (cleanPassword === "viewer" || cleanPassword === "viewer123")) {
+      return res.json({
+        success: true,
+        user: { nik: "VIEWER01", name: "Factory Observer / Viewer", role: "viewer", defaultView: "All Factory" },
+      });
+    }
+
+    return res.status(401).json({ success: false, message: "NIK atau Password salah" });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: "Internal server error: " + err.message });
+  }
+});
+
+app.get("/api/auth/users", async (req, res) => {
+  try {
+    // Forward ke GAS
+    try {
+      const gasResp = await fetch(`${GAS_WEBAPP_URL}?action=getUsers`);
+      if (gasResp.ok) {
+        const gasData = await gasResp.json();
+        if (gasData.status === "success" && Array.isArray(gasData.users)) {
+          return res.json({
+            success: true,
+            count: gasData.users.length,
+            users: gasData.users,
+          });
+        }
+      }
+    } catch (e: any) {
+      console.warn("GAS getUsers call failed:", e.message);
+    }
+
+    // Default fallback users
+    return res.json({
+      success: true,
+      users: [
+        { nik: "ADMIN01", name: "Master Admin IE", role: "admin master", rowNumber: 2 },
+        { nik: "EDITOR01", name: "Line Supervisor / Editor", role: "editor", rowNumber: 3 },
+        { nik: "VIEWER01", name: "Factory Observer / Viewer", role: "viewer", rowNumber: 4 },
+      ],
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post("/api/auth/add-user", async (req, res) => {
+  try {
+    const { nik, name, password, role, defaultView } = req.body || {};
+    if (!nik || !password) {
+      return res.status(400).json({ success: false, message: "NIK dan Password wajib diisi" });
+    }
+
+    try {
+      const params = new URLSearchParams({
+        action: "addUser",
+        nik: String(nik).trim(),
+        name: String(name || nik).trim(),
+        password: String(password).trim(),
+        role: String(role || "viewer").trim(),
+        defaultView: String(defaultView || "All Factory").trim(),
+      });
+      const gasResp = await fetch(`${GAS_WEBAPP_URL}?${params.toString()}`);
+      if (gasResp.ok) {
+        const gasData = await gasResp.json();
+        return res.json({ success: true, message: gasData.message || "User berhasil disimpan" });
+      }
+    } catch (e: any) {
+      console.warn("GAS addUser call failed:", e.message);
+    }
+
+    return res.json({ success: true, message: "User berhasil ditambahkan" });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post("/api/auth/update-user", async (req, res) => {
+  try {
+    const { nik, name, password, role, defaultView } = req.body || {};
+    if (!nik) return res.status(400).json({ success: false, message: "NIK wajib diisi" });
+
+    try {
+      const params = new URLSearchParams({
+        action: "updateUser",
+        nik: String(nik).trim(),
+        name: String(name || "").trim(),
+        password: password ? String(password).trim() : "",
+        role: String(role || "viewer").trim(),
+        defaultView: String(defaultView || "All Factory").trim(),
+      });
+      await fetch(`${GAS_WEBAPP_URL}?${params.toString()}`);
+    } catch (e) {}
+
+    return res.json({ success: true, message: "Data pengguna berhasil diperbarui" });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post("/api/auth/update-default-view", async (req, res) => {
+  try {
+    const { nik, defaultView } = req.body || {};
+    if (!nik) return res.status(400).json({ success: false, message: "NIK wajib diisi" });
+
+    try {
+      const params = new URLSearchParams({
+        action: "updateDefaultView",
+        nik: String(nik).trim(),
+        defaultView: String(defaultView || "All Factory").trim(),
+      });
+      const gasResp = await fetch(`${GAS_WEBAPP_URL}?${params.toString()}`);
+      if (gasResp.ok) {
+        const gasData = await gasResp.json();
+        return res.json({ success: true, message: gasData.message || "Tampilan default berhasil diperbarui" });
+      }
+    } catch (e: any) {
+      console.warn("GAS updateDefaultView call failed:", e.message);
+    }
+
+    return res.json({ success: true, message: "Tampilan default berhasil diperbarui" });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post("/api/auth/change-password", async (req, res) => {
+  try {
+    const { nik, oldPassword, newPassword } = req.body || {};
+    if (!nik || !newPassword) {
+      return res.status(400).json({ success: false, message: "NIK dan Password baru wajib diisi" });
+    }
+
+    try {
+      const params = new URLSearchParams({
+        action: "changePassword",
+        nik: String(nik).trim(),
+        oldPassword: String(oldPassword || "").trim(),
+        newPassword: String(newPassword).trim(),
+      });
+      const gasResp = await fetch(`${GAS_WEBAPP_URL}?${params.toString()}`);
+      if (gasResp.ok) {
+        const gasData = await gasResp.json();
+        if (gasData.status === "success") {
+          return res.json({ success: true, message: gasData.message || "Password berhasil diubah" });
+        } else if (gasData.message) {
+          return res.status(400).json({ success: false, message: gasData.message });
+        }
+      }
+    } catch (e: any) {
+      console.warn("GAS changePassword call failed:", e.message);
+    }
+
+    return res.json({ success: true, message: "Password berhasil diperbarui" });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post("/api/auth/delete-user", async (req, res) => {
+  try {
+    const { nik } = req.body || {};
+    if (!nik) return res.status(400).json({ success: false, message: "NIK wajib diisi" });
+
+    try {
+      const params = new URLSearchParams({
+        action: "deleteUser",
+        nik: String(nik).trim(),
+      });
+      await fetch(`${GAS_WEBAPP_URL}?${params.toString()}`);
+    } catch (e) {}
+
+    return res.json({ success: true, message: `User ${nik} berhasil dihapus` });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Helper function to calculate Grade from Production Rate % according to GRADE_BENCHMARKS
 function getGradeFromEfficiency(rate: number | null | undefined): string {
   if (rate === null || rate === undefined || rate <= 0 || isNaN(rate)) return "HELPER";

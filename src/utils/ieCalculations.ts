@@ -401,6 +401,10 @@ export function normalizeFactoryName(raw: any): string {
   const str = String(raw).trim();
   if (!str || str === "-") return "Factory 1";
   
+  if (/^(all|all\s*factories|all\s*factory)$/i.test(str)) {
+    return "All Factory";
+  }
+
   // Khusus Factory 3B: jaga agar tidak terpotong menjadi Factory 3
   if (/3\s*b/i.test(str)) {
     return "Factory 3B";
@@ -883,7 +887,8 @@ export function filterOperatorsByPointInTime(
   result = result.filter(op => !isOperatorResignedAtPeriod(op, selMonthNum, selYearNum));
 
   // 4. Filter opsional berdasarkan Factory dan Line jika ada
-  if (selectedFactory && selectedFactory !== 'All') {
+  const isAllFactoryFilter = !selectedFactory || /^all(\s*factory|\s*factories)?$/i.test(String(selectedFactory).trim());
+  if (!isAllFactoryFilter) {
     const normSelected = normalizeFactoryName(selectedFactory).toLowerCase();
     
     // Khusus Factory 3B: karena belum ada datanya, kosongkan agar data tidak rancu

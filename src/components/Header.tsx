@@ -55,6 +55,10 @@ export const Header: React.FC<HeaderProps> = ({
   const factoryList = sortFactoriesNumerically(
     availableFactories && availableFactories.length > 0 ? availableFactories : FACTORIES
   );
+  const selectableFactories = activeTab === 'overall'
+    ? ['All Factory', ...factoryList.filter(f => f !== 'All Factory')]
+    : factoryList.filter(f => f !== 'All Factory');
+
   const lineList = sortLinesNumerically(
     availableLines && availableLines.length > 0 ? availableLines : LINES
   );
@@ -65,14 +69,14 @@ export const Header: React.FC<HeaderProps> = ({
   }));
 
   return (
-    <header className="bg-white border border-[#E0E8E8] rounded-2xl shadow-[0_4px_24px_rgba(48,72,72,0.05)] p-3 sm:p-4 mb-6">
+    <header className="bg-white border border-[#D8E5E5] rounded-[16px] shadow-[0_4px_20px_rgba(22,63,59,0.04)] p-3.5 sm:p-4 mb-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         
         {/* Left Section: Mobile Toggle & Context Title */}
         <div className="flex items-center space-x-3">
           <button
             onClick={onToggleSidebar}
-            className="lg:hidden p-2 rounded-xl bg-[#F8F8F8] border border-[#E0E8E8] text-[#405858] hover:bg-[#E0E8E8] transition-colors cursor-pointer"
+            className="lg:hidden p-2 rounded-[10px] bg-[#EAF5F5] border border-[#D8E5E5] text-[#214E49] hover:bg-[#D4E8E8] transition-colors cursor-pointer"
             aria-label="Toggle Menu"
           >
             <Menu className="w-5 h-5" />
@@ -82,20 +86,20 @@ export const Header: React.FC<HeaderProps> = ({
             <img
               src="/winners-logo.png"
               alt="PT. Winners International Logo"
-              className="w-8 h-8 sm:w-9 sm:h-9 object-contain shrink-0 drop-shadow-2xs"
+              className="w-8 h-8 sm:w-9 sm:h-9 object-contain shrink-0"
             />
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-sm sm:text-base font-bold text-[#304848] tracking-tight">
+                <h2 className="text-base sm:text-[17px] font-bold text-[#102A2A] tracking-tight">
                   {t.header.companyName}
                 </h2>
                 {!isLive && (
-                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full border bg-amber-50 text-amber-800 border-amber-200">
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-[6px] border bg-amber-50 text-amber-800 border-amber-200">
                     {t.header.mockBadge}
                   </span>
                 )}
               </div>
-              <p className="text-[11px] sm:text-xs text-[#788888] font-normal">
+              <p className="text-[11px] sm:text-xs text-[#647878] font-medium">
                 {t.header.systemSubtitle}
               </p>
             </div>
@@ -104,17 +108,17 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right Section: Factory, Line, Point-in-Time Date & Refresh */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 ml-auto">
-          
+
           {/* Factory Selector */}
-          <div className="flex items-center space-x-1.5 bg-[#F8F8F8] hover:bg-[#F2F6F6] border border-[#E0E8E8] hover:border-[#2AAFA3]/40 rounded-xl px-2.5 py-1.5 shadow-2xs transition-colors">
-            <Building2 className="w-3.5 h-3.5 text-[#2AAFA3]" />
-            <span className="text-[11px] text-[#788888] hidden sm:inline">{t.header.factory}:</span>
+          <div className="flex items-center space-x-1.5 bg-[#FFFFFF] hover:bg-[#EAF5F5] border border-[#D8E5E5] hover:border-[#2E625C]/40 rounded-[10px] px-2.5 py-1.5 transition-colors">
+            <Building2 className="w-3.5 h-3.5 text-[#2E625C]" />
+            <span className="text-[11px] text-[#647878] font-medium hidden sm:inline">{t.header.factory}:</span>
             <select
               value={selectedFactory}
               onChange={(e) => onFactoryChange(e.target.value)}
-              className="bg-transparent text-xs font-semibold text-[#304848] outline-none cursor-pointer pr-1"
+              className="bg-transparent text-xs font-bold text-[#102A2A] outline-none cursor-pointer pr-1"
             >
-              {factoryList.map((f) => (
+              {selectableFactories.map((f) => (
                 <option key={f} value={f}>
                   {f}
                 </option>
@@ -123,14 +127,14 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Line Selector - only shown when on line-specific tabs */}
-          {activeTab !== 'overall' && activeTab !== 'search' && (
-            <div className={`flex items-center space-x-1.5 border rounded-xl px-2.5 py-1.5 shadow-2xs transition-colors ${
+          {activeTab !== 'overall' && activeTab !== 'search' && activeTab !== 'users' && (
+            <div className={`flex items-center space-x-1.5 border rounded-[10px] px-2.5 py-1.5 transition-colors ${
               normalizeFactoryName(selectedFactory).toLowerCase() === 'factory 3b'
                 ? 'bg-amber-50/70 border-amber-200 text-amber-800'
-                : 'bg-[#F8F8F8] hover:bg-[#F2F6F6] border-[#E0E8E8] hover:border-[#D0A018]/40'
+                : 'bg-[#FFFFFF] hover:bg-[#EAF5F5] border-[#D8E5E5] hover:border-[#2E625C]/40'
             }`}>
               <GitFork className={`w-3.5 h-3.5 ${
-                normalizeFactoryName(selectedFactory).toLowerCase() === 'factory 3b' ? 'text-amber-500' : 'text-[#D0A018]'
+                normalizeFactoryName(selectedFactory).toLowerCase() === 'factory 3b' ? 'text-amber-500' : 'text-[#1477B8]'
               }`} />
               {normalizeFactoryName(selectedFactory).toLowerCase() === 'factory 3b' ? (
                 <span className="text-xs font-semibold text-amber-800/80 italic pr-1">
@@ -140,7 +144,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <select
                   value={selectedLine}
                   onChange={(e) => onLineChange(e.target.value)}
-                  className="bg-transparent text-xs font-semibold text-[#304848] outline-none cursor-pointer pr-1"
+                  className="bg-transparent text-xs font-bold text-[#102A2A] outline-none cursor-pointer pr-1"
                 >
                   {lineList.map((l) => (
                     <option key={l} value={l}>
@@ -153,15 +157,15 @@ export const Header: React.FC<HeaderProps> = ({
           )}
 
           {/* Point-in-Time Reporting Filter (Month & Year) */}
-          <div className="flex items-center space-x-1.5 bg-[#F8F8F8] hover:bg-[#F2F6F6] border border-[#E0E8E8] hover:border-[#2AAFA3]/40 rounded-xl px-2.5 py-1.5 shadow-2xs transition-colors" title="Point-in-Time Reporting Filter">
-            <Calendar className="w-3.5 h-3.5 text-[#2AAFA3]" />
-            <span className="text-[11px] text-[#788888] hidden sm:inline">{t.header.period}</span>
+          <div className="flex items-center space-x-1.5 bg-[#FFFFFF] hover:bg-[#EAF5F5] border border-[#D8E5E5] hover:border-[#2E625C]/40 rounded-[10px] px-2.5 py-1.5 transition-colors" title="Point-in-Time Operational Reporting Filter">
+            <Calendar className="w-3.5 h-3.5 text-[#2E625C]" />
+            <span className="text-[11px] text-[#647878] font-medium hidden sm:inline">{t.header.period}</span>
             
             {/* Month Select */}
             <select
               value={selectedMonth}
               onChange={(e) => onMonthChange && onMonthChange(parseInt(e.target.value, 10))}
-              className="bg-transparent text-xs font-semibold text-[#304848] outline-none cursor-pointer pr-1"
+              className="bg-transparent text-xs font-bold text-[#102A2A] outline-none cursor-pointer pr-1"
             >
               {monthOptions.map((m) => (
                 <option key={m.value} value={m.value}>
@@ -170,13 +174,13 @@ export const Header: React.FC<HeaderProps> = ({
               ))}
             </select>
 
-            <span className="text-[#C0D0D0] text-xs">/</span>
+            <span className="text-[#A5BDBD] text-xs">/</span>
 
             {/* Year Select */}
             <select
               value={selectedYear}
               onChange={(e) => onYearChange && onYearChange(parseInt(e.target.value, 10))}
-              className="bg-transparent text-xs font-semibold text-[#304848] outline-none cursor-pointer"
+              className="bg-transparent text-xs font-bold text-[#102A2A] outline-none cursor-pointer"
             >
               {AVAILABLE_YEARS.map((yr) => (
                 <option key={yr} value={yr}>
@@ -192,7 +196,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={onRefresh}
               disabled={isLoading}
               title={t.header.syncTooltip}
-              className="flex items-center space-x-1.5 bg-[#D9F1EF] hover:bg-[#c4ece9] text-[#247F77] border border-[#BDE5E2] rounded-xl px-3 py-1.5 text-xs font-semibold cursor-pointer transition-colors disabled:opacity-50 shadow-2xs"
+              className="flex items-center space-x-1.5 bg-[#214E49] hover:bg-[#163F3B] text-white rounded-[10px] px-3 py-1.5 text-xs font-semibold cursor-pointer transition-all disabled:opacity-50 shadow-xs"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">{isLoading ? t.common.syncing : t.common.sync}</span>
@@ -205,4 +209,3 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
-

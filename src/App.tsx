@@ -6,8 +6,12 @@ import { SkillMatrixTab } from './components/SkillMatrixTab';
 import { MultiSkillDevelopmentTab } from './components/MultiSkillDevelopmentTab';
 import { OverallDashboardTab } from './components/OverallDashboardTab';
 import { UserSearchTab } from './components/UserSearchTab';
+import { UserManagementTab } from './components/UserManagementTab';
+import { LoginPage } from './components/LoginPage';
+import { ProfileModal } from './components/ProfileModal';
+import { WelcomeModal } from './components/WelcomeModal';
 import { FACTORIES, LINES, DEFAULT_LINE_LEADERS } from './data/mockData';
-import { Operator, LineLeader } from './types';
+import { Operator, LineLeader, AuthUser } from './types';
 import { 
   sortLinesNumerically, 
   sortFactoriesNumerically, 
@@ -21,17 +25,33 @@ import {
   getCustomAddedOperatorsFromStorage,
 } from './utils/ieCalculations';
 import { fetchDirectFromGoogleSheets, getStoredOperatorsCache } from './utils/sheetParser';
+import { getStoredAuthUser, setStoredAuthUser, clearStoredAuthUser } from './utils/authService';
 import { AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => getStoredAuthUser());
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState<boolean>(false);
   const [operators, setOperators] = useState<Operator[]>([]);
-  const [selectedFactory, setSelectedFactory] = useState<string>('Factory 1');
+  const [selectedFactory, setSelectedFactory] = useState<string>(() => {
+    const stored = getStoredAuthUser();
+    return stored?.defaultView || 'All Factory';
+  });
+
+  // Sync selected factory when currentUser or defaultView changes
+  useEffect(() => {
+    if (currentUser?.defaultView) {
+      setSelectedFactory(currentUser.defaultView);
+    }
+  }, [currentUser?.nik, currentUser?.defaultView]);
   const [selectedLine, setSelectedLine] = useState<string>('Line 1');
   const [selectedMonth, setSelectedMonth] = useState<number>(() => new Date().getMonth() + 1); // Current active month (1-12)
   const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear()); // Current active year
   const [activeTab, setActiveTab] = useState<string>('overall');
-  const [userRole, setUserRole] = useState<'VIEWER' | 'EDITOR' | 'ADMIN'>('VIEWER');
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
+
+  // Derive userRole from authenticated user
+  const userRole = currentUser?.role || 'viewer';
 
   // Connection & sync state
   const [isLoadingSheets, setIsLoadingSheets] = useState<boolean>(false);
@@ -357,10 +377,10 @@ export default function App() {
   }
 }, []);
 
-  // Fetch on initial app load
+  // Fetch on initial app load & whenever authenticated user changes
   useEffect(() => {
     fetchLiveOperators();
-  }, [fetchLiveOperators]);
+  }, [fetchLiveOperators, currentUser?.nik]);
 
   // 1. Total Point-in-Time Active Operators (Semua Line) untuk agregasi
   const pointInTimeAllOperators = useMemo(() => {
@@ -382,14 +402,17 @@ export default function App() {
 
   // 2. Point-in-Time Filtered Operators untuk Factory & Line terpilih
   const displayedOperators = useMemo(() => {
+    const facToUse = (selectedFactory === 'All Factory' || selectedFactory === 'All') && activeTab !== 'overall'
+      ? 'Factory 1'
+      : selectedFactory;
     return filterOperatorsByPointInTime(
       operators,
       selectedMonth,
       selectedYear,
-      selectedFactory,
+      facToUse,
       selectedLine
     );
-  }, [operators, selectedMonth, selectedYear, selectedFactory, selectedLine]);
+  }, [operators, selectedMonth, selectedYear, selectedFactory, activeTab, selectedLine]);
 
   // Handlers for Operator CRUD
   const handleAddOperator = (newOp: Operator) => {
@@ -406,8 +429,31 @@ export default function App() {
     setOperators((prev) => prev.filter((op) => op.id !== id));
   };
 
+  const handleLogout = () => {
+    clearStoredAuthUser();
+    setCurrentUser(null);
+  };
+
+  // If user is not authenticated, show the Login Page
+  if (!currentUser) {
+    return (
+      <LoginPage
+        onLoginSuccess={(user) => {
+          setCurrentUser(user);
+          if (user.defaultView) {
+            setSelectedFactory(user.defaultView);
+          } else {
+            setSelectedFactory('All Factory');
+          }
+          setShowWelcomeModal(true);
+          fetchLiveOperators();
+        }}
+      />
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#E0F0F0] text-[#304848] flex flex-col lg:flex-row antialiased selection:bg-[#2AAFA3] selection:text-white">
+    <div className="min-h-screen bg-[#EAF5F5] text-[#102A2A] flex flex-col lg:flex-row antialiased selection:bg-[#214E49] selection:text-white animate-fadeInSmooth">
       
       {/* SIDEBAR NAVIGATION */}
       <Sidebar
@@ -420,7 +466,9 @@ export default function App() {
         totalOperatorsCount={displayedOperators.length}
         totalActiveOperatorsCount={totalActiveOperatorsCount}
         userRole={userRole}
-        onRoleChange={setUserRole}
+        currentUser={currentUser}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
+        onLogout={handleLogout}
         operators={pointInTimeAllOperators && pointInTimeAllOperators.length > 0 ? pointInTimeAllOperators : operators}
         onNavigateToLine={(fac, line) => {
           setSelectedFactory(fac);
@@ -468,7 +516,7 @@ export default function App() {
         )}
 
         {/* METRICS KPI SUMMARY ROW - Only displayed on line-specific tabs */}
-        {activeTab !== 'overall' && activeTab !== 'search' && (
+        {activeTab !== 'overall' && activeTab !== 'search' && activeTab !== 'users' && (
           <MetricsOverview
             operators={displayedOperators}
             selectedLine={selectedLine}
@@ -537,6 +585,10 @@ export default function App() {
               }}
             />
           )}
+
+          {activeTab === 'users' && currentUser && (
+            <UserManagementTab currentUser={currentUser} />
+          )}
         </div>
 
         {/* FOOTER */}
@@ -549,6 +601,28 @@ export default function App() {
         </footer>
 
       </main>
+
+      {/* Profile & Change Password Modal */}
+      {isProfileModalOpen && currentUser && (
+        <ProfileModal
+          user={currentUser}
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          onUserUpdated={(updatedUser) => {
+            setCurrentUser(updatedUser);
+            setStoredAuthUser(updatedUser);
+          }}
+        />
+      )}
+
+      {/* Welcome Greeting Pop-up after Login */}
+      {showWelcomeModal && currentUser && (
+        <WelcomeModal
+          userName={currentUser.name}
+          isOpen={showWelcomeModal}
+          onClose={() => setShowWelcomeModal(false)}
+        />
+      )}
 
     </div>
   );
