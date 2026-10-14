@@ -53,7 +53,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   interface NavItem {
     id: string;
     label: string;
-    sublabel: string;
     icon: React.ComponentType<{ className?: string }>;
     badge?: string;
     adminOnly?: boolean;
@@ -63,25 +62,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       id: 'overall',
       label: t.sidebar.navOverall,
-      sublabel: t.sidebar.navOverallSub,
       icon: LayoutDashboard,
     },
     {
       id: 'matrix',
       label: t.sidebar.navMatrix,
-      sublabel: t.sidebar.navMatrixSub,
       icon: TableProperties,
     },
     {
       id: 'training',
       label: t.sidebar.navTraining,
-      sublabel: t.sidebar.navTrainingSub,
       icon: Target,
     },
     {
       id: 'search',
       label: t.sidebar.navSearch,
-      sublabel: t.sidebar.navSearchSub,
       icon: Search,
     },
     ...(isAdminMaster
@@ -89,7 +84,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {
             id: 'users',
             label: language === 'id' ? 'Manajemen Pengguna' : 'User Management',
-            sublabel: language === 'id' ? 'Kelola Hak Akses NIK' : 'Manage NIK Permissions',
             icon: Users,
             badge: 'Admin',
             adminOnly: true,
@@ -213,12 +207,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   >
                     <Icon className="w-4 h-4" />
                   </div>
-                  <div>
-                    <div className="text-[13px] font-semibold tracking-tight">{item.label}</div>
-                    <div className="text-[10px] text-[#A3C8C4] font-normal">
-                      {item.sublabel}
-                    </div>
-                  </div>
+                  <span className="text-[13px] font-semibold tracking-tight">{item.label}</span>
                 </div>
 
                 {item.badge ? (

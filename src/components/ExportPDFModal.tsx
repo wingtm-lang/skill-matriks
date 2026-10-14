@@ -264,8 +264,8 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
   const docIdStr = 'WI.FR.LEAN.02.03';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-900/70 backdrop-blur-xs">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-6xl h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[50pt] p-2 sm:px-4 md:px-6 pb-4 bg-slate-900/70 backdrop-blur-xs overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-6xl h-[calc(100vh-50pt-1.5rem)] max-h-[calc(100vh-50pt-1.5rem)] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         
         {/* TOP MODAL HEADER */}
         <div className="bg-[#244646] text-white px-5 py-3.5 flex items-center justify-between border-b border-teal-950 shrink-0">

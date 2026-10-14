@@ -38,12 +38,6 @@ export default function App() {
     return stored?.defaultView || 'All Factory';
   });
 
-  // Sync selected factory when currentUser or defaultView changes
-  useEffect(() => {
-    if (currentUser?.defaultView) {
-      setSelectedFactory(currentUser.defaultView);
-    }
-  }, [currentUser?.nik, currentUser?.defaultView]);
   const [selectedLine, setSelectedLine] = useState<string>('Line 1');
   const [selectedMonth, setSelectedMonth] = useState<number>(() => new Date().getMonth() + 1); // Current active month (1-12)
   const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear()); // Current active year
@@ -52,6 +46,23 @@ export default function App() {
 
   // Derive userRole from authenticated user
   const userRole = currentUser?.role || 'viewer';
+
+  // Sync selected factory when currentUser or defaultView changes
+  useEffect(() => {
+    if (currentUser?.defaultView) {
+      setSelectedFactory(currentUser.defaultView);
+    }
+  }, [currentUser?.nik, currentUser?.defaultView]);
+
+  // Otomatis ubah selectedFactory ke 'Factory 1' saat membuka tab lini (Skill Matrix / Training)
+  // jika sebelumnya bernilai 'All Factory', agar tidak menggabungkan Line 1 dari semua pabrik
+  useEffect(() => {
+    if (activeTab !== 'overall' && activeTab !== 'search' && activeTab !== 'users') {
+      if (!selectedFactory || /^all(\s*factory|\s*factories)?$/i.test(String(selectedFactory).trim())) {
+        setSelectedFactory('Factory 1');
+      }
+    }
+  }, [activeTab, selectedFactory]);
 
   // Connection & sync state
   const [isLoadingSheets, setIsLoadingSheets] = useState<boolean>(false);
@@ -402,7 +413,8 @@ export default function App() {
 
   // 2. Point-in-Time Filtered Operators untuk Factory & Line terpilih
   const displayedOperators = useMemo(() => {
-    const facToUse = (selectedFactory === 'All Factory' || selectedFactory === 'All') && activeTab !== 'overall'
+    const isAll = !selectedFactory || /^all(\s*factory|\s*factories)?$/i.test(String(selectedFactory).trim());
+    const facToUse = isAll && activeTab !== 'overall'
       ? 'Factory 1'
       : selectedFactory;
     return filterOperatorsByPointInTime(
@@ -520,7 +532,11 @@ export default function App() {
           <MetricsOverview
             operators={displayedOperators}
             selectedLine={selectedLine}
-            selectedFactory={selectedFactory}
+            selectedFactory={
+              (!selectedFactory || /^all(\s*factory|\s*factories)?$/i.test(String(selectedFactory).trim()))
+                ? 'Factory 1'
+                : selectedFactory
+            }
             targetGrade="Grade A"
             selectedMonth={selectedMonth}
             selectedYear={selectedYear}
@@ -557,7 +573,11 @@ export default function App() {
               onDeleteOperator={handleDeleteOperator}
               userRole={userRole}
               selectedLine={selectedLine}
-              selectedFactory={selectedFactory}
+              selectedFactory={
+                (!selectedFactory || /^all(\s*factory|\s*factories)?$/i.test(String(selectedFactory).trim()))
+                  ? 'Factory 1'
+                  : selectedFactory
+              }
               selectedMonth={selectedMonth}
               selectedYear={selectedYear}
               lineLeaders={lineLeaders}
@@ -568,7 +588,11 @@ export default function App() {
             <MultiSkillDevelopmentTab
               operators={displayedOperators}
               selectedLine={selectedLine}
-              selectedFactory={selectedFactory}
+              selectedFactory={
+                (!selectedFactory || /^all(\s*factory|\s*factories)?$/i.test(String(selectedFactory).trim()))
+                  ? 'Factory 1'
+                  : selectedFactory
+              }
               selectedMonth={selectedMonth}
               selectedYear={selectedYear}
               lineLeaders={lineLeaders}
@@ -597,7 +621,7 @@ export default function App() {
             <img src="/winners-logo.png" alt="" className="w-4 h-4 object-contain inline-block shrink-0" />
             PT. Winners International &copy; 2026 — Industrial Engineering & Lean Manufacturing System
           </span>
-          <span className="font-mono text-[11px] text-[#98A8A8]">GSD & MOST Standard Compliance</span>
+          <span className="font-mono text-[11px] font-bold tracking-wider text-[#98A8A8] uppercase">POWERED BY ME TEAM</span>
         </footer>
 
       </main>

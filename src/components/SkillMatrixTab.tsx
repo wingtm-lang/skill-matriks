@@ -682,10 +682,10 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
         </div>
       )}
 
-      {/* --- FILTER GRADE BARU (Diletakkan di bawah bar statistik) --- */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{t.matrix.gradeFilter}:</span>
+      {/* --- FILTER GRADE BARU & STANDAR OPERATOR GRADE / IE POINT SYSTEM SEJAJAR DI BAWAHNYA --- */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 space-y-3.5">
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider shrink-0">{t.matrix.gradeFilter}:</span>
           <div className="flex flex-wrap gap-1.5">
             <button
               onClick={() => setSelectedGrade('ALL')}
@@ -750,34 +750,62 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
           </div>
         </div>
 
-        {/* Compact Point System Legend Badge & Info (i) Button */}
-        <div className="flex items-center gap-2">
-          <div className="flex flex-wrap items-center gap-1.5 text-xs bg-[#F8FAFC] border border-[#E2E8F0] px-3 py-1.5 rounded-xl shadow-2xs">
-            <span className="font-bold text-[#475569] flex items-center gap-1 mr-1">
-              <Award className="w-3.5 h-3.5 text-[#2AAFA3]" />
-              {t.matrix.legendTitle}
-            </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-white border border-slate-200 text-slate-700">
-              0 {t.common.points} (0%)
-            </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 border border-amber-200 text-amber-800">
-              1 {t.common.points} (1–60%)
-            </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-sky-50 border border-sky-200 text-sky-800">
-              2 {t.common.points} (61–89%)
-            </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-800">
-              3 {t.common.points} (&gt; 90%)
-            </span>
+        {/* Baris 2: Operator Grade & IE Point System Sejajar di Bawah Filter Grade Tanpa Garis Pembatas Vertikal */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            
+            {/* Operator Grade */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="font-bold text-[#475569] flex items-center gap-1 mr-1 shrink-0">
+                <Award className="w-3.5 h-3.5 text-amber-500" />
+                <span>{t.matrix.gradeStandard}:</span>
+              </span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#059669] text-white shadow-2xs" title="Grade S: > 13 Poin (Star Operator)">
+                S (&gt;13p)
+              </span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#0d9488] text-white shadow-2xs" title="Grade A: 8 – 13 Poin (Skilled Operator)">
+                A (8–13p)
+              </span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#0284c7] text-white shadow-2xs" title="Grade B: 4 – 7 Poin (Competent Operator)">
+                B (4–7p)
+              </span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#d97706] text-white shadow-2xs" title="Grade C: 1 – 3 Poin (Novice Operator)">
+                C (&lt;4p)
+              </span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#475569] text-white shadow-2xs" title="Helper: 0 Poin (Non-Mesin)">
+                Helper (0p)
+              </span>
+            </div>
+
+            {/* IE Point System (Sejajar tanpa garis pembatas vertikal) */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="font-bold text-[#475569] flex items-center gap-1 mr-1 shrink-0">
+                <Zap className="w-3.5 h-3.5 text-[#2AAFA3]" />
+                <span>{t.matrix.legendTitle}:</span>
+              </span>
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-white border border-slate-200 text-slate-700 shadow-2xs" title="0 Poin: Eff 0% (Belum menguasai)">
+                0p (0%)
+              </span>
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 border border-amber-200 text-amber-800 shadow-2xs" title="1 Poin: Eff 1–60% (Tahap Belajar)">
+                1p (1–60%)
+              </span>
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-sky-50 border border-sky-200 text-sky-800 shadow-2xs" title="2 Poin: Eff 61–89% (Standar Produksi)">
+                2p (61–89%)
+              </span>
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-800 shadow-2xs" title="3 Poin: Eff >90% (Mahir / Ahli)">
+                3p (&gt;90%)
+              </span>
+            </div>
+
           </div>
 
-          {/* Tombol Info (i) di samping kanan komponen IE Point system */}
+          {/* Tombol Info (i) di ujung kanan baris sejajar */}
           <button
             type="button"
             onClick={() => setIsPointInfoOpen(true)}
-            className="w-8 h-8 rounded-xl bg-[#F8FAFC] hover:bg-[#E0F0F0] text-[#475569] hover:text-[#247F77] border border-[#E2E8F0] hover:border-[#BDE5E2] flex items-center justify-center transition-all cursor-pointer shadow-2xs group shrink-0"
-            title={t.metrics.pointSystemTitle || "Detail Sistem Poin IE"}
-            aria-label="Detail Sistem Poin IE"
+            className="w-8 h-8 rounded-xl bg-[#F8FAFC] hover:bg-[#E0F0F0] text-[#475569] hover:text-[#247F77] border border-[#E2E8F0] hover:border-[#BDE5E2] flex items-center justify-center transition-all cursor-pointer shadow-2xs group shrink-0 ml-auto"
+            title={t.metrics.pointSystemTitle || "Detail Standar Grade Operator & Sistem Poin IE"}
+            aria-label="Detail Standar Grade Operator & Sistem Poin IE"
           >
             <Info className="w-4 h-4 text-[#2AAFA3] group-hover:scale-110 transition-transform" />
           </button>
@@ -1841,11 +1869,11 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
       {/* IE POINT SYSTEM INFORMATION MODAL */}
       {isPointInfoOpen && (
         <div 
-          className="fixed inset-0 bg-[#304848]/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 bg-[#304848]/40 backdrop-blur-xs z-50 flex items-start justify-center pt-[100pt] p-4 overflow-y-auto"
           onClick={() => setIsPointInfoOpen(false)}
         >
           <div 
-            className="bg-white border border-[#E0E8E8] rounded-[24px] max-w-4xl w-full p-5 sm:p-6 shadow-2xl animate-fade-in my-8"
+            className="bg-white border border-[#E0E8E8] rounded-[24px] max-w-4xl w-full p-5 sm:p-6 shadow-2xl animate-fade-in mb-8"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -1877,8 +1905,43 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
               </button>
             </div>
 
+            {/* SECTION 1: STANDAR EVALUASI GRADE OPERATOR */}
+            <div className="my-3 p-3.5 bg-slate-50 border border-slate-200 rounded-2xl">
+              <div className="flex items-center gap-2 mb-2.5">
+                <Award className="w-4 h-4 text-amber-500 shrink-0" />
+                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  {t.matrix.gradeStandard || 'Standar Evaluasi Grade Operator'}:
+                </h4>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+                {GRADE_BENCHMARKS.map((b) => (
+                  <div key={b.grade} className="bg-white border border-slate-200 p-2.5 rounded-xl shadow-2xs flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${b.cssBadge}`}>
+                        {b.label.split(':')[0]}
+                      </span>
+                      <span className="text-[11px] font-bold text-slate-700 font-mono">
+                        {b.label.split(':')[1]?.trim() || ''}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 leading-tight">
+                      {b.description}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* SECTION 2: SISTEM POIN MESIN IE (0 - 3 POIN) */}
+            <div className="flex items-center gap-2 mt-4 mb-2">
+              <Zap className="w-4 h-4 text-[#2AAFA3] shrink-0" />
+              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                {t.matrix.legendTitle || 'Sistem Poin Mesin IE'}:
+              </h4>
+            </div>
+
             {/* 4 Tier Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 my-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
               {/* 0 Poin */}
               <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-2xl p-4 flex flex-col justify-between hover:border-slate-300 transition-colors">
                 <div>
