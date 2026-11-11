@@ -55,9 +55,17 @@ export const Header: React.FC<HeaderProps> = ({
   const factoryList = sortFactoriesNumerically(
     availableFactories && availableFactories.length > 0 ? availableFactories : FACTORIES
   );
-  const selectableFactories = activeTab === 'overall'
-    ? ['All Factory', ...factoryList.filter(f => f !== 'All Factory')]
-    : factoryList.filter(f => f !== 'All Factory');
+  const isRestrictedSingleFactory = Boolean(
+    availableFactories &&
+    availableFactories.length === 1 &&
+    !/^all(\s*factory|\s*factories)?$/i.test(availableFactories[0])
+  );
+
+  const selectableFactories = isRestrictedSingleFactory
+    ? availableFactories!
+    : (activeTab === 'overall'
+      ? ['All Factory', ...factoryList.filter(f => f !== 'All Factory')]
+      : factoryList.filter(f => f !== 'All Factory'));
 
   const lineList = sortLinesNumerically(
     availableLines && availableLines.length > 0 ? availableLines : LINES
@@ -116,7 +124,10 @@ export const Header: React.FC<HeaderProps> = ({
             <select
               value={selectedFactory}
               onChange={(e) => onFactoryChange(e.target.value)}
-              className="bg-transparent text-xs font-bold text-[#102A2A] outline-none cursor-pointer pr-1"
+              disabled={selectableFactories.length <= 1}
+              className={`bg-transparent text-xs font-bold text-[#102A2A] outline-none pr-1 ${
+                selectableFactories.length <= 1 ? 'cursor-default pointer-events-none' : 'cursor-pointer'
+              }`}
             >
               {selectableFactories.map((f) => (
                 <option key={f} value={f}>

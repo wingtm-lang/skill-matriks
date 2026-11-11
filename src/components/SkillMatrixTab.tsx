@@ -755,44 +755,44 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             
             {/* Operator Grade */}
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="font-bold text-[#475569] flex items-center gap-1 mr-1 shrink-0">
                 <Award className="w-3.5 h-3.5 text-amber-500" />
                 <span>{t.matrix.gradeStandard}:</span>
               </span>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#059669] text-white shadow-2xs" title="Grade S: > 13 Poin (Star Operator)">
+              <span className="inline-flex items-center justify-center px-3.5 sm:px-4 py-1 rounded-lg text-xs font-bold bg-[#059669] text-white shadow-2xs tracking-tight" title="Grade S: > 13 Poin (Star Operator)">
                 S (&gt;13p)
               </span>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#0d9488] text-white shadow-2xs" title="Grade A: 8 – 13 Poin (Skilled Operator)">
+              <span className="inline-flex items-center justify-center px-3.5 sm:px-4 py-1 rounded-lg text-xs font-bold bg-[#0d9488] text-white shadow-2xs tracking-tight" title="Grade A: 8 – 13 Poin (Skilled Operator)">
                 A (8–13p)
               </span>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#0284c7] text-white shadow-2xs" title="Grade B: 4 – 7 Poin (Competent Operator)">
+              <span className="inline-flex items-center justify-center px-3.5 sm:px-4 py-1 rounded-lg text-xs font-bold bg-[#0284c7] text-white shadow-2xs tracking-tight" title="Grade B: 4 – 7 Poin (Competent Operator)">
                 B (4–7p)
               </span>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#d97706] text-white shadow-2xs" title="Grade C: 1 – 3 Poin (Novice Operator)">
+              <span className="inline-flex items-center justify-center px-3.5 sm:px-4 py-1 rounded-lg text-xs font-bold bg-[#d97706] text-white shadow-2xs tracking-tight" title="Grade C: 1 – 3 Poin (Novice Operator)">
                 C (&lt;4p)
               </span>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#475569] text-white shadow-2xs" title="Helper: 0 Poin (Non-Mesin)">
+              <span className="inline-flex items-center justify-center px-3.5 sm:px-4 py-1 rounded-lg text-xs font-bold bg-[#475569] text-white shadow-2xs tracking-tight" title="Helper: 0 Poin (Non-Mesin)">
                 Helper (0p)
               </span>
             </div>
 
             {/* IE Point System (Sejajar tanpa garis pembatas vertikal) */}
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="font-bold text-[#475569] flex items-center gap-1 mr-1 shrink-0">
                 <Zap className="w-3.5 h-3.5 text-[#2AAFA3]" />
                 <span>{t.matrix.legendTitle}:</span>
               </span>
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-white border border-slate-200 text-slate-700 shadow-2xs" title="0 Poin: Eff 0% (Belum menguasai)">
+              <span className="inline-flex items-center justify-center px-3 sm:px-3.5 py-1 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-700 shadow-2xs tracking-tight" title="0 Poin: Eff 0% (Belum menguasai)">
                 0p (0%)
               </span>
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 border border-amber-200 text-amber-800 shadow-2xs" title="1 Poin: Eff 1–60% (Tahap Belajar)">
+              <span className="inline-flex items-center justify-center px-3 sm:px-3.5 py-1 rounded-lg text-xs font-bold bg-amber-50 border border-amber-200 text-amber-800 shadow-2xs tracking-tight" title="1 Poin: Eff 1–60% (Tahap Belajar)">
                 1p (1–60%)
               </span>
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-sky-50 border border-sky-200 text-sky-800 shadow-2xs" title="2 Poin: Eff 61–89% (Standar Produksi)">
+              <span className="inline-flex items-center justify-center px-3 sm:px-3.5 py-1 rounded-lg text-xs font-bold bg-sky-50 border border-sky-200 text-sky-800 shadow-2xs tracking-tight" title="2 Poin: Eff 61–89% (Standar Produksi)">
                 2p (61–89%)
               </span>
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-800 shadow-2xs" title="3 Poin: Eff >90% (Mahir / Ahli)">
+              <span className="inline-flex items-center justify-center px-3 sm:px-3.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 border border-emerald-200 text-emerald-800 shadow-2xs tracking-tight" title="3 Poin: Eff >90% (Mahir / Ahli)">
                 3p (&gt;90%)
               </span>
             </div>
@@ -918,24 +918,24 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
 
         </div>
 
-        {/* TABLE CONTAINER */}
-        <div className="overflow-x-auto">
+        {/* TABLE CONTAINER - Freeze Header saat scroll bagian bawah */}
+        <div className="overflow-x-auto overflow-y-auto max-h-[72vh] relative">
           <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-[#F8F8F8] border-b border-gray-200 text-[#405858] font-bold text-[11px] uppercase tracking-wider select-none">
+            <thead className="sticky top-0 z-20">
+              <tr className="border-b border-gray-200 text-[#405858] font-bold text-[11px] uppercase tracking-wider select-none">
                 <th 
                   onClick={() => handleSort('no')}
-                  className="py-3 px-4 text-center cursor-pointer hover:text-[#2AAFA3] w-12"
+                  className="sticky top-0 z-20 bg-[#F8F8F8] py-3 px-4 text-center cursor-pointer hover:text-[#2AAFA3] w-12 shadow-[0_1px_0_0_#E5E7EB]"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>{t.matrix.thNo}</span>
                     <ArrowUpDown className="w-3 h-3 text-[#98A8A8]" />
                   </div>
                 </th>
-                <th className="py-3 px-4 text-center w-28">{t.matrix.thNik}</th>
+                <th className="sticky top-0 z-20 bg-[#F8F8F8] py-3 px-4 text-center w-28 shadow-[0_1px_0_0_#E5E7EB]">{t.matrix.thNik}</th>
                 <th 
                   onClick={() => handleSort('name')}
-                  className="py-3 px-4 text-left cursor-pointer hover:text-[#2AAFA3]"
+                  className="sticky top-0 z-20 bg-[#F8F8F8] py-3 px-4 text-left cursor-pointer hover:text-[#2AAFA3] shadow-[0_1px_0_0_#E5E7EB]"
                 >
                   <div className="flex items-center gap-1">
                     <span>{t.matrix.thName}</span>
@@ -944,7 +944,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 </th>
                 <th 
                   onClick={() => handleSort('workTime')}
-                  className="py-3 px-4 text-center cursor-pointer hover:text-[#2AAFA3] w-20"
+                  className="sticky top-0 z-20 bg-[#F8F8F8] py-3 px-4 text-center cursor-pointer hover:text-[#2AAFA3] w-20 shadow-[0_1px_0_0_#E5E7EB]"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>{t.matrix.thTenure}</span>
@@ -955,7 +955,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 {/* Current Operation Column */}
                 <th 
                   onClick={() => handleSort('currentOperation')}
-                  className="py-3 px-4 text-left cursor-pointer hover:text-[#2AAFA3] min-w-[200px]"
+                  className="sticky top-0 z-20 bg-[#F8F8F8] py-3 px-4 text-left cursor-pointer hover:text-[#2AAFA3] min-w-[200px] shadow-[0_1px_0_0_#E5E7EB]"
                 >
                   <div className="flex items-center gap-1">
                     <span>{t.matrix.thCurrentOperation || 'Current Operation'}</span>
@@ -964,17 +964,17 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 </th>
                 
                 {/* Machine Columns - Note: Machine names are kept untranslated per user instruction */}
-                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-l border-r border-gray-150 w-28">Lockstitch</th>
-                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-gray-150 w-28">Overlock</th>
-                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-gray-150 w-28">Flatseam</th>
-                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-gray-150 w-28">Special / Press</th>
-                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-gray-150 w-28">Button Hole</th>
-                <th className="py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-gray-150 w-28">Button Set</th>
+                <th className="sticky top-0 z-20 py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-l border-r border-gray-200 w-28 shadow-[0_1px_0_0_#E5E7EB]">Lockstitch</th>
+                <th className="sticky top-0 z-20 py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-gray-200 w-28 shadow-[0_1px_0_0_#E5E7EB]">Overlock</th>
+                <th className="sticky top-0 z-20 py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-gray-200 w-28 shadow-[0_1px_0_0_#E5E7EB]">Flatseam</th>
+                <th className="sticky top-0 z-20 py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-gray-200 w-28 shadow-[0_1px_0_0_#E5E7EB]">Special / Press</th>
+                <th className="sticky top-0 z-20 py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-gray-200 w-28 shadow-[0_1px_0_0_#E5E7EB]">Button Hole</th>
+                <th className="sticky top-0 z-20 py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-gray-200 w-28 shadow-[0_1px_0_0_#E5E7EB]">Button Set</th>
                 
                 {/* Aggregate Columns */}
                 <th 
                   onClick={() => handleSort('multiskill')}
-                  className="py-3 px-4 text-center cursor-pointer hover:text-[#2AAFA3] w-20"
+                  className="sticky top-0 z-20 bg-[#F8F8F8] py-3 px-4 text-center cursor-pointer hover:text-[#2AAFA3] w-20 shadow-[0_1px_0_0_#E5E7EB]"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>{t.matrix.thSkill}</span>
@@ -983,7 +983,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 </th>
                 <th 
                   onClick={() => handleSort('avgRate')}
-                  className="py-3 px-4 text-center cursor-pointer hover:text-[#2AAFA3] w-28"
+                  className="sticky top-0 z-20 bg-[#F8F8F8] py-3 px-4 text-center cursor-pointer hover:text-[#2AAFA3] w-28 shadow-[0_1px_0_0_#E5E7EB]"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>{t.matrix.thGrade}</span>
@@ -992,7 +992,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 </th>
 
                 {canEdit && (
-                  <th className="py-3 px-4 text-center w-20">{t.matrix.thAction}</th>
+                  <th className="sticky top-0 z-20 bg-[#F8F8F8] py-3 px-4 text-center w-20 shadow-[0_1px_0_0_#E5E7EB]">{t.matrix.thAction}</th>
                 )}
               </tr>
             </thead>
@@ -1135,29 +1135,9 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
           </table>
         </div>
 
-        {/* BOTTOM GRADE BENCHMARKS & PILL POINTS LEGEND */}
-        <div className="py-4 px-6 bg-gray-50 border-t-2 border-gray-200 flex flex-col lg:flex-row lg:items-center justify-between gap-6 select-none">
-          {/* Section 1: Operator Grade / Evaluation Standardization */}
+        {/* BOTTOM MACHINE POINT STATUS LEGEND */}
+        <div className="py-3 px-6 bg-gray-50 border-t border-gray-200 flex flex-wrap items-center justify-between gap-3 select-none">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-700 shrink-0">
-              <Award className="w-4 h-4 text-amber-500 shrink-0" />
-              <span>{t.matrix.gradeStandard}:</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 text-[11px]">
-              {GRADE_BENCHMARKS.map((b) => (
-                <span 
-                  key={b.grade} 
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full font-bold shadow-2xs ${b.cssBadge}`}
-                  title={b.description}
-                >
-                  {b.label}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Divider vertikal jelas (border-l-2 border-gray-300) antara section "Operator Grade" dan "Machine Point Status" */}
-          <div className="flex flex-wrap items-center gap-3 pt-3 lg:pt-0 border-t lg:border-t-0 lg:border-l-2 lg:border-gray-300 lg:pl-6">
             <div className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-700 shrink-0">
               <Zap className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>{language === 'id' ? 'Status Poin Mesin:' : 'Machine Point Status:'}</span>

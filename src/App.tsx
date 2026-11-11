@@ -47,22 +47,36 @@ export default function App() {
   // Derive userRole from authenticated user
   const userRole = currentUser?.role || 'viewer';
 
+  // Factory authorization restriction based on currentUser.defaultView (Tampilan Default di User Management)
+  // Apabila defaultView adalah factory spesifik (misal 'Factory 1'), pengguna hanya diizinkan melihat factory tersebut.
+  const userRestrictedFactory = useMemo(() => {
+    if (!currentUser?.defaultView) return null;
+    const trimmed = currentUser.defaultView.trim();
+    if (!trimmed || /^all(\s*factory|\s*factories)?$/i.test(trimmed)) {
+      return null;
+    }
+    return normalizeFactoryName(trimmed);
+  }, [currentUser?.defaultView]);
+
   // Sync selected factory when currentUser or defaultView changes
   useEffect(() => {
-    if (currentUser?.defaultView) {
+    if (userRestrictedFactory) {
+      setSelectedFactory(userRestrictedFactory);
+    } else if (currentUser?.defaultView) {
       setSelectedFactory(currentUser.defaultView);
     }
-  }, [currentUser?.nik, currentUser?.defaultView]);
+  }, [currentUser?.nik, currentUser?.defaultView, userRestrictedFactory]);
 
   // Otomatis ubah selectedFactory ke 'Factory 1' saat membuka tab lini (Skill Matrix / Training)
   // jika sebelumnya bernilai 'All Factory', agar tidak menggabungkan Line 1 dari semua pabrik
   useEffect(() => {
+    if (userRestrictedFactory) return;
     if (activeTab !== 'overall' && activeTab !== 'search' && activeTab !== 'users') {
       if (!selectedFactory || /^all(\s*factory|\s*factories)?$/i.test(String(selectedFactory).trim())) {
         setSelectedFactory('Factory 1');
       }
     }
-  }, [activeTab, selectedFactory]);
+  }, [activeTab, selectedFactory, userRestrictedFactory]);
 
   // Connection & sync state
   const [isLoadingSheets, setIsLoadingSheets] = useState<boolean>(false);
@@ -393,10 +407,34 @@ export default function App() {
     fetchLiveOperators();
   }, [fetchLiveOperators, currentUser?.nik]);
 
+  // Operator yang diizinkan untuk diakses user berdasarkan otorisasi Tampilan Default
+  const userAccessibleOperators = useMemo(() => {
+    if (!userRestrictedFactory) return operators;
+    const target = userRestrictedFactory.toLowerCase();
+    return operators.filter((op) => normalizeFactoryName(op.factory).toLowerCase() === target);
+  }, [operators, userRestrictedFactory]);
+
+  // Available factories yang diizinkan untuk pengguna
+  const effectiveAvailableFactories = useMemo(() => {
+    if (userRestrictedFactory) {
+      return [userRestrictedFactory];
+    }
+    return availableFactories;
+  }, [userRestrictedFactory, availableFactories]);
+
+  // Guard handler untuk perubahan factory
+  const handleFactoryChange = useCallback((fac: string) => {
+    if (userRestrictedFactory) {
+      setSelectedFactory(userRestrictedFactory);
+      return;
+    }
+    setSelectedFactory(fac);
+  }, [userRestrictedFactory]);
+
   // 1. Total Point-in-Time Active Operators (Semua Line) untuk agregasi
   const pointInTimeAllOperators = useMemo(() => {
-    return filterOperatorsByPointInTime(operators, selectedMonth, selectedYear);
-  }, [operators, selectedMonth, selectedYear]);
+    return filterOperatorsByPointInTime(userAccessibleOperators, selectedMonth, selectedYear);
+  }, [userAccessibleOperators, selectedMonth, selectedYear]);
 
   // Total unique active operators count based on unique NIK for the selected month/year
   const totalActiveOperatorsCount = useMemo(() => {
@@ -414,17 +452,19 @@ export default function App() {
   // 2. Point-in-Time Filtered Operators untuk Factory & Line terpilih
   const displayedOperators = useMemo(() => {
     const isAll = !selectedFactory || /^all(\s*factory|\s*factories)?$/i.test(String(selectedFactory).trim());
-    const facToUse = isAll && activeTab !== 'overall'
-      ? 'Factory 1'
-      : selectedFactory;
+    const facToUse = userRestrictedFactory || (
+      isAll && activeTab !== 'overall'
+        ? 'Factory 1'
+        : selectedFactory
+    );
     return filterOperatorsByPointInTime(
-      operators,
+      userAccessibleOperators,
       selectedMonth,
       selectedYear,
       facToUse,
       selectedLine
     );
-  }, [operators, selectedMonth, selectedYear, selectedFactory, activeTab, selectedLine]);
+  }, [userAccessibleOperators, selectedMonth, selectedYear, selectedFactory, activeTab, selectedLine, userRestrictedFactory]);
 
   // Handlers for Operator CRUD
   const handleAddOperator = (newOp: Operator) => {
@@ -452,7 +492,9 @@ export default function App() {
       <LoginPage
         onLoginSuccess={(user) => {
           setCurrentUser(user);
-          if (user.defaultView) {
+          if (user.defaultView && !/^all(\s*factory|\s*factories)?$/i.test(user.defaultView.trim())) {
+            setSelectedFactory(normalizeFactoryName(user.defaultView));
+          } else if (user.defaultView) {
             setSelectedFactory(user.defaultView);
           } else {
             setSelectedFactory('All Factory');
@@ -473,7 +515,7 @@ export default function App() {
         onTabChange={setActiveTab}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        selectedFactory={selectedFactory}
+        selectedFactory={userRestrictedFactory || selectedFactory}
         selectedLine={selectedLine}
         totalOperatorsCount={displayedOperators.length}
         totalActiveOperatorsCount={totalActiveOperatorsCount}
@@ -481,9 +523,9 @@ export default function App() {
         currentUser={currentUser}
         onOpenProfile={() => setIsProfileModalOpen(true)}
         onLogout={handleLogout}
-        operators={pointInTimeAllOperators && pointInTimeAllOperators.length > 0 ? pointInTimeAllOperators : operators}
+        operators={pointInTimeAllOperators && pointInTimeAllOperators.length > 0 ? pointInTimeAllOperators : userAccessibleOperators}
         onNavigateToLine={(fac, line) => {
-          setSelectedFactory(fac);
+          handleFactoryChange(fac);
           setSelectedLine(line);
           setActiveTab('matrix');
         }}
@@ -496,15 +538,15 @@ export default function App() {
         <Header
           activeTab={activeTab}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-          selectedFactory={selectedFactory}
-          onFactoryChange={setSelectedFactory}
+          selectedFactory={userRestrictedFactory || selectedFactory}
+          onFactoryChange={handleFactoryChange}
           selectedLine={selectedLine}
           onLineChange={setSelectedLine}
           selectedMonth={selectedMonth}
           onMonthChange={setSelectedMonth}
           selectedYear={selectedYear}
           onYearChange={setSelectedYear}
-          availableFactories={availableFactories}
+          availableFactories={effectiveAvailableFactories}
           availableLines={availableLines}
           isLive={isLiveFromSheets}
           isLoading={isLoadingSheets}
@@ -533,9 +575,11 @@ export default function App() {
             operators={displayedOperators}
             selectedLine={selectedLine}
             selectedFactory={
-              (!selectedFactory || /^all(\s*factory|\s*factories)?$/i.test(String(selectedFactory).trim()))
-                ? 'Factory 1'
-                : selectedFactory
+              userRestrictedFactory || (
+                (!selectedFactory || /^all(\s*factory|\s*factories)?$/i.test(String(selectedFactory).trim()))
+                  ? 'Factory 1'
+                  : selectedFactory
+              )
             }
             targetGrade="Grade A"
             selectedMonth={selectedMonth}
@@ -548,16 +592,16 @@ export default function App() {
         <div className="flex-1">
           {activeTab === 'overall' && (
             <OverallDashboardTab
-              operators={operators}
-              availableFactories={availableFactories}
-              selectedFactory={selectedFactory}
-              onFactoryChange={setSelectedFactory}
+              operators={userAccessibleOperators}
+              availableFactories={effectiveAvailableFactories}
+              selectedFactory={userRestrictedFactory || selectedFactory}
+              onFactoryChange={handleFactoryChange}
               selectedMonth={selectedMonth}
               onMonthChange={setSelectedMonth}
               selectedYear={selectedYear}
               onYearChange={setSelectedYear}
               onNavigateToLine={(fac, line) => {
-                setSelectedFactory(fac);
+                handleFactoryChange(fac);
                 setSelectedLine(line);
                 setActiveTab('matrix');
               }}
@@ -574,9 +618,11 @@ export default function App() {
               userRole={userRole}
               selectedLine={selectedLine}
               selectedFactory={
-                (!selectedFactory || /^all(\s*factory|\s*factories)?$/i.test(String(selectedFactory).trim()))
-                  ? 'Factory 1'
-                  : selectedFactory
+                userRestrictedFactory || (
+                  (!selectedFactory || /^all(\s*factory|\s*factories)?$/i.test(String(selectedFactory).trim()))
+                    ? 'Factory 1'
+                    : selectedFactory
+                )
               }
               selectedMonth={selectedMonth}
               selectedYear={selectedYear}
@@ -589,9 +635,11 @@ export default function App() {
               operators={displayedOperators}
               selectedLine={selectedLine}
               selectedFactory={
-                (!selectedFactory || /^all(\s*factory|\s*factories)?$/i.test(String(selectedFactory).trim()))
-                  ? 'Factory 1'
-                  : selectedFactory
+                userRestrictedFactory || (
+                  (!selectedFactory || /^all(\s*factory|\s*factories)?$/i.test(String(selectedFactory).trim()))
+                    ? 'Factory 1'
+                    : selectedFactory
+                )
               }
               selectedMonth={selectedMonth}
               selectedYear={selectedYear}
@@ -601,9 +649,10 @@ export default function App() {
 
           {activeTab === 'search' && (
             <UserSearchTab
-              operators={pointInTimeAllOperators && pointInTimeAllOperators.length > 0 ? pointInTimeAllOperators : operators}
+              operators={pointInTimeAllOperators && pointInTimeAllOperators.length > 0 ? pointInTimeAllOperators : userAccessibleOperators}
+              availableFactories={effectiveAvailableFactories}
               onNavigateToLine={(fac, line) => {
-                setSelectedFactory(fac);
+                handleFactoryChange(fac);
                 setSelectedLine(line);
                 setActiveTab('matrix');
               }}
