@@ -77,6 +77,7 @@ export const UserSearchTab: React.FC<UserSearchTabProps> = ({
   const [selectedLine, setSelectedLine] = useState<string>('ALL');
   const [selectedGrade, setSelectedGrade] = useState<string>('ALL');
   const [selectedSkill, setSelectedSkill] = useState<string>('ALL');
+  const [selectedMachine, setSelectedMachine] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<string>('NAME_ASC');
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [copiedNik, setCopiedNik] = useState<string | null>(null);
@@ -290,12 +291,29 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
     };
   }, [debouncedQuery, operators]);
 
+  // Source dataset: jika ada query teks yang aktif, gunakan rawSearchResults.
+  // Jika tidak ada query teks (pencarian berdasarkan filter), gunakan pool operators yang tersedia.
+  const sourceDataset = useMemo(() => {
+    const q = debouncedQuery.trim();
+    if (q) {
+      return rawSearchResults;
+    }
+    if (operators && operators.length > 0) {
+      return operators;
+    }
+    const stored = getStoredOperatorsCache();
+    if (stored && Array.isArray(stored.operators) && stored.operators.length > 0) {
+      return stored.operators;
+    }
+    return [];
+  }, [debouncedQuery, rawSearchResults, operators]);
+
   // Enrich data operator yang ditemukan
   const enrichedOperators = useMemo(() => {
-    if (!rawSearchResults || rawSearchResults.length === 0) return [];
+    if (!sourceDataset || sourceDataset.length === 0) return [];
 
     const uniqueMap = new Map<string, any>();
-    for (const op of rawSearchResults) {
+    for (const op of sourceDataset) {
       const rawNik = (op.nik || op.id || '').trim();
       const rawName = (op.name || '').trim();
       if (!rawNik && !rawName) continue;
@@ -347,7 +365,7 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
     }
 
     return Array.from(uniqueMap.values());
-  }, [rawSearchResults, formatTenure]);
+  }, [sourceDataset, formatTenure]);
 
   // Dynamic factories and lines from search results or available options
   const factoryOptions = useMemo(() => {
@@ -355,24 +373,32 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
     if (availableFactories && availableFactories.length > 0) {
       availableFactories.forEach(f => list.add(f));
     }
+    (operators || []).forEach(op => {
+      if (op.factory) list.add(op.factory);
+    });
     enrichedOperators.forEach(op => {
       if (op.factory) list.add(op.factory);
     });
     return sortFactoriesNumerically(Array.from(list));
-  }, [availableFactories, enrichedOperators]);
+  }, [availableFactories, operators, enrichedOperators]);
 
   const lineOptions = useMemo(() => {
     const list = new Set<string>();
     if (availableLines && availableLines.length > 0) {
       availableLines.forEach(l => list.add(l));
     }
+    (operators || []).forEach(op => {
+      if (selectedFactory === 'ALL' || op.factory === selectedFactory) {
+        if (op.line) list.add(op.line);
+      }
+    });
     enrichedOperators.forEach(op => {
       if (selectedFactory === 'ALL' || op.factory === selectedFactory) {
         if (op.line) list.add(op.line);
       }
     });
     return sortLinesNumerically(Array.from(list));
-  }, [availableLines, enrichedOperators, selectedFactory]);
+  }, [availableLines, operators, enrichedOperators, selectedFactory]);
 
   // Filter and Sort operators
   const filteredOperators = useMemo(() => {
@@ -400,6 +426,14 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
         if (selectedSkill === 'HELPER' && (!op.isHelper && op.multiSkillCount > 0)) return false;
       }
 
+      // Machine category filter
+      if (selectedMachine !== 'ALL') {
+        const hasMachine = op.machineBreakdown?.some(
+          (m: any) => m.category === selectedMachine && m.points > 0
+        );
+        if (!hasMachine) return false;
+      }
+
       return true;
     }).sort((a, b) => {
       if (sortBy === 'NAME_ASC') return (a.name || '').localeCompare(b.name || '');
@@ -410,7 +444,7 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
       if (sortBy === 'NIK_ASC') return (a.nik || '').localeCompare(b.nik || '');
       return 0;
     });
-  }, [enrichedOperators, selectedFactory, selectedLine, selectedGrade, selectedSkill, sortBy]);
+  }, [enrichedOperators, selectedFactory, selectedLine, selectedGrade, selectedSkill, selectedMachine, sortBy]);
 
   // ============================================================================
   // STRATEGI PAGINATION / INFINITE SCROLL (20 - 30 DATA PER BATCH):
@@ -446,7 +480,7 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
   // Reset pagination saat filter sekunder berubah
   useEffect(() => {
     setVisibleCount(BATCH_SIZE);
-  }, [selectedFactory, selectedLine, selectedGrade, selectedSkill, sortBy]);
+  }, [selectedFactory, selectedLine, selectedGrade, selectedSkill, selectedMachine, sortBy]);
 
   // Statistics dari hasil pencarian
   const stats = useMemo(() => {
@@ -466,13 +500,19 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
     };
   }, [filteredOperators]);
 
-  const hasActiveFilters = selectedFactory !== 'ALL' || selectedLine !== 'ALL' || selectedGrade !== 'ALL' || selectedSkill !== 'ALL';
+  const hasActiveFilters = 
+    selectedFactory !== 'ALL' || 
+    selectedLine !== 'ALL' || 
+    selectedGrade !== 'ALL' || 
+    selectedSkill !== 'ALL' || 
+    selectedMachine !== 'ALL';
 
   const handleResetFilters = () => {
     setSelectedFactory('ALL');
     setSelectedLine('ALL');
     setSelectedGrade('ALL');
     setSelectedSkill('ALL');
+    setSelectedMachine('ALL');
     setSortBy('NAME_ASC');
   };
 
@@ -583,185 +623,202 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
         </div>
       </div>
 
-      {/* 2. FILTER & TOOLBAR PANEL (Hanya tampil jika ada kata kunci atau sedang loading/memiliki hasil) */}
-      {!isSearchEmpty && (
-        <div className="bg-white rounded-2xl p-4 border border-[#E0E8E8] shadow-xs space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            
-            {/* Filters Group */}
-            <div className="flex flex-wrap items-center gap-2 text-xs flex-1">
-              <div className="flex items-center gap-1.5 text-[#5A6E6E] font-semibold pr-1">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-[#2AAFA3]" />
-                <span className="hidden sm:inline">{t.searchTab.filterLabel}</span>
-              </div>
-
-              {/* Factory Filter */}
-              <div className="relative">
-                <select
-                  value={selectedFactory}
-                  onChange={(e) => {
-                    setSelectedFactory(e.target.value);
-                    setSelectedLine('ALL');
-                  }}
-                  aria-label={t.searchTab.filterFactory}
-                  className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] outline-none cursor-pointer focus:border-[#2AAFA3] transition-colors"
-                >
-                  <option value="ALL">{t.searchTab.allFactories}</option>
-                  {factoryOptions.map(f => (
-                    <option key={f} value={f}>{f}</option>
-                  ))}
-                </select>
-                <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-
-              {/* Line Filter */}
-              <div className="relative">
-                <select
-                  value={selectedLine}
-                  onChange={(e) => setSelectedLine(e.target.value)}
-                  aria-label={t.searchTab.filterLine}
-                  className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] outline-none cursor-pointer focus:border-[#2AAFA3] transition-colors"
-                >
-                  <option value="ALL">{t.searchTab.allLines}</option>
-                  {lineOptions.map(l => (
-                    <option key={l} value={l}>{l}</option>
-                  ))}
-                </select>
-                <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-
-              {/* Grade Filter */}
-              <div className="relative">
-                <select
-                  value={selectedGrade}
-                  onChange={(e) => setSelectedGrade(e.target.value)}
-                  aria-label={t.searchTab.filterGrade}
-                  className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] outline-none cursor-pointer focus:border-[#2AAFA3] transition-colors"
-                >
-                  <option value="ALL">{t.searchTab.allGrades}</option>
-                  <option value="S">Grade S (&gt;13 Pts)</option>
-                  <option value="A">Grade A (8-13 Pts)</option>
-                  <option value="B">Grade B (4-7 Pts)</option>
-                  <option value="C">Grade C (1-3 Pts)</option>
-                  <option value="HELPER">Helper (0 Pts)</option>
-                </select>
-                <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-
-              {/* Skill Filter */}
-              <div className="relative">
-                <select
-                  value={selectedSkill}
-                  onChange={(e) => setSelectedSkill(e.target.value)}
-                  aria-label={t.searchTab.filterSkill}
-                  className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] outline-none cursor-pointer focus:border-[#2AAFA3] transition-colors"
-                >
-                  <option value="ALL">{t.searchTab.allSkills}</option>
-                  <option value="MULTI">{t.searchTab.skillMulti}</option>
-                  <option value="SINGLE">{t.searchTab.skillSingle}</option>
-                  <option value="HELPER">{t.searchTab.skillHelper}</option>
-                </select>
-                <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-
-              {/* Reset Secondary Filters Button */}
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={handleResetFilters}
-                  className="flex items-center gap-1 text-[#E05252] hover:text-[#C53030] hover:bg-rose-50 px-2.5 py-1.5 rounded-xl font-bold cursor-pointer transition-colors"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>{t.searchTab.clearFilters}</span>
-                </button>
-              )}
+      {/* 2. FILTER & TOOLBAR PANEL (Pencarian Berdasarkan Filter) */}
+      <div className="bg-white rounded-2xl p-4 border border-[#E0E8E8] shadow-xs space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          
+          {/* Filters Group */}
+          <div className="flex flex-wrap items-center gap-2 text-xs flex-1">
+            <div className="flex items-center gap-1.5 text-[#5A6E6E] font-semibold pr-1">
+              <SlidersHorizontal className="w-3.5 h-3.5 text-[#2AAFA3]" />
+              <span className="hidden sm:inline">{t.searchTab.filterLabel}</span>
             </div>
 
-            {/* Sort & View Mode Switcher */}
-            <div className="flex items-center gap-2 text-xs">
-              {/* Sort Select */}
-              <div className="relative">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  aria-label={t.searchTab.sortBy}
-                  className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] outline-none cursor-pointer focus:border-[#2AAFA3] transition-colors"
-                >
-                  <option value="NAME_ASC">{t.searchTab.sortNameAsc}</option>
-                  <option value="NAME_DESC">{t.searchTab.sortNameDesc}</option>
-                  <option value="TENURE_DESC">{t.searchTab.sortTenureDesc}</option>
-                  <option value="TENURE_ASC">{t.searchTab.sortTenureAsc}</option>
-                  <option value="POINTS_DESC">{t.searchTab.sortPointsDesc}</option>
-                  <option value="NIK_ASC">{t.searchTab.sortNikAsc}</option>
-                </select>
-                <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-
-              {/* View Mode Switcher */}
-              <div className="flex items-center bg-[#F0F4F4] p-0.5 rounded-xl border border-[#D5DFDF]">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('cards')}
-                  className={`p-1.5 rounded-lg cursor-pointer transition-all ${
-                    viewMode === 'cards' 
-                      ? 'bg-white text-[#2AAFA3] shadow-xs' 
-                      : 'text-[#788888] hover:text-[#304848]'
-                  }`}
-                  title={t.searchTab.viewCard}
-                >
-                  <Grid className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('table')}
-                  className={`p-1.5 rounded-lg cursor-pointer transition-all ${
-                    viewMode === 'table' 
-                      ? 'bg-white text-[#2AAFA3] shadow-xs' 
-                      : 'text-[#788888] hover:text-[#304848]'
-                  }`}
-                  title={t.searchTab.viewTable}
-                >
-                  <List className="w-3.5 h-3.5" />
-                </button>
-              </div>
+            {/* Factory Filter */}
+            <div className="relative">
+              <select
+                value={selectedFactory}
+                onChange={(e) => {
+                  setSelectedFactory(e.target.value);
+                  setSelectedLine('ALL');
+                }}
+                aria-label={t.searchTab.filterFactory}
+                className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] outline-none cursor-pointer focus:border-[#2AAFA3] transition-colors"
+              >
+                <option value="ALL">{t.searchTab.allFactories}</option>
+                {factoryOptions.map(f => (
+                  <option key={f} value={f}>{f}</option>
+                ))}
+              </select>
+              <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
+            {/* Line Filter */}
+            <div className="relative">
+              <select
+                value={selectedLine}
+                onChange={(e) => setSelectedLine(e.target.value)}
+                aria-label={t.searchTab.filterLine}
+                className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] outline-none cursor-pointer focus:border-[#2AAFA3] transition-colors"
+              >
+                <option value="ALL">{t.searchTab.allLines}</option>
+                {lineOptions.map(l => (
+                  <option key={l} value={l}>{l}</option>
+                ))}
+              </select>
+              <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
+            {/* Grade Filter */}
+            <div className="relative">
+              <select
+                value={selectedGrade}
+                onChange={(e) => setSelectedGrade(e.target.value)}
+                aria-label={t.searchTab.filterGrade}
+                className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] outline-none cursor-pointer focus:border-[#2AAFA3] transition-colors"
+              >
+                <option value="ALL">{t.searchTab.allGrades}</option>
+                <option value="S">Grade S (&gt;13 Pts)</option>
+                <option value="A">Grade A (8-13 Pts)</option>
+                <option value="B">Grade B (4-7 Pts)</option>
+                <option value="C">Grade C (1-3 Pts)</option>
+                <option value="HELPER">Helper (0 Pts)</option>
+              </select>
+              <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
+            {/* Skill Filter */}
+            <div className="relative">
+              <select
+                value={selectedSkill}
+                onChange={(e) => setSelectedSkill(e.target.value)}
+                aria-label={t.searchTab.filterSkill}
+                className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] outline-none cursor-pointer focus:border-[#2AAFA3] transition-colors"
+              >
+                <option value="ALL">{t.searchTab.allSkills}</option>
+                <option value="MULTI">{t.searchTab.skillMulti}</option>
+                <option value="SINGLE">{t.searchTab.skillSingle}</option>
+                <option value="HELPER">{t.searchTab.skillHelper}</option>
+              </select>
+              <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
+            {/* Machine Category Filter */}
+            <div className="relative">
+              <select
+                value={selectedMachine}
+                onChange={(e) => setSelectedMachine(e.target.value)}
+                aria-label={language === 'en' ? 'Filter Machine' : 'Filter Mesin'}
+                className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] outline-none cursor-pointer focus:border-[#2AAFA3] transition-colors"
+              >
+                <option value="ALL">{language === 'en' ? 'All Machines' : 'Semua Mesin'}</option>
+                <option value="LOCKSTITCH">Lockstitch</option>
+                <option value="OVERLOCK">Overlock</option>
+                <option value="FLATSEAM">Flatseam</option>
+                <option value="SPECIAL">Special / Press</option>
+                <option value="BUTTON_HOLE">Button Hole</option>
+                <option value="BUTTON_SET">Button Set</option>
+              </select>
+              <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
+            {/* Reset Secondary Filters Button */}
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="flex items-center gap-1 text-[#E05252] hover:text-[#C53030] hover:bg-rose-50 px-2.5 py-1.5 rounded-xl font-bold cursor-pointer transition-colors"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>{t.searchTab.clearFilters}</span>
+              </button>
+            )}
           </div>
 
-          {/* Results Counter & Stats Strip */}
-          {!isLoading && filteredOperators.length > 0 && (
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#EEF2F2] text-xs">
-              <span className="text-[#5A6E6E] font-medium">
-                {t.searchTab.showingCount
-                  .replace('{count}', String(displayedOperators.length))
-                  .replace('{total}', String(filteredOperators.length))}
-              </span>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="inline-flex items-center gap-1 text-[#304848] font-semibold">
-                  <Award className="w-3.5 h-3.5 text-[#D0A018]" />
-                  <span>{t.searchTab.multiSkillOperators}:</span>
-                  <strong className="text-emerald-700">{stats.multiSkill} ({stats.multiSkillPct}%)</strong>
-                </span>
-                <span className="inline-flex items-center gap-1 text-[#304848] font-semibold">
-                  <span>{t.searchTab.avgScore}:</span>
-                  <strong className="text-[#2AAFA3]">{stats.avgPoints} Pts</strong>
-                </span>
-                <span className="inline-flex items-center gap-1 text-[#304848] font-semibold">
-                  <Clock className="w-3.5 h-3.5 text-sky-600" />
-                  <span>{t.searchTab.avgTenure}:</span>
-                  <strong className="text-sky-700">{stats.avgTenure} {t.common.months}</strong>
-                </span>
-              </div>
+          {/* Sort & View Mode Switcher */}
+          <div className="flex items-center gap-2 text-xs">
+            {/* Sort Select */}
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                aria-label={t.searchTab.sortBy}
+                className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] outline-none cursor-pointer focus:border-[#2AAFA3] transition-colors"
+              >
+                <option value="NAME_ASC">{t.searchTab.sortNameAsc}</option>
+                <option value="NAME_DESC">{t.searchTab.sortNameDesc}</option>
+                <option value="TENURE_DESC">{t.searchTab.sortTenureDesc}</option>
+                <option value="TENURE_ASC">{t.searchTab.sortTenureAsc}</option>
+                <option value="POINTS_DESC">{t.searchTab.sortPointsDesc}</option>
+                <option value="NIK_ASC">{t.searchTab.sortNikAsc}</option>
+              </select>
+              <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
-          )}
+
+            {/* View Mode Switcher */}
+            <div className="flex items-center bg-[#F0F4F4] p-0.5 rounded-xl border border-[#D5DFDF]">
+              <button
+                type="button"
+                onClick={() => setViewMode('cards')}
+                className={`p-1.5 rounded-lg cursor-pointer transition-all ${
+                  viewMode === 'cards' 
+                    ? 'bg-white text-[#2AAFA3] shadow-xs' 
+                    : 'text-[#788888] hover:text-[#304848]'
+                }`}
+                title={t.searchTab.viewCard}
+              >
+                <Grid className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`p-1.5 rounded-lg cursor-pointer transition-all ${
+                  viewMode === 'table' 
+                    ? 'bg-white text-[#2AAFA3] shadow-xs' 
+                    : 'text-[#788888] hover:text-[#304848]'
+                }`}
+                title={t.searchTab.viewTable}
+              >
+                <List className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
         </div>
-      )}
+
+        {/* Results Counter & Stats Strip */}
+        {(!isSearchEmpty || hasActiveFilters) && !isLoading && filteredOperators.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#EEF2F2] text-xs">
+            <span className="text-[#5A6E6E] font-medium">
+              {t.searchTab.showingCount
+                .replace('{count}', String(displayedOperators.length))
+                .replace('{total}', String(filteredOperators.length))}
+            </span>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="inline-flex items-center gap-1 text-[#304848] font-semibold">
+                <Award className="w-3.5 h-3.5 text-[#D0A018]" />
+                <span>{t.searchTab.multiSkillOperators}:</span>
+                <strong className="text-emerald-700">{stats.multiSkill} ({stats.multiSkillPct}%)</strong>
+              </span>
+              <span className="inline-flex items-center gap-1 text-[#304848] font-semibold">
+                <span>{t.searchTab.avgScore}:</span>
+                <strong className="text-[#2AAFA3]">{stats.avgPoints} Pts</strong>
+              </span>
+              <span className="inline-flex items-center gap-1 text-[#304848] font-semibold">
+                <Clock className="w-3.5 h-3.5 text-sky-600" />
+                <span>{t.searchTab.avgTenure}:</span>
+                <strong className="text-sky-700">{stats.avgTenure} {t.common.months}</strong>
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* 3. HASIL PENCARIAN ATAU EMPTY STATES */}
-      {isSearchEmpty ? (
+      {(isSearchEmpty && !hasActiveFilters) ? (
         /* ============================================================================
-           EMPTY STATE AWAL: Muncul saat search box masih kosong.
+           EMPTY STATE AWAL: Muncul saat search box dan filter belum dipilih.
            Menyatu dengan background halaman tanpa card putih terpisah, terpusat vertikal.
            ============================================================================ */
         <div className="min-h-[50vh] sm:min-h-[55vh] flex flex-col items-center justify-center text-center p-4 sm:p-6 space-y-4">
@@ -770,43 +827,54 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
           </div>
           <div className="space-y-1.5 max-w-md mx-auto">
             <h3 className="text-base sm:text-lg font-bold text-[#2C3E3E]">
-              {t.searchTab.emptyInitialTitle}
+              {language === 'en' ? 'Search Operators by Keyword or Filter' : 'Pencarian Operator Berdasarkan Kata Kunci atau Filter'}
             </h3>
             <p className="text-xs sm:text-sm text-[#788888] leading-relaxed">
-              {t.searchTab.emptyInitialDesc}
+              {language === 'en'
+                ? 'Type NIK, Operator Name, or select from the filters above (Factory, Line, Grade, Skill, Machine) to find operators.'
+                : 'Ketik NIK, Nama Operator, atau gunakan dropdown filter di atas (Pabrik, Lini, Grade, Skill, Mesin) untuk menemukan operator.'}
             </p>
           </div>
 
-          {/* Quick Search Suggestions with Clear Hover States & Cursor Pointer */}
+          {/* Quick Filter Suggestions */}
           <div className="pt-2 flex flex-wrap items-center justify-center gap-2 text-xs">
-            <span className="text-[#788888] font-semibold text-[11px] mr-1">{t.searchTab.exampleSearchLabel}</span>
+            <span className="text-[#788888] font-semibold text-[11px] mr-1">
+              {language === 'en' ? 'Quick Filter:' : 'Filter Cepat:'}
+            </span>
             <button
               type="button"
-              onClick={() => setSearchInput('10')}
-              className="px-3 py-1.5 rounded-xl bg-white hover:bg-[#EAF7F6] hover:text-[#2AAFA3] hover:border-[#2AAFA3]/60 text-[#405858] font-mono text-[11px] font-semibold border border-[#D5DFDF] shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
+              onClick={() => setSelectedGrade('S')}
+              className="px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 text-[#405858] text-[11px] font-bold border border-[#D5DFDF] shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
             >
-              {t.searchTab.exampleNik}
+              Grade S
             </button>
             <button
               type="button"
-              onClick={() => setSearchInput('Siti')}
-              className="px-3 py-1.5 rounded-xl bg-white hover:bg-[#EAF7F6] hover:text-[#2AAFA3] hover:border-[#2AAFA3]/60 text-[#405858] text-[11px] font-semibold border border-[#D5DFDF] shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
+              onClick={() => setSelectedGrade('A')}
+              className="px-3 py-1.5 rounded-xl bg-white hover:bg-teal-50 hover:text-teal-700 hover:border-teal-300 text-[#405858] text-[11px] font-bold border border-[#D5DFDF] shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
             >
-              {t.searchTab.exampleNameSiti}
+              Grade A
             </button>
             <button
               type="button"
-              onClick={() => setSearchInput('Sri')}
-              className="px-3 py-1.5 rounded-xl bg-white hover:bg-[#EAF7F6] hover:text-[#2AAFA3] hover:border-[#2AAFA3]/60 text-[#405858] text-[11px] font-semibold border border-[#D5DFDF] shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
+              onClick={() => setSelectedSkill('MULTI')}
+              className="px-3 py-1.5 rounded-xl bg-white hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300 text-[#405858] text-[11px] font-bold border border-[#D5DFDF] shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
             >
-              {t.searchTab.exampleNameSri}
+              Multi-Skill (≥2 Mesin)
             </button>
             <button
               type="button"
-              onClick={() => setSearchInput('Line 1')}
-              className="px-3 py-1.5 rounded-xl bg-white hover:bg-[#EAF7F6] hover:text-[#2AAFA3] hover:border-[#2AAFA3]/60 text-[#405858] text-[11px] font-semibold border border-[#D5DFDF] shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
+              onClick={() => setSelectedMachine('LOCKSTITCH')}
+              className="px-3 py-1.5 rounded-xl bg-white hover:bg-sky-50 hover:text-sky-700 hover:border-sky-300 text-[#405858] text-[11px] font-bold border border-[#D5DFDF] shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
             >
-              {t.searchTab.exampleLine}
+              Lockstitch
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedMachine('OVERLOCK')}
+              className="px-3 py-1.5 rounded-xl bg-white hover:bg-sky-50 hover:text-sky-700 hover:border-sky-300 text-[#405858] text-[11px] font-bold border border-[#D5DFDF] shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
+            >
+              Overlock
             </button>
           </div>
         </div>
