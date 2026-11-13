@@ -545,24 +545,29 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
 
           <div className="flex items-center gap-2.5">
             <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-white flex items-center gap-2.5">
-              <User className="w-6 h-6 sm:w-7 sm:h-7 text-[#2AAFA3]" />
+              <User className="w-6 h-6 sm:w-7 sm:h-7 text-[#2AAFA3]" aria-hidden="true" />
               <span>{t.searchTab.title}</span>
             </h2>
 
-            {/* Info Icon with Floating Tooltip on Hover */}
-            <div className="relative group/info inline-flex items-center">
+            {/* Info Icon with Floating Tooltip on Hover & Keyboard Focus */}
+            <div className="relative inline-flex items-center">
               <button
                 type="button"
                 aria-label={t.searchTab.infoTooltipLabel}
-                className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white/10 hover:bg-[#2AAFA3]/30 text-[#A0B5B5] hover:text-white flex items-center justify-center transition-colors cursor-help border border-white/15"
+                aria-describedby="tip-search-info"
+                className="peer w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white/10 hover:bg-[#2AAFA3]/30 focus-visible:bg-[#2AAFA3]/30 text-[#A0B5B5] hover:text-white focus-visible:text-white flex items-center justify-center transition-colors cursor-help border border-white/15 focus-visible:outline-2 focus-visible:outline-[#93C5FD] focus-visible:outline-offset-2"
               >
-                <Info className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <Info className="w-3 h-3 sm:w-3.5 sm:h-3.5" aria-hidden="true" />
               </button>
 
               {/* Tooltip Popup */}
-              <div className="absolute left-0 top-full mt-2 hidden group-hover/info:block z-50 w-72 sm:w-80 p-3 bg-[#1B2727]/95 text-[#D8E6E6] text-xs rounded-xl shadow-2xl border border-[#2AAFA3]/40 backdrop-blur-md animate-in fade-in zoom-in-95 duration-150 pointer-events-none">
+              <div
+                id="tip-search-info"
+                role="tooltip"
+                className="absolute left-0 top-full mt-2 hidden peer-hover:block peer-focus:block peer-focus-visible:block z-50 w-72 sm:w-80 p-3 bg-[#1B2727]/95 text-[#D8E6E6] text-xs rounded-xl shadow-2xl border border-[#2AAFA3]/40 backdrop-blur-md animate-in fade-in zoom-in-95 duration-150 pointer-events-none"
+              >
                 <div className="flex items-start gap-2">
-                  <Info className="w-4 h-4 text-[#2AAFA3] shrink-0 mt-0.5" />
+                  <Info className="w-4 h-4 text-[#2AAFA3] shrink-0 mt-0.5" aria-hidden="true" />
                   <p className="leading-relaxed text-[11px] sm:text-xs">
                     {t.searchTab.subtitle}
                   </p>
@@ -576,13 +581,13 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
           {/* Primary Search Input Bar with Debounce 400ms & In-input Spinner */}
           <div className="mt-4 relative max-w-3xl">
             <div className="relative flex items-center">
-              <Search className="absolute left-4 w-5 h-5 text-[#2AAFA3] pointer-events-none" />
+              <Search className="absolute left-4 w-5 h-5 text-[#2AAFA3] pointer-events-none" aria-hidden="true" />
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder={t.searchTab.searchPlaceholder}
-                className="w-full pl-12 pr-32 py-2.5 sm:py-3 bg-black/30 hover:bg-black/40 focus:bg-black/50 text-white placeholder:text-[#A0B5B5] border border-white/20 focus:border-[#2AAFA3] rounded-2xl outline-none text-sm transition-all shadow-inner focus:ring-4 focus:ring-[#2AAFA3]/20"
+                className="w-full pl-12 pr-32 py-2.5 sm:py-3 bg-black/30 hover:bg-black/40 focus:bg-black/50 text-white placeholder:text-[#A0B5B5] border border-white/20 focus:border-[#2AAFA3] focus-visible:outline-2 focus-visible:outline-[#93C5FD] focus-visible:outline-offset-2 rounded-2xl text-sm transition-all shadow-inner"
                 autoFocus
               />
 
@@ -612,7 +617,7 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
             {/* Quick Informative Info Under Search Box */}
             <div className="flex items-center justify-between mt-2 px-1 text-[11px] text-[#A0B5B5]">
               <div className="flex items-center gap-1.5 text-teal-300/90 font-medium">
-                <Users className="w-3.5 h-3.5 text-[#2AAFA3]" />
+                <Users className="w-3.5 h-3.5 text-[#2AAFA3]" aria-hidden="true" />
                 <span>{t.searchTab.operatorsReady.replace('{count}', totalAvailableCount.toLocaleString(language === 'id' ? 'id-ID' : 'en-US'))}</span>
               </div>
               <span className="hidden sm:inline text-white/50 text-[10px]">
@@ -630,7 +635,7 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
           {/* Filters Group */}
           <div className="flex flex-wrap items-center gap-2 text-xs flex-1">
             <div className="flex items-center gap-1.5 text-[#5A6E6E] font-semibold pr-1">
-              <SlidersHorizontal className="w-3.5 h-3.5 text-[#2AAFA3]" />
+              <SlidersHorizontal className="w-3.5 h-3.5 text-[#2AAFA3]" aria-hidden="true" />
               <span className="hidden sm:inline">{t.searchTab.filterLabel}</span>
             </div>
 
@@ -643,14 +648,14 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                   setSelectedLine('ALL');
                 }}
                 aria-label={t.searchTab.filterFactory}
-                className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] outline-none cursor-pointer focus:border-[#2AAFA3] transition-colors"
+                className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] cursor-pointer focus:border-[#2AAFA3] transition-colors"
               >
                 <option value="ALL">{t.searchTab.allFactories}</option>
                 {factoryOptions.map(f => (
                   <option key={f} value={f}>{f}</option>
                 ))}
               </select>
-              <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
             </div>
 
             {/* Line Filter */}
@@ -659,14 +664,14 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                 value={selectedLine}
                 onChange={(e) => setSelectedLine(e.target.value)}
                 aria-label={t.searchTab.filterLine}
-                className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] outline-none cursor-pointer focus:border-[#2AAFA3] transition-colors"
+                className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] cursor-pointer focus:border-[#2AAFA3] transition-colors"
               >
                 <option value="ALL">{t.searchTab.allLines}</option>
                 {lineOptions.map(l => (
                   <option key={l} value={l}>{l}</option>
                 ))}
               </select>
-              <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
             </div>
 
             {/* Grade Filter */}
@@ -675,7 +680,7 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                 value={selectedGrade}
                 onChange={(e) => setSelectedGrade(e.target.value)}
                 aria-label={t.searchTab.filterGrade}
-                className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] outline-none cursor-pointer focus:border-[#2AAFA3] transition-colors"
+                className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] cursor-pointer focus:border-[#2AAFA3] transition-colors"
               >
                 <option value="ALL">{t.searchTab.allGrades}</option>
                 <option value="S">Grade S (&gt;13 Pts)</option>
@@ -684,7 +689,7 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                 <option value="C">Grade C (1-3 Pts)</option>
                 <option value="HELPER">Helper (0 Pts)</option>
               </select>
-              <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
             </div>
 
             {/* Skill Filter */}
@@ -693,14 +698,14 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                 value={selectedSkill}
                 onChange={(e) => setSelectedSkill(e.target.value)}
                 aria-label={t.searchTab.filterSkill}
-                className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] outline-none cursor-pointer focus:border-[#2AAFA3] transition-colors"
+                className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] cursor-pointer focus:border-[#2AAFA3] transition-colors"
               >
                 <option value="ALL">{t.searchTab.allSkills}</option>
                 <option value="MULTI">{t.searchTab.skillMulti}</option>
                 <option value="SINGLE">{t.searchTab.skillSingle}</option>
                 <option value="HELPER">{t.searchTab.skillHelper}</option>
               </select>
-              <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
             </div>
 
             {/* Machine Category Filter */}
@@ -709,7 +714,7 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                 value={selectedMachine}
                 onChange={(e) => setSelectedMachine(e.target.value)}
                 aria-label={language === 'en' ? 'Filter Machine' : 'Filter Mesin'}
-                className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] outline-none cursor-pointer focus:border-[#2AAFA3] transition-colors"
+                className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] cursor-pointer focus:border-[#2AAFA3] transition-colors"
               >
                 <option value="ALL">{language === 'en' ? 'All Machines' : 'Semua Mesin'}</option>
                 <option value="LOCKSTITCH">Lockstitch</option>
@@ -719,7 +724,7 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                 <option value="BUTTON_HOLE">Button Hole</option>
                 <option value="BUTTON_SET">Button Set</option>
               </select>
-              <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
             </div>
 
             {/* Reset Secondary Filters Button */}
@@ -729,7 +734,7 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                 onClick={handleResetFilters}
                 className="flex items-center gap-1 text-[#E05252] hover:text-[#C53030] hover:bg-rose-50 px-2.5 py-1.5 rounded-xl font-bold cursor-pointer transition-colors"
               >
-                <RotateCcw className="w-3 h-3" />
+                <RotateCcw className="w-3 h-3" aria-hidden="true" />
                 <span>{t.searchTab.clearFilters}</span>
               </button>
             )}
@@ -743,7 +748,7 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
                 aria-label={t.searchTab.sortBy}
-                className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] outline-none cursor-pointer focus:border-[#2AAFA3] transition-colors"
+                className="appearance-none bg-[#F5F8F8] hover:bg-[#EDF3F3] border border-[#D5DFDF] rounded-xl px-3 py-1.5 pr-7 font-semibold text-[#304848] cursor-pointer focus:border-[#2AAFA3] transition-colors"
               >
                 <option value="NAME_ASC">{t.searchTab.sortNameAsc}</option>
                 <option value="NAME_DESC">{t.searchTab.sortNameDesc}</option>
@@ -752,7 +757,7 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                 <option value="POINTS_DESC">{t.searchTab.sortPointsDesc}</option>
                 <option value="NIK_ASC">{t.searchTab.sortNikAsc}</option>
               </select>
-              <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-3 h-3 text-[#788888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
             </div>
 
             {/* View Mode Switcher */}
@@ -760,6 +765,8 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
               <button
                 type="button"
                 onClick={() => setViewMode('cards')}
+                aria-label={t.searchTab.viewCard}
+                aria-pressed={viewMode === 'cards'}
                 className={`p-1.5 rounded-lg cursor-pointer transition-all ${
                   viewMode === 'cards' 
                     ? 'bg-white text-[#2AAFA3] shadow-xs' 
@@ -767,11 +774,13 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                 }`}
                 title={t.searchTab.viewCard}
               >
-                <Grid className="w-3.5 h-3.5" />
+                <Grid className="w-3.5 h-3.5" aria-hidden="true" />
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('table')}
+                aria-label={t.searchTab.viewTable}
+                aria-pressed={viewMode === 'table'}
                 className={`p-1.5 rounded-lg cursor-pointer transition-all ${
                   viewMode === 'table' 
                     ? 'bg-white text-[#2AAFA3] shadow-xs' 
@@ -779,7 +788,7 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                 }`}
                 title={t.searchTab.viewTable}
               >
-                <List className="w-3.5 h-3.5" />
+                <List className="w-3.5 h-3.5" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -797,7 +806,7 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
 
             <div className="flex flex-wrap items-center gap-3">
               <span className="inline-flex items-center gap-1 text-[#304848] font-semibold">
-                <Award className="w-3.5 h-3.5 text-[#D0A018]" />
+                <Award className="w-3.5 h-3.5 text-[#D0A018]" aria-hidden="true" />
                 <span>{t.searchTab.multiSkillOperators}:</span>
                 <strong className="text-emerald-700">{stats.multiSkill} ({stats.multiSkillPct}%)</strong>
               </span>
@@ -806,7 +815,7 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                 <strong className="text-[#2AAFA3]">{stats.avgPoints} Pts</strong>
               </span>
               <span className="inline-flex items-center gap-1 text-[#304848] font-semibold">
-                <Clock className="w-3.5 h-3.5 text-sky-600" />
+                <Clock className="w-3.5 h-3.5 text-sky-600" aria-hidden="true" />
                 <span>{t.searchTab.avgTenure}:</span>
                 <strong className="text-sky-700">{stats.avgTenure} {t.common.months}</strong>
               </span>
@@ -823,59 +832,12 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
            ============================================================================ */
         <div className="min-h-[50vh] sm:min-h-[55vh] flex flex-col items-center justify-center text-center p-4 sm:p-6 space-y-4">
           <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#EAF7F6] border border-[#BCE5E2] text-[#2AAFA3] flex items-center justify-center mx-auto shadow-2xs">
-            <Search className="w-7 h-7 sm:w-8 sm:h-8" />
+            <Search className="w-7 h-7 sm:w-8 sm:h-8" aria-hidden="true" />
           </div>
           <div className="space-y-1.5 max-w-md mx-auto">
             <h3 className="text-base sm:text-lg font-bold text-[#2C3E3E]">
               {language === 'en' ? 'Search Operators by Keyword or Filter' : 'Pencarian Operator Berdasarkan Kata Kunci atau Filter'}
             </h3>
-            <p className="text-xs sm:text-sm text-[#788888] leading-relaxed">
-              {language === 'en'
-                ? 'Type NIK, Operator Name, or select from the filters above (Factory, Line, Grade, Skill, Machine) to find operators.'
-                : 'Ketik NIK, Nama Operator, atau gunakan dropdown filter di atas (Pabrik, Lini, Grade, Skill, Mesin) untuk menemukan operator.'}
-            </p>
-          </div>
-
-          {/* Quick Filter Suggestions */}
-          <div className="pt-2 flex flex-wrap items-center justify-center gap-2 text-xs">
-            <span className="text-[#788888] font-semibold text-[11px] mr-1">
-              {language === 'en' ? 'Quick Filter:' : 'Filter Cepat:'}
-            </span>
-            <button
-              type="button"
-              onClick={() => setSelectedGrade('S')}
-              className="px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 text-[#405858] text-[11px] font-bold border border-[#D5DFDF] shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
-            >
-              Grade S
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedGrade('A')}
-              className="px-3 py-1.5 rounded-xl bg-white hover:bg-teal-50 hover:text-teal-700 hover:border-teal-300 text-[#405858] text-[11px] font-bold border border-[#D5DFDF] shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
-            >
-              Grade A
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedSkill('MULTI')}
-              className="px-3 py-1.5 rounded-xl bg-white hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300 text-[#405858] text-[11px] font-bold border border-[#D5DFDF] shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
-            >
-              Multi-Skill (≥2 Mesin)
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedMachine('LOCKSTITCH')}
-              className="px-3 py-1.5 rounded-xl bg-white hover:bg-sky-50 hover:text-sky-700 hover:border-sky-300 text-[#405858] text-[11px] font-bold border border-[#D5DFDF] shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
-            >
-              Lockstitch
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedMachine('OVERLOCK')}
-              className="px-3 py-1.5 rounded-xl bg-white hover:bg-sky-50 hover:text-sky-700 hover:border-sky-300 text-[#405858] text-[11px] font-bold border border-[#D5DFDF] shadow-2xs hover:shadow-xs transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
-            >
-              Overlock
-            </button>
           </div>
         </div>
       ) : isLoading ? (
@@ -968,7 +930,7 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
         /* Empty Results (Operator tidak ditemukan sesuai kata kunci/filter) */
         <div className="bg-white rounded-3xl p-10 border border-[#E0E8E8] text-center space-y-3 shadow-xs">
           <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto">
-            <User className="w-7 h-7" />
+            <User className="w-7 h-7" aria-hidden="true" />
           </div>
           <h3 className="text-base font-bold text-[#304848]">{t.searchTab.noResults}</h3>
           <p className="text-xs text-[#788888] max-w-md mx-auto leading-relaxed">
@@ -980,7 +942,7 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
               onClick={handleClearAll}
               className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 bg-[#2AAFA3] text-white rounded-xl text-xs font-bold hover:bg-[#23958B] transition-colors cursor-pointer shadow-xs"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
+              <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
               <span>{t.searchTab.resetSearchAndFilters}</span>
             </button>
           )}
@@ -1007,14 +969,15 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                         <button
                           type="button"
                           onClick={(e) => handleCopyNik(op.nik || op.id, e)}
+                          aria-label={`${hasCopied ? t.searchTab.copyNikSuccess : t.searchTab.clickToCopyNik}: ${op.nik || op.id} (${op.name || 'Unknown Operator'})`}
                           className="inline-flex items-center gap-1 font-mono text-[11px] font-bold text-[#405858] bg-[#F2F6F6] hover:bg-[#E5EEEE] px-2 py-0.5 rounded-lg border border-[#D5DFDF] transition-colors cursor-pointer"
                           title={hasCopied ? t.searchTab.copyNikSuccess : t.searchTab.clickToCopyNik}
                         >
                           <span>{op.nik || op.id}</span>
                           {hasCopied ? (
-                            <Check className="w-3 h-3 text-emerald-600" />
+                            <Check className="w-3 h-3 text-emerald-600" aria-hidden="true" />
                           ) : (
-                            <Copy className="w-2.5 h-2.5 text-[#788888] opacity-70" />
+                            <Copy className="w-2.5 h-2.5 text-[#788888] opacity-70" aria-hidden="true" />
                           )}
                         </button>
 
@@ -1037,13 +1000,13 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                     {/* Factory & Line + Tenure */}
                     <div className="grid grid-cols-2 gap-2 border-b border-[#E2EBEB] pb-2">
                       <div className="flex items-center gap-1.5 text-[#5A6E6E] truncate">
-                        <Building2 className="w-3.5 h-3.5 text-[#2AAFA3] shrink-0" />
+                        <Building2 className="w-3.5 h-3.5 text-[#2AAFA3] shrink-0" aria-hidden="true" />
                         <span className="font-bold text-[#304848] truncate">
                           {op.factory} • {op.line}
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5 text-[#5A6E6E] truncate justify-end">
-                        <Clock className="w-3.5 h-3.5 text-[#D0A018] shrink-0" />
+                        <Clock className="w-3.5 h-3.5 text-[#D0A018] shrink-0" aria-hidden="true" />
                         <span className="font-bold text-[#304848] truncate" title={`Tenure: ${op.tenureText}`}>
                           {op.tenureText}
                         </span>
@@ -1052,7 +1015,7 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
 
                     {/* Current Operation */}
                     <div className="flex items-center gap-2">
-                      <Workflow className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                      <Workflow className="w-3.5 h-3.5 text-sky-600 shrink-0" aria-hidden="true" />
                       <div className="truncate flex-1">
                         <span className="text-[10px] text-[#788888] block leading-none">{t.searchTab.currentOpHeader}:</span>
                         <span className="font-semibold text-[#2C3E3E] text-xs truncate block mt-0.5" title={op.currentOperationDisplay}>
@@ -1064,7 +1027,7 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                     {/* Skill Status */}
                     <div className="flex items-center justify-between pt-1 border-t border-[#E2EBEB] text-[11px]">
                       <div className="flex items-center gap-1.5">
-                        <Award className="w-3.5 h-3.5 text-[#D0A018] shrink-0" />
+                        <Award className="w-3.5 h-3.5 text-[#D0A018] shrink-0" aria-hidden="true" />
                         <span className="font-bold text-emerald-800">
                           {op.isHelper
                             ? t.searchTab.skillHelper
@@ -1135,10 +1098,11 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                     <button
                       type="button"
                       onClick={() => onNavigateToLine(op.factory || 'Factory 1', op.line || 'Line 1', op.id)}
+                      aria-label={`${t.searchTab.openInMatrix}: ${op.name} (${op.nik || op.id}) - ${op.factory || 'Factory 1'} ${op.line || 'Line 1'}`}
                       className="w-full py-2 px-3 rounded-xl bg-[#2AAFA3]/10 hover:bg-[#2AAFA3] text-[#2AAFA3] hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all duration-150 cursor-pointer shadow-2xs group/btn"
                     >
                       <span>{t.searchTab.openInMatrix}</span>
-                      <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
+                      <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition-transform" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
@@ -1155,7 +1119,7 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-[#EAF7F6] text-[#2AAFA3] hover:text-[#1F8F85] font-bold text-xs border border-[#2AAFA3]/30 shadow-xs transition-all cursor-pointer"
               >
                 <span>{t.searchTab.loadMoreOperators.replace('{count}', String(filteredOperators.length - displayedOperators.length))}</span>
-                <ChevronRight className="w-4 h-4 rotate-90" />
+                <ChevronRight className="w-4 h-4 rotate-90" aria-hidden="true" />
               </button>
               <span className="text-[11px] text-[#788888]">
                 {t.searchTab.showingCount
@@ -1200,14 +1164,15 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                           <button
                             type="button"
                             onClick={(e) => handleCopyNik(op.nik || op.id, e)}
+                            aria-label={`${hasCopied ? t.searchTab.copyNikSuccess : t.searchTab.clickToCopyNik}: ${op.nik || op.id} (${op.name})`}
                             className="inline-flex items-center gap-1 hover:text-[#2AAFA3] cursor-pointer"
                             title={hasCopied ? t.searchTab.copyNikSuccess : t.searchTab.clickToCopyNik}
                           >
                             <span>{op.nik || op.id}</span>
                             {hasCopied ? (
-                              <Check className="w-3 h-3 text-emerald-600" />
+                              <Check className="w-3 h-3 text-emerald-600" aria-hidden="true" />
                             ) : (
-                              <Copy className="w-2.5 h-2.5 text-[#788888] opacity-60" />
+                              <Copy className="w-2.5 h-2.5 text-[#788888] opacity-60" aria-hidden="true" />
                             )}
                           </button>
                         </td>
@@ -1216,13 +1181,13 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                         </td>
                         <td className="px-3 py-2.5">
                           <span className="inline-flex items-center gap-1 text-[#405858] font-semibold bg-[#F0F5F5] px-2 py-0.5 rounded-md border border-[#E0E8E8]">
-                            <Building2 className="w-3 h-3 text-[#2AAFA3]" />
+                            <Building2 className="w-3 h-3 text-[#2AAFA3]" aria-hidden="true" />
                             {op.factory} • {op.line}
                           </span>
                         </td>
                         <td className="px-3 py-2.5 font-medium text-[#405858]">
                           <span className="inline-flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-[#D0A018]" />
+                            <Clock className="w-3 h-3 text-[#D0A018]" aria-hidden="true" />
                             {op.tenureText}
                           </span>
                         </td>
@@ -1264,10 +1229,11 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                           <button
                             type="button"
                             onClick={() => onNavigateToLine(op.factory || 'Factory 1', op.line || 'Line 1', op.id)}
+                            aria-label={`${t.searchTab.openInMatrix}: ${op.name} (${op.nik || op.id}) - ${op.factory || 'Factory 1'} ${op.line || 'Line 1'}`}
                             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#2AAFA3]/10 hover:bg-[#2AAFA3] text-[#2AAFA3] hover:text-white font-bold text-[11px] transition-colors cursor-pointer"
                           >
                             <span>{t.searchTab.openInMatrix}</span>
-                            <ExternalLink className="w-3 h-3" />
+                            <ExternalLink className="w-3 h-3" aria-hidden="true" />
                           </button>
                         </td>
                       </tr>
@@ -1287,7 +1253,7 @@ function matchOperatorRecord(op: any, rawQuery: string): boolean {
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-[#EAF7F6] text-[#2AAFA3] hover:text-[#1F8F85] font-bold text-xs border border-[#2AAFA3]/30 shadow-xs transition-all cursor-pointer"
               >
                 <span>{t.searchTab.loadMoreOperators.replace('{count}', String(filteredOperators.length - displayedOperators.length))}</span>
-                <ChevronRight className="w-4 h-4 rotate-90" />
+                <ChevronRight className="w-4 h-4 rotate-90" aria-hidden="true" />
               </button>
               <span className="text-[11px] text-[#788888]">
                 {t.searchTab.showingCount

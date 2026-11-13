@@ -348,7 +348,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
             workTimeMonths: allowManualInput ? prev.workTimeMonths : 0
           }));
           setDojLookupStatus('not_found');
-          setDojLookupMessage(`NIK "${cleanNik}" belum terdaftar di sheet date_of_join. Anda dapat mengaktifkan "Input Manual" jika operator baru masuk.`);
+          setDojLookupMessage(`NIK "${cleanNik}" belum terdaftar. Anda dapat mengaktifkan "Input Manual" jika operator baru masuk.`);
         }
       }
     } catch (err: any) {
@@ -701,8 +701,8 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
               onClick={() => setSelectedGrade('S')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                 selectedGrade === 'S' 
-                  ? 'bg-[#059669] text-white shadow-sm' 
-                  : 'bg-emerald-50 text-[#059669] hover:bg-emerald-100'
+                  ? 'bg-[#6D28D9] text-white shadow-sm' 
+                  : 'bg-purple-50 text-[#5B21B6] hover:bg-purple-100'
               }`}
             >
               Grade S {gradeCounts.S > 0 && <span className="ml-1 opacity-90">({gradeCounts.S})</span>}
@@ -711,8 +711,8 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
               onClick={() => setSelectedGrade('A')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                 selectedGrade === 'A' 
-                  ? 'bg-[#0d9488] text-white shadow-sm' 
-                  : 'bg-teal-50 text-[#0d9488] hover:bg-teal-100'
+                  ? 'bg-[#047857] text-white shadow-sm' 
+                  : 'bg-emerald-50 text-[#047857] hover:bg-emerald-100'
               }`}
             >
               Grade A {gradeCounts.A > 0 && <span className="ml-1 opacity-90">({gradeCounts.A})</span>}
@@ -757,13 +757,13 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
             {/* Operator Grade */}
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-bold text-[#475569] flex items-center gap-1 mr-1 shrink-0">
-                <Award className="w-3.5 h-3.5 text-amber-500" />
+                <Award className="w-3.5 h-3.5 text-amber-500" aria-hidden="true" />
                 <span>{t.matrix.gradeStandard}:</span>
               </span>
-              <span className="inline-flex items-center justify-center px-3.5 sm:px-4 py-1 rounded-lg text-xs font-bold bg-[#059669] text-white shadow-2xs tracking-tight" title="Grade S: > 13 Poin (Star Operator)">
+              <span className="inline-flex items-center justify-center px-3.5 sm:px-4 py-1 rounded-lg text-xs font-bold bg-[#6D28D9] text-white shadow-2xs tracking-tight" title="Grade S: > 13 Poin (Star Operator)">
                 S (&gt;13p)
               </span>
-              <span className="inline-flex items-center justify-center px-3.5 sm:px-4 py-1 rounded-lg text-xs font-bold bg-[#0d9488] text-white shadow-2xs tracking-tight" title="Grade A: 8 – 13 Poin (Skilled Operator)">
+              <span className="inline-flex items-center justify-center px-3.5 sm:px-4 py-1 rounded-lg text-xs font-bold bg-[#047857] text-white shadow-2xs tracking-tight" title="Grade A: 8 – 13 Poin (Skilled Operator)">
                 A (8–13p)
               </span>
               <span className="inline-flex items-center justify-center px-3.5 sm:px-4 py-1 rounded-lg text-xs font-bold bg-[#0284c7] text-white shadow-2xs tracking-tight" title="Grade B: 4 – 7 Poin (Competent Operator)">
@@ -780,7 +780,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
             {/* IE Point System (Sejajar tanpa garis pembatas vertikal) */}
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-bold text-[#475569] flex items-center gap-1 mr-1 shrink-0">
-                <Zap className="w-3.5 h-3.5 text-[#2AAFA3]" />
+                <Zap className="w-3.5 h-3.5 text-[#2AAFA3]" aria-hidden="true" />
                 <span>{t.matrix.legendTitle}:</span>
               </span>
               <span className="inline-flex items-center justify-center px-3 sm:px-3.5 py-1 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-700 shadow-2xs tracking-tight" title="0 Poin: Eff 0% (Belum menguasai)">
@@ -805,9 +805,9 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
             onClick={() => setIsPointInfoOpen(true)}
             className="w-8 h-8 rounded-xl bg-[#F8FAFC] hover:bg-[#E0F0F0] text-[#475569] hover:text-[#247F77] border border-[#E2E8F0] hover:border-[#BDE5E2] flex items-center justify-center transition-all cursor-pointer shadow-2xs group shrink-0 ml-auto"
             title={t.metrics.pointSystemTitle || "Detail Standar Grade Operator & Sistem Poin IE"}
-            aria-label="Detail Standar Grade Operator & Sistem Poin IE"
+            aria-label={t.metrics.pointSystemTitle || "Detail Standar Grade Operator & Sistem Poin IE"}
           >
-            <Info className="w-4 h-4 text-[#2AAFA3] group-hover:scale-110 transition-transform" />
+            <Info className="w-4 h-4 text-[#2AAFA3] group-hover:scale-110 transition-transform" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -820,13 +820,14 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
           
           {/* Search Bar */}
           <div className="relative flex-grow max-w-md">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#788888]" />
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#788888]" aria-hidden="true" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={t.matrix.searchPlaceholder}
-              className="w-full bg-[#F8F8F8] border border-[#E0E8E8] text-[#304848] text-xs sm:text-sm pl-9 pr-4 py-2.5 rounded-xl focus:border-[#2AAFA3] focus:ring-2 focus:ring-[#2AAFA3]/20 focus:outline-none placeholder:text-[#98A8A8]"
+              aria-label={t.matrix.searchPlaceholder}
+              className="w-full bg-[#F8F8F8] border border-[#E0E8E8] text-[#304848] text-xs sm:text-sm pl-9 pr-4 py-2.5 rounded-xl focus:border-[#2AAFA3] placeholder:text-[#98A8A8]"
             />
           </div>
 
@@ -835,23 +836,27 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
             
             {/* Multi-skill Filter Toggle */}
             <button
+              type="button"
               onClick={() => setMultiskillOnly(!multiskillOnly)}
+              aria-pressed={multiskillOnly}
               className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border ${
                 multiskillOnly
                   ? 'bg-[#F5EAC5] text-[#8A6A08] border-[#E8D499]'
                   : 'bg-[#F8F8F8] text-[#788888] border-[#E0E8E8] hover:bg-[#E8EEEE]'
               }`}
             >
-              <Star className="w-3.5 h-3.5 text-[#D0A018]" />
+              <Star className="w-3.5 h-3.5 text-[#D0A018]" aria-hidden="true" />
               <span>{t.matrix.multiSkillOnly}</span>
             </button>
 
             {/* Export CSV Button */}
             <button
+              type="button"
               onClick={handleExportCSV}
+              aria-label={t.matrix.exportCSV}
               className="bg-[#E0F0F0] text-[#405858] hover:bg-[#C8D8D8] border border-[#C8D8D8] text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5" />
+              <Download className="w-3.5 h-3.5" aria-hidden="true" />
               <span className="hidden sm:inline">{t.matrix.exportCSV}</span>
             </button>
 
@@ -859,10 +864,11 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
             <button
               type="button"
               onClick={() => setIsPdfModalOpen(true)}
+              aria-label={t.matrix.exportPDF || 'Export PDF'}
               className="bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
               title={t.matrix.exportPdfDesc || "Export Laporan PDF Skill Matrix Resmi (A4 Landscape)"}
             >
-              <FileDown className="w-3.5 h-3.5 text-rose-600" />
+              <FileDown className="w-3.5 h-3.5 text-rose-600" aria-hidden="true" />
               <span className="hidden sm:inline">{t.matrix.exportPDF || 'Export PDF'}</span>
               <span className="text-[9px] bg-rose-200/80 text-rose-900 px-1.5 py-0.2 rounded font-bold uppercase tracking-wide">A4</span>
             </button>
@@ -870,10 +876,11 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
             {/* Add Operator (Visible for Editor and Admin) */}
             {canEdit && (
               <button
+                type="button"
                 onClick={handleOpenAdd}
                 className="bg-[#D0A018] hover:bg-[#B88C10] text-white text-xs font-semibold px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-4 h-4" aria-hidden="true" />
                 <span>{t.matrix.addOperator}</span>
               </button>
             )}
@@ -886,7 +893,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
           
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[#788888] font-semibold flex items-center gap-1 mr-1">
-              <Filter className="w-3 h-3 text-[#405858]" />
+              <Filter className="w-3 h-3 text-[#405858]" aria-hidden="true" />
               {t.matrix.category}:
             </span>
             {[
@@ -919,48 +926,52 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
         </div>
 
         {/* TABLE CONTAINER - Freeze Header saat scroll bagian bawah */}
-        <div className="overflow-x-auto overflow-y-auto max-h-[72vh] relative">
+        <div className="overflow-x-auto overflow-y-auto max-h-[72vh] relative scroll-pt-12">
           <table className="w-full text-left text-xs border-collapse">
             <thead className="sticky top-0 z-20">
               <tr className="border-b border-gray-200 text-[#405858] font-bold text-[11px] uppercase tracking-wider select-none">
-                <th 
-                  onClick={() => handleSort('no')}
-                  className="sticky top-0 z-20 bg-[#F8F8F8] py-3 px-4 text-center cursor-pointer hover:text-[#2AAFA3] w-12 shadow-[0_1px_0_0_#E5E7EB]"
-                >
-                  <div className="flex items-center justify-center gap-1">
+                <th className="sticky top-0 z-20 bg-[#F8F8F8] py-3 px-4 text-center w-12 shadow-[0_1px_0_0_#E5E7EB]">
+                  <button
+                    type="button"
+                    onClick={() => handleSort('no')}
+                    className="w-full flex items-center justify-center gap-1 cursor-pointer hover:text-[#2AAFA3] rounded-sm"
+                  >
                     <span>{t.matrix.thNo}</span>
-                    <ArrowUpDown className="w-3 h-3 text-[#98A8A8]" />
-                  </div>
+                    <ArrowUpDown className="w-3 h-3 text-[#98A8A8]" aria-hidden="true" />
+                  </button>
                 </th>
                 <th className="sticky top-0 z-20 bg-[#F8F8F8] py-3 px-4 text-center w-28 shadow-[0_1px_0_0_#E5E7EB]">{t.matrix.thNik}</th>
-                <th 
-                  onClick={() => handleSort('name')}
-                  className="sticky top-0 z-20 bg-[#F8F8F8] py-3 px-4 text-left cursor-pointer hover:text-[#2AAFA3] shadow-[0_1px_0_0_#E5E7EB]"
-                >
-                  <div className="flex items-center gap-1">
+                <th className="sticky top-0 z-20 bg-[#F8F8F8] py-3 px-4 text-left shadow-[0_1px_0_0_#E5E7EB]">
+                  <button
+                    type="button"
+                    onClick={() => handleSort('name')}
+                    className="w-full flex items-center gap-1 cursor-pointer hover:text-[#2AAFA3] rounded-sm"
+                  >
                     <span>{t.matrix.thName}</span>
-                    <ArrowUpDown className="w-3 h-3 text-[#98A8A8]" />
-                  </div>
+                    <ArrowUpDown className="w-3 h-3 text-[#98A8A8]" aria-hidden="true" />
+                  </button>
                 </th>
-                <th 
-                  onClick={() => handleSort('workTime')}
-                  className="sticky top-0 z-20 bg-[#F8F8F8] py-3 px-4 text-center cursor-pointer hover:text-[#2AAFA3] w-20 shadow-[0_1px_0_0_#E5E7EB]"
-                >
-                  <div className="flex items-center justify-center gap-1">
+                <th className="sticky top-0 z-20 bg-[#F8F8F8] py-3 px-4 text-center w-20 shadow-[0_1px_0_0_#E5E7EB]">
+                  <button
+                    type="button"
+                    onClick={() => handleSort('workTime')}
+                    className="w-full flex items-center justify-center gap-1 cursor-pointer hover:text-[#2AAFA3] rounded-sm"
+                  >
                     <span>{t.matrix.thTenure}</span>
-                    <ArrowUpDown className="w-3 h-3 text-[#98A8A8]" />
-                  </div>
+                    <ArrowUpDown className="w-3 h-3 text-[#98A8A8]" aria-hidden="true" />
+                  </button>
                 </th>
 
                 {/* Current Operation Column */}
-                <th 
-                  onClick={() => handleSort('currentOperation')}
-                  className="sticky top-0 z-20 bg-[#F8F8F8] py-3 px-4 text-left cursor-pointer hover:text-[#2AAFA3] min-w-[200px] shadow-[0_1px_0_0_#E5E7EB]"
-                >
-                  <div className="flex items-center gap-1">
+                <th className="sticky top-0 z-20 bg-[#F8F8F8] py-3 px-4 text-left min-w-[200px] shadow-[0_1px_0_0_#E5E7EB]">
+                  <button
+                    type="button"
+                    onClick={() => handleSort('currentOperation')}
+                    className="w-full flex items-center gap-1 cursor-pointer hover:text-[#2AAFA3] rounded-sm"
+                  >
                     <span>{t.matrix.thCurrentOperation || 'Current Operation'}</span>
-                    <ArrowUpDown className="w-3 h-3 text-[#98A8A8]" />
-                  </div>
+                    <ArrowUpDown className="w-3 h-3 text-[#98A8A8]" aria-hidden="true" />
+                  </button>
                 </th>
                 
                 {/* Machine Columns - Note: Machine names are kept untranslated per user instruction */}
@@ -972,23 +983,25 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                 <th className="sticky top-0 z-20 py-3 px-2 text-center text-[#2AAFA3] bg-[#F4F9F9] border-r border-gray-200 w-28 shadow-[0_1px_0_0_#E5E7EB]">Button Set</th>
                 
                 {/* Aggregate Columns */}
-                <th 
-                  onClick={() => handleSort('multiskill')}
-                  className="sticky top-0 z-20 bg-[#F8F8F8] py-3 px-4 text-center cursor-pointer hover:text-[#2AAFA3] w-20 shadow-[0_1px_0_0_#E5E7EB]"
-                >
-                  <div className="flex items-center justify-center gap-1">
+                <th className="sticky top-0 z-20 bg-[#F8F8F8] py-3 px-4 text-center w-20 shadow-[0_1px_0_0_#E5E7EB]">
+                  <button
+                    type="button"
+                    onClick={() => handleSort('multiskill')}
+                    className="w-full flex items-center justify-center gap-1 cursor-pointer hover:text-[#2AAFA3] rounded-sm"
+                  >
                     <span>{t.matrix.thSkill}</span>
-                    <ArrowUpDown className="w-3 h-3 text-[#98A8A8]" />
-                  </div>
+                    <ArrowUpDown className="w-3 h-3 text-[#98A8A8]" aria-hidden="true" />
+                  </button>
                 </th>
-                <th 
-                  onClick={() => handleSort('avgRate')}
-                  className="sticky top-0 z-20 bg-[#F8F8F8] py-3 px-4 text-center cursor-pointer hover:text-[#2AAFA3] w-28 shadow-[0_1px_0_0_#E5E7EB]"
-                >
-                  <div className="flex items-center justify-center gap-1">
+                <th className="sticky top-0 z-20 bg-[#F8F8F8] py-3 px-4 text-center w-28 shadow-[0_1px_0_0_#E5E7EB]">
+                  <button
+                    type="button"
+                    onClick={() => handleSort('avgRate')}
+                    className="w-full flex items-center justify-center gap-1 cursor-pointer hover:text-[#2AAFA3] rounded-sm"
+                  >
                     <span>{t.matrix.thGrade}</span>
-                    <ArrowUpDown className="w-3 h-3 text-[#98A8A8]" />
-                  </div>
+                    <ArrowUpDown className="w-3 h-3 text-[#98A8A8]" aria-hidden="true" />
+                  </button>
                 </th>
 
                 {canEdit && (
@@ -1083,7 +1096,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                             ? 'badge-gold' 
                             : 'bg-gray-100 text-gray-600'
                         }`}>
-                          {multiCount >= 2 && <Star className="w-3 h-3 fill-current text-[#D0A018]" />}
+                          {multiCount >= 2 && <Star className="w-3 h-3 fill-current text-[#D0A018]" aria-hidden="true" />}
                           <span>{multiCount}</span>
                         </span>
                       </td>
@@ -1111,18 +1124,22 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                         <td className="py-3 px-4 text-center">
                           <div className="flex items-center justify-center space-x-1">
                             <button
+                              type="button"
                               onClick={() => handleOpenEdit(op)}
+                              aria-label={`Edit ${op.name} (${op.nik})`}
                               className="p-1.5 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
                               title="Edit Data Operator"
                             >
-                              <Edit3 className="w-3.5 h-3.5" />
+                              <Edit3 className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
                             <button
+                              type="button"
                               onClick={() => setResignTargetOp(op)}
+                              aria-label={`Tandai Resign ${op.name} (${op.nik})`}
                               className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                               title="Tandai Operator Resign (Kirim ke Google Sheets)"
                             >
-                              <UserX className="w-3.5 h-3.5" />
+                              <UserX className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
                           </div>
                         </td>
@@ -1139,7 +1156,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
         <div className="py-3 px-6 bg-gray-50 border-t border-gray-200 flex flex-wrap items-center justify-between gap-3 select-none">
           <div className="flex flex-wrap items-center gap-3">
             <div className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-700 shrink-0">
-              <Zap className="w-4 h-4 text-emerald-600 shrink-0" />
+              <Zap className="w-4 h-4 text-emerald-600 shrink-0" aria-hidden="true" />
               <span>{language === 'id' ? 'Status Poin Mesin:' : 'Machine Point Status:'}</span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -1169,11 +1186,6 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                   <h3 className="text-base font-bold text-[#304848]">
                     {isAddModalOpen ? addOpT.modalAddTitle : (addOpT.modalEditTitle || t.matrix.editTitle)}
                   </h3>
-                  {isAddModalOpen && (
-                    <p className="text-[11px] text-[#788888]">
-                      {addOpT.subtitleDoj}
-                    </p>
-                  )}
                 </div>
               </div>
               <button
@@ -1187,30 +1199,12 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
               </button>
             </div>
 
-            {/* INFO BANNER KHUSUS MODE TAMBAH OPERATOR */}
-            {isAddModalOpen && (
-              <div className="mb-4 p-3 bg-[#D9F1EF]/50 border border-[#BDE5E2] rounded-2xl flex items-start gap-2.5 text-xs text-[#247F77]">
-                <Info className="w-4 h-4 text-[#2AAFA3] shrink-0 mt-0.5" />
-                <div className="space-y-0.5">
-                  <p className="font-bold text-[#206A63]">{addOpT.infoBannerTitle}</p>
-                  <p className="text-[11px] text-[#405858] leading-relaxed">
-                    {addOpT.infoBannerDesc}
-                  </p>
-                </div>
-              </div>
-            )}
-
             <form onSubmit={isAddModalOpen ? handleSaveAdd : handleSaveEdit} className="space-y-4">
               
               {/* NIK & SEARCH BAR */}
               <div>
                 <label className="block text-xs font-semibold text-[#506868] mb-1">
                   {addOpT.nikLabel} <span className="text-[#e11d48]">*</span>
-                  {isAddModalOpen && (
-                    <span className="text-[10px] text-[#2AAFA3] font-normal ml-1">
-                      {addOpT.nikActiveOnlyNote}
-                    </span>
-                  )}:
                 </label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
@@ -1234,7 +1228,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                           handleLookupNik(formData.nik || '');
                         }
                       }}
-                      className="w-full bg-[#F8F8F8] border border-[#E0E8E8] rounded-xl px-3.5 py-2.5 text-xs font-mono text-[#304848] focus:border-[#2AAFA3] focus:outline-none"
+                      className="w-full bg-[#F8F8F8] border border-[#E0E8E8] rounded-xl px-3.5 py-2.5 text-xs font-mono text-[#304848] focus:border-[#2AAFA3]"
                     />
                     {isSearchingDoj && (
                       <div className="absolute right-3 top-3">
@@ -1341,7 +1335,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                   placeholder={isAddModalOpen && !allowManualInput ? addOpT.namePlaceholderAuto : addOpT.namePlaceholderManual}
                   value={formData.name || ''}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value.toUpperCase() })}
-                  className={`w-full rounded-xl px-3.5 py-2.5 text-xs uppercase font-bold focus:outline-none ${
+                  className={`w-full rounded-xl px-3.5 py-2.5 text-xs uppercase font-bold ${
                     isAddModalOpen && !allowManualInput
                       ? 'bg-[#F0F5F5] border border-[#D5E2E2] text-[#304848] cursor-not-allowed select-none' 
                       : 'bg-[#F8F8F8] border border-[#E0E8E8] text-[#304848] focus:border-[#2AAFA3]'
@@ -1368,7 +1362,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                     disabled={isAddModalOpen && !allowManualInput}
                     value={formData.workTimeMonths ?? 0}
                     onChange={(e) => setFormData({ ...formData, workTimeMonths: parseInt(e.target.value, 10) || 0 })}
-                    className={`w-full rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold focus:outline-none ${
+                    className={`w-full rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold ${
                       isAddModalOpen && !allowManualInput
                         ? 'bg-[#F0F5F5] border border-[#D5E2E2] text-[#304848] cursor-not-allowed select-none' 
                         : 'bg-[#F8F8F8] border border-[#E0E8E8] text-[#304848] focus:border-[#2AAFA3]'
@@ -1388,10 +1382,10 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                     type="text"
                     readOnly={isAddModalOpen && !allowManualInput}
                     disabled={isAddModalOpen && !allowManualInput}
-                    placeholder={isAddModalOpen && !allowManualInput ? "Auto date_of_join..." : "DD-MM-YYYY"}
+                    placeholder={isAddModalOpen && !allowManualInput ? "Auto Fill..." : "DD-MM-YYYY"}
                     value={formData.doj || ''}
                     onChange={(e) => setFormData({ ...formData, doj: e.target.value })}
-                    className={`w-full rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none ${
+                    className={`w-full rounded-xl px-3.5 py-2.5 text-xs font-mono ${
                       isAddModalOpen && !allowManualInput
                         ? 'bg-[#F0F5F5] border border-[#D5E2E2] text-[#304848] cursor-not-allowed select-none' 
                         : 'bg-[#F8F8F8] border border-[#E0E8E8] text-[#304848] focus:border-[#2AAFA3]'
@@ -1422,7 +1416,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                       placeholder="1"
                       value={formData.factory ?? formatFactoryForSheet(selectedFactory)}
                       onChange={(e) => setFormData({ ...formData, factory: e.target.value })}
-                      className="w-full bg-white border border-[#D5E2E2] rounded-xl px-3 py-2 text-xs font-bold text-[#304848] focus:border-[#2AAFA3] focus:outline-none"
+                      className="w-full bg-white border border-[#D5E2E2] rounded-xl px-3 py-2 text-xs font-bold text-[#304848] focus:border-[#2AAFA3]"
                     />
                     <span className="text-[10px] text-[#809090] mt-0.5 block">{addOpT.factoryHint}</span>
                   </div>
@@ -1436,7 +1430,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                       placeholder="28"
                       value={formData.line ?? formatLineForSheet(selectedLine)}
                       onChange={(e) => setFormData({ ...formData, line: e.target.value })}
-                      className="w-full bg-white border border-[#D5E2E2] rounded-xl px-3 py-2 text-xs font-bold text-[#304848] focus:border-[#2AAFA3] focus:outline-none"
+                      className="w-full bg-white border border-[#D5E2E2] rounded-xl px-3 py-2 text-xs font-bold text-[#304848] focus:border-[#2AAFA3]"
                     />
                     <span className="text-[10px] text-[#809090] mt-0.5 block">{addOpT.lineHint}</span>
                   </div>
@@ -1461,7 +1455,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                       placeholder="NB17HQ271140"
                       value={formData.styleNo ?? 'NB17HQ271140'}
                       onChange={(e) => setFormData({ ...formData, styleNo: e.target.value })}
-                      className="w-full bg-white border border-[#D0DCDC] rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#304848] focus:border-[#2AAFA3] focus:outline-none"
+                      className="w-full bg-white border border-[#D0DCDC] rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#304848] focus:border-[#2AAFA3]"
                     />
                   </div>
 
@@ -1475,7 +1469,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                       placeholder="1"
                       value={formData.tableCode ?? '1'}
                       onChange={(e) => setFormData({ ...formData, tableCode: e.target.value })}
-                      className="w-full bg-white border border-[#D0DCDC] rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#304848] focus:border-[#2AAFA3] focus:outline-none"
+                      className="w-full bg-white border border-[#D0DCDC] rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#304848] focus:border-[#2AAFA3]"
                     />
                   </div>
                 </div>
@@ -1508,7 +1502,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                           machineCategory: cat 
                         });
                       }}
-                      className="w-full bg-white border border-[#D0DCDC] rounded-xl px-3 py-2 text-xs font-semibold text-[#304848] focus:border-[#2AAFA3] focus:outline-none"
+                      className="w-full bg-white border border-[#D0DCDC] rounded-xl px-3 py-2 text-xs font-semibold text-[#304848] focus:border-[#2AAFA3]"
                     />
                     <datalist id="machine-presets">
                       <option value="1Needle Lockstitch Auto Trim" />
@@ -1530,7 +1524,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                     <select
                       value={formData.machineCategory ?? 'LOCKSTITCH'}
                       onChange={(e) => setFormData({ ...formData, machineCategory: e.target.value })}
-                      className="w-full bg-white border border-[#D0DCDC] rounded-xl px-3 py-2 text-xs font-bold text-[#304848] focus:border-[#2AAFA3] focus:outline-none cursor-pointer"
+                      className="w-full bg-white border border-[#D0DCDC] rounded-xl px-3 py-2 text-xs font-bold text-[#304848] focus:border-[#2AAFA3] cursor-pointer"
                     >
                       <option value="LOCKSTITCH">LOCKSTITCH (Single Needle / SN)</option>
                       <option value="OVERLOCK">OVERLOCK (Obras / OL)</option>
@@ -1552,7 +1546,7 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                     placeholder="BIND 3PLIES ARMHOLE / SEWING"
                     value={formData.process ?? 'SEWING'}
                     onChange={(e) => setFormData({ ...formData, process: e.target.value.toUpperCase() })}
-                    className="w-full bg-white border border-[#D0DCDC] rounded-xl px-3 py-2 text-xs font-semibold uppercase text-[#304848] focus:border-[#2AAFA3] focus:outline-none"
+                    className="w-full bg-white border border-[#D0DCDC] rounded-xl px-3 py-2 text-xs font-semibold uppercase text-[#304848] focus:border-[#2AAFA3]"
                   />
                 </div>
               </div>
@@ -1633,112 +1627,12 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
                         production: safeNum === 0 ? 0 : safeNum === 1 ? 506 : safeNum === 2 ? 675 : 781,
                       });
                     }}
-                    className="w-20 bg-white border border-emerald-300 rounded-xl px-2.5 py-1.5 text-center text-xs font-bold font-mono text-emerald-950 focus:border-[#2AAFA3] focus:outline-none"
+                    className="w-20 bg-white border border-emerald-300 rounded-xl px-2.5 py-1.5 text-center text-xs font-bold font-mono text-emerald-950 focus:border-[#2AAFA3]"
                   />
                 </div>
               </div>
 
-              {/* FORM PENANAMAN KE DATASHEET BY_WORKER (KHUSUS TAMBAH OPERATOR) */}
-              {isAddModalOpen && (
-                <div className="p-3.5 bg-emerald-50/80 border border-emerald-200 rounded-2xl space-y-2 text-xs">
-                  <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 cursor-pointer select-none font-bold text-emerald-900">
-                      <input
-                        type="checkbox"
-                        checked={plantToByWorker}
-                        onChange={(e) => setPlantToByWorker(e.target.checked)}
-                        className="w-4 h-4 rounded text-[#2AAFA3] focus:ring-[#2AAFA3] border-emerald-300 cursor-pointer"
-                      />
-                      <Database className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>{addOpT.plantCheckboxLabel}</span>
-                    </label>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                      {addOpT.columnRBadge}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-emerald-700 leading-relaxed pl-6">
-                    {addOpT.plantDesc}
-                  </p>
-                  
-                  {/* Pratinjau Baris Lengkap yang akan ditanamkan */}
-                  <div className="mt-2 pl-6 pt-2 border-t border-emerald-200/60 space-y-2 text-[11px] font-mono text-emerald-900">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-[10px] text-emerald-800 uppercase tracking-wide">
-                        {addOpT.preview18ColTitle}:
-                      </span>
-                      <button
-                        type="button"
-                        onClick={handleCopyPlantingFormula}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white text-emerald-800 border border-emerald-300 hover:bg-emerald-100/80 transition-colors shadow-xs cursor-pointer"
-                        title={addOpT.copyTooltip}
-                      >
-                        {hasCopiedFormula ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 text-emerald-600" />
-                            <span className="text-emerald-700">{addOpT.copiedFormulaBtn}</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>{addOpT.copyFormulaBtn}</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[10px]">
-                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate">
-                        <strong>A (Factory):</strong> {formData.factory ?? formatFactoryForSheet(selectedFactory)}
-                      </span>
-                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate">
-                        <strong>B (Line):</strong> {formData.line ?? formatLineForSheet(selectedLine)}
-                      </span>
-                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate">
-                        <strong>C (Table):</strong> {formData.tableCode || '1'}
-                      </span>
-                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate">
-                        <strong>D (Date):</strong> {formData.date || new Date().toISOString().split('T')[0]}
-                      </span>
-                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate font-bold text-teal-800">
-                        <strong>E (NIK):</strong> {formData.nik || '-'}
-                      </span>
-                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate font-bold text-teal-800">
-                        <strong>F (Nama):</strong> {formData.name || '-'}
-                      </span>
-                      <span className="bg-amber-50/90 px-2 py-1 rounded border border-amber-200 truncate text-[9px] text-amber-900" title="=XLOOKUP(E...,date_of_join!$A$2:$A$19392,date_of_join!$C$2:$C$19392)">
-                        <strong>G (DOJ):</strong> =XLOOKUP(...)
-                      </span>
-                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate">
-                        <strong>H (Mesin):</strong> {formData.machineName || '1Needle Lockstitch'}
-                      </span>
-                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate">
-                        <strong>I (Style):</strong> {formData.styleNo || 'NB17HQ271140'}
-                      </span>
-                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate">
-                        <strong>J (Process):</strong> {formData.process || 'SEWING'}
-                      </span>
-                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate">
-                        <strong>K-M:</strong> 0 | 0 | 0%
-                      </span>
-                      <span className="bg-emerald-600 text-white px-2 py-1 rounded font-bold truncate">
-                        <strong>N (POIN):</strong> {formData.points ?? 0}
-                      </span>
-                      <span className="bg-amber-50/90 px-2 py-1 rounded border border-amber-200 truncate text-[9px] text-amber-900" title="=DATEDIF(G..., D..., 'M')">
-                        <strong>O (Masa Kerja):</strong> =DATEDIF(...)
-                      </span>
-                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate text-[9px]">
-                        <strong>P (Resign):</strong> =XLOOKUP(...)
-                      </span>
-                      <span className="bg-white/90 px-2 py-1 rounded border border-emerald-200 truncate text-[9px]">
-                        <strong>Q (Kat Mesin):</strong> =INDEX(...)
-                      </span>
-                      <span className="bg-emerald-700 text-white px-2 py-1 rounded font-bold truncate col-span-2 sm:col-span-1">
-                        <strong>R:</strong> ACTIVE
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Form Action Buttons */}
               <div className="pt-4 border-t border-[#E0E8E8] flex items-center justify-end space-x-2">

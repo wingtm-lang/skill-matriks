@@ -508,6 +508,12 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#EAF5F5] text-[#102A2A] flex flex-col lg:flex-row antialiased selection:bg-[#214E49] selection:text-white animate-fadeInSmooth">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2.5 focus:rounded-xl focus:bg-[#102A2A] focus:text-white focus:font-bold focus:text-xs focus:shadow-xl focus:outline-2 focus:outline-[#0b5fff] focus:outline-offset-2"
+      >
+        Skip to main content
+      </a>
       
       {/* SIDEBAR NAVIGATION */}
       <Sidebar
@@ -532,7 +538,7 @@ export default function App() {
       />
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 flex flex-col p-3 sm:p-5 lg:p-6 overflow-x-hidden min-h-screen">
+      <main id="main-content" tabIndex={-1} className="flex-1 flex flex-col p-3 sm:p-5 lg:p-6 overflow-x-hidden min-h-screen scroll-mt-4 focus:outline-none">
         
         {/* TOP HEADER WITH POINT-IN-TIME CONTROLS */}
         <Header
@@ -557,10 +563,11 @@ export default function App() {
         {syncError && (
           <div className="mb-4 p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl flex items-center justify-between text-xs shadow-2xs">
             <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" aria-hidden="true" />
               <span>{syncError}</span>
             </div>
             <button
+              type="button"
               onClick={fetchLiveOperators}
               className="font-bold underline text-amber-800 hover:text-amber-950 ml-3 cursor-pointer shrink-0"
             >

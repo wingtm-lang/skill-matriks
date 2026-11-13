@@ -533,7 +533,7 @@ export const MultiSkillDevelopmentTab: React.FC<MultiSkillDevelopmentTabProps> =
             <select
               value={selectedOpId}
               onChange={(e) => setSelectedOpId(e.target.value)}
-              className="w-full bg-[#F8F8F8] border border-[#E0E8E8] text-[#304848] text-xs font-semibold rounded-xl p-2.5 focus:border-[#D0A018] outline-none cursor-pointer"
+              className="w-full bg-[#F8F8F8] border border-[#E0E8E8] text-[#304848] text-xs font-semibold rounded-xl p-2.5 focus:border-[#D0A018] cursor-pointer"
             >
               {activeOperators.length === 0 ? (
                 <option value="">{t.multiSkill.noOperatorsInLine}</option>
@@ -633,7 +633,7 @@ export const MultiSkillDevelopmentTab: React.FC<MultiSkillDevelopmentTabProps> =
             <select
               value={targetMachine}
               onChange={(e) => setTargetMachine(e.target.value as MachineCategory)}
-              className="w-full bg-[#F8F8F8] border border-[#E0E8E8] text-[#304848] text-xs font-semibold rounded-xl p-2.5 focus:border-[#D0A018] outline-none cursor-pointer"
+              className="w-full bg-[#F8F8F8] border border-[#E0E8E8] text-[#304848] text-xs font-semibold rounded-xl p-2.5 focus:border-[#D0A018] cursor-pointer"
             >
               <option value="OVERLOCK">Overlock (O/L 3-4 Benang)</option>
               <option value="FLATSEAM">Flatseam (4 Needle 6 Thread - High Skill)</option>

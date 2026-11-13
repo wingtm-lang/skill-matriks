@@ -82,12 +82,12 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
               </p>
             </div>
             <div className="p-2.5 bg-[#EAF5F5] text-[#214E49] rounded-[10px] border border-[#D8E5E5] shrink-0">
-              <Users className="w-5 h-5" />
+              <Users className="w-5 h-5" aria-hidden="true" />
             </div>
           </div>
           <div className="mt-4 pt-3 border-t border-[#D8E5E5] flex items-center justify-between text-xs">
             <span className="text-[#12B886] font-semibold flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5" />
+              <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
               {t.metrics.readyToWork}
             </span>
             <span className="text-[#647878] font-medium">{selectedFactory} • {selectedLine}</span>
@@ -109,12 +109,12 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
               </p>
             </div>
             <div className="p-2.5 bg-[#FEF6E7] text-[#C77E05] rounded-[10px] border border-[#FCDCA0] shrink-0">
-              <TrendingUp className="w-5 h-5" />
+              <TrendingUp className="w-5 h-5" aria-hidden="true" />
             </div>
           </div>
           <div className="mt-4 pt-3 border-t border-[#D8E5E5] flex items-center justify-between text-xs">
             <div className="flex items-center gap-1.5">
-              <span className={`w-5 h-5 flex items-center justify-center text-[10px] font-bold rounded-[6px] ${gradeInfo.cssBadge}`}>
+              <span className={`w-5 h-5 flex items-center justify-center text-[10px] font-bold rounded-[6px] ${gradeInfo.cssBadge}`} aria-hidden="true">
                 {gradeInfo.letter || gradeInfo.grade.charAt(0)}
               </span>
               <span className="text-[11px] font-semibold text-[#102A2A]">
@@ -140,14 +140,14 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
               </p>
             </div>
             <div className="p-2.5 bg-[#EBF6FC] text-[#0F78AC] rounded-[10px] border border-[#BEDFF4] shrink-0">
-              <Cpu className="w-5 h-5" />
+              <Cpu className="w-5 h-5" aria-hidden="true" />
             </div>
           </div>
           <div className="mt-4 pt-3 border-t border-[#D8E5E5] flex items-center justify-between text-xs">
-            <span className="text-[#1477B8] font-semibold">
+            <span className="text-[#0369A1] font-bold">
               {multiskillPct}% {t.metrics.ofPopulation}
             </span>
-            <span className="text-[#647878] font-medium">{t.metrics.rebalancingReadiness}</span>
+            <span className="text-[#374151] font-semibold">{t.metrics.rebalancingReadiness}</span>
           </div>
         </div>
 
@@ -157,11 +157,11 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* CHIEF */}
         <div className="flex items-center gap-3 p-3 rounded-[12px] bg-white border border-[#D8E5E5]">
-          <div className="w-8 h-8 rounded-[8px] bg-[#E8F8F2] border border-[#B8EBD8] flex items-center justify-center text-[#0E936B] font-bold shrink-0">
-            <Award className="w-4 h-4 text-[#0E936B]" />
+          <div className="w-8 h-8 rounded-[8px] bg-[#E8F8F2] border border-[#B8EBD8] flex items-center justify-center text-[#065F46] font-bold shrink-0">
+            <Award className="w-4 h-4 text-[#065F46]" aria-hidden="true" />
           </div>
           <div className="min-w-0 flex-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#0E936B] block">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#065F46] block">
               {t.metrics.chiefLabel}
             </span>
             <p className="text-[13px] font-bold text-[#102A2A] truncate" title={currentLeader.chief}>
@@ -172,11 +172,11 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
 
         {/* SUPERVISOR */}
         <div className="flex items-center gap-3 p-3 rounded-[12px] bg-white border border-[#D8E5E5]">
-          <div className="w-8 h-8 rounded-[8px] bg-[#EBF6FC] border border-[#BEDFF4] flex items-center justify-center text-[#0F78AC] font-bold shrink-0">
-            <UserCheck className="w-4 h-4 text-[#0F78AC]" />
+          <div className="w-8 h-8 rounded-[8px] bg-[#EBF6FC] border border-[#BEDFF4] flex items-center justify-center text-[#0369A1] font-bold shrink-0">
+            <UserCheck className="w-4 h-4 text-[#0369A1]" aria-hidden="true" />
           </div>
           <div className="min-w-0 flex-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#0F78AC] block">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#0369A1] block">
               {t.metrics.supervisorLabel}
             </span>
             <p className="text-[13px] font-bold text-[#102A2A] truncate" title={currentLeader.supervisor}>
@@ -187,11 +187,11 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
 
         {/* INDUSTRIAL ENGINEER / IE */}
         <div className="flex items-center gap-3 p-3 rounded-[12px] bg-white border border-[#D8E5E5]">
-          <div className="w-8 h-8 rounded-[8px] bg-[#FEF6E7] border border-[#FCDCA0] flex items-center justify-center text-[#C77E05] font-bold shrink-0">
-            <Cog className="w-4 h-4 text-[#C77E05]" />
+          <div className="w-8 h-8 rounded-[8px] bg-[#FEF6E7] border border-[#FCDCA0] flex items-center justify-center text-[#B45309] font-bold shrink-0">
+            <Cog className="w-4 h-4 text-[#B45309]" aria-hidden="true" />
           </div>
           <div className="min-w-0 flex-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#C77E05] block">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#B45309] block">
               {t.metrics.ieLabel}
             </span>
             <p className="text-[13px] font-bold text-[#102A2A] truncate" title={currentLeader.ie}>

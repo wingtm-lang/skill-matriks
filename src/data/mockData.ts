@@ -108,10 +108,10 @@ export const getGradeFromTotalPoints = (totalPoints: number, isHelper: boolean =
     return { grade: 'HELPER' as GradeType, label: 'Helper', letter: 'H', cssBadge: 'bg-[#475569] text-white border border-[#334155]' };
   }
   if (safePoints > 13) {
-    return { grade: 'S' as GradeType, label: 'Grade S', letter: 'S', cssBadge: 'bg-[#059669] text-white border border-[#047857]' };
+    return { grade: 'S' as GradeType, label: 'Grade S', letter: 'S', cssBadge: 'bg-[#6D28D9] text-white border border-[#5B21B6]' };
   }
   if (safePoints >= 8) {
-    return { grade: 'A' as GradeType, label: 'Grade A', letter: 'A', cssBadge: 'bg-[#0d9488] text-white border border-[#0f766e]' };
+    return { grade: 'A' as GradeType, label: 'Grade A', letter: 'A', cssBadge: 'bg-[#047857] text-white border border-[#065F46]' };
   }
   if (safePoints >= 4) {
     return { grade: 'B' as GradeType, label: 'Grade B', letter: 'B', cssBadge: 'bg-[#0284c7] text-white border border-[#0369a1]' };

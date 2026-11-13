@@ -326,20 +326,31 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
       <div className="ops-card p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="w-10 h-10 rounded-[10px] bg-[#214E49] flex items-center justify-center text-[#F4C430] shadow-xs shrink-0">
-            <Building2 className="w-5 h-5" />
+            <Building2 className="w-5 h-5" aria-hidden="true" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-lg sm:text-[20px] font-bold text-[#102A2A] tracking-tight">
                 {selectedFactory}
               </h1>
-              <span className="text-[#A5BDBD]">•</span>
+              <span className="text-[#A5BDBD]" aria-hidden="true">•</span>
               <span className="text-xs font-semibold text-[#214E49] bg-[#EAF5F5] px-2.5 py-0.5 rounded-[6px] border border-[#D8E5E5]">
                 {monthLabel} {selectedYear}
               </span>
-              <div className="relative group/info inline-flex items-center cursor-help ml-0.5" title={t.overallDashboard.tabSubtitle}>
-                <Info className="w-4 h-4 text-[#647878] hover:text-[#102A2A] transition-colors" />
-                <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover/info:flex flex-col items-center z-50 pointer-events-none w-max max-w-xs sm:max-w-sm">
+              <div className="relative inline-flex items-center ml-0.5">
+                <button
+                  type="button"
+                  aria-label={`Info: ${selectedFactory}`}
+                  aria-describedby="tip-dashboard-overview"
+                  className="peer p-0.5 rounded-full text-[#374151] hover:text-[#102A2A] transition-colors cursor-help"
+                >
+                  <Info className="w-4 h-4" aria-hidden="true" />
+                </button>
+                <div
+                  id="tip-dashboard-overview"
+                  role="tooltip"
+                  className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden peer-hover:flex peer-focus:flex peer-focus-visible:flex flex-col items-center z-50 pointer-events-none w-max max-w-xs sm:max-w-sm"
+                >
                   <div className="bg-[#163F3B] text-white text-[11px] font-normal leading-normal px-2.5 py-1.5 rounded-[8px] shadow-lg border border-[#2E625C] text-center">
                     {t.overallDashboard.tabSubtitle}
                   </div>
@@ -398,114 +409,153 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
             <div>
               <div className="flex items-center justify-between text-[#A3C8C4]">
                 <span className="text-[11px] font-bold uppercase tracking-wider">{t.overallDashboard.totalOperatorCardTitle}</span>
-                <Users className="w-4 h-4 text-[#F4C430]" />
+                <Users className="w-4 h-4 text-[#F4C430]" aria-hidden="true" />
               </div>
               <div className="text-3xl font-bold tracking-tight mt-2 text-white tabular-nums">
                 {factoryStats.total.toLocaleString()}
               </div>
-              <p className="text-[11px] text-[#A3C8C4] mt-0.5">
+              <p className="text-xs font-semibold text-emerald-100 mt-0.5">
                 {isAllFactory ? 'All Factories Population' : t.overallDashboard.totalOperatorPopSubtitle.replace('{factory}', selectedFactory)}
               </p>
             </div>
             <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-[11px]">
-              <span className="text-[#A3C8C4]">{t.overallDashboard.multiSkillOfTotal}</span>
+              <span className="text-emerald-100 font-medium">{t.overallDashboard.multiSkillOfTotal}</span>
               <span className="font-bold text-[#F4C430] tabular-nums">{factoryStats.multiSkillRate}% ({factoryStats.multiSkillCount} {t.overallDashboard.opUnit})</span>
             </div>
           </div>
 
           {/* 2. Grade S Card */}
-          <div className="ops-card ops-card-hover p-3.5 sm:p-4 border-l-4 border-l-[#12B886] flex flex-col justify-between relative overflow-hidden group">
+          <div className="ops-card ops-card-hover p-3.5 sm:p-4 border-l-4 border-l-[#7C3AED] flex flex-col justify-between relative group">
             <div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#12B886] shrink-0" />
+                  <span className="w-2 h-2 rounded-full bg-[#7C3AED] shrink-0" aria-hidden="true" />
                   <span className="text-xs font-bold text-[#102A2A] uppercase tracking-wide">
                     {t.overallDashboard.gradeSTitle}
                   </span>
                 </div>
-                <div 
-                  className="cursor-help text-[#647878] hover:text-[#102A2A] transition-colors p-0.5"
-                  title={`${t.overallDashboard.criteriaLabel} ${t.overallDashboard.criteriaS}`}
-                >
-                  <Info className="w-3.5 h-3.5" />
+                <div className="relative inline-flex items-center">
+                  <button
+                    type="button"
+                    aria-label={`Info: ${t.overallDashboard.gradeSTitle}`}
+                    aria-describedby="tip-grade-s"
+                    className="peer cursor-help text-[#374151] hover:text-[#102A2A] rounded-full transition-colors p-0.5"
+                  >
+                    <Info className="w-3.5 h-3.5" aria-hidden="true" />
+                  </button>
+                  <div
+                    id="tip-grade-s"
+                    role="tooltip"
+                    className="absolute right-0 bottom-full mb-2 hidden peer-hover:flex peer-focus:flex peer-focus-visible:flex flex-col items-end z-50 pointer-events-none w-max max-w-[200px]"
+                  >
+                    <div className="bg-[#163F3B] text-white text-[11px] font-medium leading-normal px-2.5 py-1.5 rounded-[8px] shadow-lg border border-[#2E625C]">
+                      {t.overallDashboard.criteriaLabel} {t.overallDashboard.criteriaS}
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="text-2xl sm:text-[28px] font-bold text-[#102A2A] mt-2 tabular-nums">
                 {factoryStats.countS}
               </div>
-              <p className="text-xs text-[#647878] font-medium mt-0.5">
+              <p className="text-xs text-[#374151] font-semibold mt-0.5">
                 <span className="font-bold text-[#102A2A]">{factoryStats.pctS}%</span> {t.overallDashboard.ofTotal}
               </p>
             </div>
 
             {/* Logo Huruf S Menonjol Kanan Bawah */}
-            <div className="absolute right-3 bottom-2.5 sm:right-3.5 sm:bottom-3 flex items-center justify-center pointer-events-none select-none">
-              <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-[10px] bg-[#12B886]/15 border-2 border-[#12B886]/45 text-[#0E936B] font-black text-xl sm:text-2xl flex items-center justify-center shadow-xs font-sans tracking-tight">
+            <div className="absolute right-3 bottom-2.5 sm:right-3.5 sm:bottom-3 flex items-center justify-center pointer-events-none select-none" aria-hidden="true">
+              <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-[10px] bg-[#7C3AED]/12 border-2 border-[#7C3AED]/45 text-[#5B21B6] font-black text-xl sm:text-2xl flex items-center justify-center shadow-xs font-sans tracking-tight">
                 S
               </span>
             </div>
           </div>
 
           {/* 3. Grade A Card */}
-          <div className="ops-card ops-card-hover p-3.5 sm:p-4 border-l-4 border-l-[#12B886] flex flex-col justify-between relative overflow-hidden group">
+          <div className="ops-card ops-card-hover p-3.5 sm:p-4 border-l-4 border-l-[#059669] flex flex-col justify-between relative group">
             <div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#12B886] shrink-0" />
+                  <span className="w-2 h-2 rounded-full bg-[#059669] shrink-0" aria-hidden="true" />
                   <span className="text-xs font-bold text-[#102A2A] uppercase tracking-wide">
                     {t.overallDashboard.gradeATitle}
                   </span>
                 </div>
-                <div 
-                  className="cursor-help text-[#647878] hover:text-[#102A2A] transition-colors p-0.5"
-                  title={`${t.overallDashboard.criteriaLabel} ${t.overallDashboard.criteriaA}`}
-                >
-                  <Info className="w-3.5 h-3.5" />
+                <div className="relative inline-flex items-center">
+                  <button
+                    type="button"
+                    aria-label={`Info: ${t.overallDashboard.gradeATitle}`}
+                    aria-describedby="tip-grade-a"
+                    className="peer cursor-help text-[#374151] hover:text-[#102A2A] rounded-full transition-colors p-0.5"
+                  >
+                    <Info className="w-3.5 h-3.5" aria-hidden="true" />
+                  </button>
+                  <div
+                    id="tip-grade-a"
+                    role="tooltip"
+                    className="absolute right-0 bottom-full mb-2 hidden peer-hover:flex peer-focus:flex peer-focus-visible:flex flex-col items-end z-50 pointer-events-none w-max max-w-[200px]"
+                  >
+                    <div className="bg-[#163F3B] text-white text-[11px] font-medium leading-normal px-2.5 py-1.5 rounded-[8px] shadow-lg border border-[#2E625C]">
+                      {t.overallDashboard.criteriaLabel} {t.overallDashboard.criteriaA}
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="text-2xl sm:text-[28px] font-bold text-[#102A2A] mt-2 tabular-nums">
                 {factoryStats.countA}
               </div>
-              <p className="text-xs text-[#647878] font-medium mt-0.5">
+              <p className="text-xs text-[#374151] font-semibold mt-0.5">
                 <span className="font-bold text-[#102A2A]">{factoryStats.pctA}%</span> {t.overallDashboard.ofTotal}
               </p>
             </div>
 
             {/* Logo Huruf A Menonjol Kanan Bawah */}
-            <div className="absolute right-3 bottom-2.5 sm:right-3.5 sm:bottom-3 flex items-center justify-center pointer-events-none select-none">
-              <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-[10px] bg-[#12B886]/15 border-2 border-[#12B886]/45 text-[#0E936B] font-black text-xl sm:text-2xl flex items-center justify-center shadow-xs font-sans tracking-tight">
+            <div className="absolute right-3 bottom-2.5 sm:right-3.5 sm:bottom-3 flex items-center justify-center pointer-events-none select-none" aria-hidden="true">
+              <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-[10px] bg-[#10B981]/15 border-2 border-[#10B981]/45 text-[#047857] font-black text-xl sm:text-2xl flex items-center justify-center shadow-xs font-sans tracking-tight">
                 A
               </span>
             </div>
           </div>
 
           {/* 4. Grade B Card */}
-          <div className="ops-card ops-card-hover p-3.5 sm:p-4 border-l-4 border-l-[#1597D4] flex flex-col justify-between relative overflow-hidden group">
+          <div className="ops-card ops-card-hover p-3.5 sm:p-4 border-l-4 border-l-[#1597D4] flex flex-col justify-between relative group">
             <div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#1597D4] shrink-0" />
+                  <span className="w-2 h-2 rounded-full bg-[#1597D4] shrink-0" aria-hidden="true" />
                   <span className="text-xs font-bold text-[#102A2A] uppercase tracking-wide">
                     {t.overallDashboard.gradeBTitle}
                   </span>
                 </div>
-                <div 
-                  className="cursor-help text-[#647878] hover:text-[#102A2A] transition-colors p-0.5"
-                  title={`${t.overallDashboard.criteriaLabel} ${t.overallDashboard.criteriaB}`}
-                >
-                  <Info className="w-3.5 h-3.5" />
+                <div className="relative inline-flex items-center">
+                  <button
+                    type="button"
+                    aria-label={`Info: ${t.overallDashboard.gradeBTitle}`}
+                    aria-describedby="tip-grade-b"
+                    className="peer cursor-help text-[#374151] hover:text-[#102A2A] rounded-full transition-colors p-0.5"
+                  >
+                    <Info className="w-3.5 h-3.5" aria-hidden="true" />
+                  </button>
+                  <div
+                    id="tip-grade-b"
+                    role="tooltip"
+                    className="absolute right-0 bottom-full mb-2 hidden peer-hover:flex peer-focus:flex peer-focus-visible:flex flex-col items-end z-50 pointer-events-none w-max max-w-[200px]"
+                  >
+                    <div className="bg-[#163F3B] text-white text-[11px] font-medium leading-normal px-2.5 py-1.5 rounded-[8px] shadow-lg border border-[#2E625C]">
+                      {t.overallDashboard.criteriaLabel} {t.overallDashboard.criteriaB}
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="text-2xl sm:text-[28px] font-bold text-[#102A2A] mt-2 tabular-nums">
                 {factoryStats.countB}
               </div>
-              <p className="text-xs text-[#647878] font-medium mt-0.5">
+              <p className="text-xs text-[#374151] font-semibold mt-0.5">
                 <span className="font-bold text-[#102A2A]">{factoryStats.pctB}%</span> {t.overallDashboard.ofTotal}
               </p>
             </div>
 
             {/* Logo Huruf B Menonjol Kanan Bawah */}
-            <div className="absolute right-3 bottom-2.5 sm:right-3.5 sm:bottom-3 flex items-center justify-center pointer-events-none select-none">
+            <div className="absolute right-3 bottom-2.5 sm:right-3.5 sm:bottom-3 flex items-center justify-center pointer-events-none select-none" aria-hidden="true">
               <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-[10px] bg-[#1597D4]/15 border-2 border-[#1597D4]/45 text-[#0F78AC] font-black text-xl sm:text-2xl flex items-center justify-center shadow-xs font-sans tracking-tight">
                 B
               </span>
@@ -513,32 +563,45 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
           </div>
 
           {/* 5. Grade C Card */}
-          <div className="ops-card ops-card-hover p-3.5 sm:p-4 border-l-4 border-l-[#F59E0B] flex flex-col justify-between relative overflow-hidden group">
+          <div className="ops-card ops-card-hover p-3.5 sm:p-4 border-l-4 border-l-[#F59E0B] flex flex-col justify-between relative group">
             <div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#F59E0B] shrink-0" />
+                  <span className="w-2 h-2 rounded-full bg-[#F59E0B] shrink-0" aria-hidden="true" />
                   <span className="text-xs font-bold text-[#102A2A] uppercase tracking-wide">
                     {t.overallDashboard.gradeCTitle}
                   </span>
                 </div>
-                <div 
-                  className="cursor-help text-[#647878] hover:text-[#102A2A] transition-colors p-0.5"
-                  title={`${t.overallDashboard.criteriaLabel} ${t.overallDashboard.criteriaC}`}
-                >
-                  <Info className="w-3.5 h-3.5" />
+                <div className="relative inline-flex items-center">
+                  <button
+                    type="button"
+                    aria-label={`Info: ${t.overallDashboard.gradeCTitle}`}
+                    aria-describedby="tip-grade-c"
+                    className="peer cursor-help text-[#374151] hover:text-[#102A2A] rounded-full transition-colors p-0.5"
+                  >
+                    <Info className="w-3.5 h-3.5" aria-hidden="true" />
+                  </button>
+                  <div
+                    id="tip-grade-c"
+                    role="tooltip"
+                    className="absolute right-0 bottom-full mb-2 hidden peer-hover:flex peer-focus:flex peer-focus-visible:flex flex-col items-end z-50 pointer-events-none w-max max-w-[200px]"
+                  >
+                    <div className="bg-[#163F3B] text-white text-[11px] font-medium leading-normal px-2.5 py-1.5 rounded-[8px] shadow-lg border border-[#2E625C]">
+                      {t.overallDashboard.criteriaLabel} {t.overallDashboard.criteriaC}
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="text-2xl sm:text-[28px] font-bold text-[#102A2A] mt-2 tabular-nums">
                 {factoryStats.countC}
               </div>
-              <p className="text-xs text-[#647878] font-medium mt-0.5">
+              <p className="text-xs text-[#374151] font-semibold mt-0.5">
                 <span className="font-bold text-[#102A2A]">{factoryStats.pctC}%</span> {t.overallDashboard.ofTotal}
               </p>
             </div>
 
             {/* Logo Huruf C Menonjol Kanan Bawah */}
-            <div className="absolute right-3 bottom-2.5 sm:right-3.5 sm:bottom-3 flex items-center justify-center pointer-events-none select-none">
+            <div className="absolute right-3 bottom-2.5 sm:right-3.5 sm:bottom-3 flex items-center justify-center pointer-events-none select-none" aria-hidden="true">
               <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-[10px] bg-[#F59E0B]/15 border-2 border-[#F59E0B]/45 text-[#C77E05] font-black text-xl sm:text-2xl flex items-center justify-center shadow-xs font-sans tracking-tight">
                 C
               </span>
@@ -546,32 +609,45 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
           </div>
 
           {/* 6. Helper Card */}
-          <div className="ops-card ops-card-hover p-3.5 sm:p-4 border-l-4 border-l-[#94A3B8] flex flex-col justify-between relative overflow-hidden group">
+          <div className="ops-card ops-card-hover p-3.5 sm:p-4 border-l-4 border-l-[#94A3B8] flex flex-col justify-between relative group">
             <div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#94A3B8] shrink-0" />
+                  <span className="w-2 h-2 rounded-full bg-[#94A3B8] shrink-0" aria-hidden="true" />
                   <span className="text-xs font-bold text-[#102A2A] uppercase tracking-wide">
                     {t.overallDashboard.helperTitle}
                   </span>
                 </div>
-                <div 
-                  className="cursor-help text-[#647878] hover:text-[#102A2A] transition-colors p-0.5"
-                  title={`${t.overallDashboard.criteriaLabel} ${t.overallDashboard.criteriaHelper}`}
-                >
-                  <Info className="w-3.5 h-3.5" />
+                <div className="relative inline-flex items-center">
+                  <button
+                    type="button"
+                    aria-label={`Info: ${t.overallDashboard.helperTitle}`}
+                    aria-describedby="tip-grade-h"
+                    className="peer cursor-help text-[#374151] hover:text-[#102A2A] rounded-full transition-colors p-0.5"
+                  >
+                    <Info className="w-3.5 h-3.5" aria-hidden="true" />
+                  </button>
+                  <div
+                    id="tip-grade-h"
+                    role="tooltip"
+                    className="absolute right-0 bottom-full mb-2 hidden peer-hover:flex peer-focus:flex peer-focus-visible:flex flex-col items-end z-50 pointer-events-none w-max max-w-[200px]"
+                  >
+                    <div className="bg-[#163F3B] text-white text-[11px] font-medium leading-normal px-2.5 py-1.5 rounded-[8px] shadow-lg border border-[#2E625C]">
+                      {t.overallDashboard.criteriaLabel} {t.overallDashboard.criteriaHelper}
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="text-2xl sm:text-[28px] font-bold text-[#102A2A] mt-2 tabular-nums">
                 {factoryStats.countHelper}
               </div>
-              <p className="text-xs text-[#647878] font-medium mt-0.5">
+              <p className="text-xs text-[#374151] font-semibold mt-0.5">
                 <span className="font-bold text-[#102A2A]">{factoryStats.pctHelper}%</span> {t.overallDashboard.ofTotal}
               </p>
             </div>
 
             {/* Logo Huruf H Menonjol Kanan Bawah */}
-            <div className="absolute right-3 bottom-2.5 sm:right-3.5 sm:bottom-3 flex items-center justify-center pointer-events-none select-none">
+            <div className="absolute right-3 bottom-2.5 sm:right-3.5 sm:bottom-3 flex items-center justify-center pointer-events-none select-none" aria-hidden="true">
               <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-[10px] bg-[#94A3B8]/20 border-2 border-[#94A3B8]/45 text-[#475569] font-black text-xl sm:text-2xl flex items-center justify-center shadow-xs font-sans tracking-tight">
                 H
               </span>
@@ -584,61 +660,150 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
         <div className="ops-card p-4 sm:p-5 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-[#102A2A] flex items-center gap-2">
-              <BarChart2 className="w-4 h-4 text-[#214E49]" />
+              <BarChart2 className="w-4 h-4 text-[#214E49]" aria-hidden="true" />
               {t.overallDashboard.visualDistTitle.replace('{factory}', selectedFactory).replace('{period}', `${monthLabel} ${selectedYear}`)}
             </span>
-            <span className="text-xs font-semibold text-[#647878]">
-              Total: <strong className="text-[#102A2A]">{t.overallDashboard.totalOperatorsLabel.replace('{total}', String(factoryStats.total))}</strong>
+            <span className="text-xs font-semibold text-[#374151]">
+              <strong className="text-[#102A2A]">{t.overallDashboard.totalOperatorsLabel.replace('{total}', String(factoryStats.total))}</strong>
             </span>
           </div>
 
           {/* The Multi-Segment Bar */}
-          <div className="h-6 w-full bg-[#EAF5F5] rounded-[8px] overflow-hidden flex shadow-inner">
+          <div className="h-7 w-full bg-[#EAF5F5] rounded-[8px] flex shadow-inner [&>*:first-child]:rounded-l-[8px] [&>*:last-child]:rounded-r-[8px]">
             {factoryStats.countS > 0 && (
-              <div 
-                style={{ width: `${factoryStats.pctS}%` }} 
-                className="bg-[#12B886] hover:brightness-110 transition-all relative group cursor-pointer flex items-center justify-center text-[11px] text-white font-bold"
-                title={`Grade S: ${factoryStats.countS} ${t.overallDashboard.opUnit} (${factoryStats.pctS}%)`}
+              <div
+                tabIndex={0}
+                style={{ width: `${factoryStats.pctS}%` }}
+                className="bg-[#6D28D9] hover:brightness-110 transition-all relative group cursor-pointer flex items-center justify-center text-xs text-white font-black"
+                title={`${t.overallDashboard.gradeSTitle}: ${factoryStats.countS} ${t.overallDashboard.opUnit} (${factoryStats.pctS}%)`}
+                aria-label={`${t.overallDashboard.gradeSTitle}: ${factoryStats.countS} ${t.overallDashboard.opUnit} (${factoryStats.pctS}%)`}
               >
-                {parseFloat(factoryStats.pctS) >= 5 && `${factoryStats.pctS}%`}
+                {parseFloat(factoryStats.pctS) >= 9
+                  ? `S · ${factoryStats.pctS}%`
+                  : parseFloat(factoryStats.pctS) >= 5
+                  ? `${factoryStats.pctS}%`
+                  : ''}
+                <div className="hidden group-hover:flex group-focus-visible:flex flex-col items-center absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-30 pointer-events-none">
+                  <div className="bg-[#102A2A] text-white text-[11px] font-bold px-2.5 py-1 rounded-[6px] shadow-lg whitespace-nowrap border border-white/15">
+                    {t.overallDashboard.gradeSTitle} (S): {factoryStats.countS} {t.overallDashboard.opUnit} ({factoryStats.pctS}%)
+                  </div>
+                  <div className="w-2 h-2 bg-[#102A2A] rotate-45 -mt-1" />
+                </div>
               </div>
             )}
             {factoryStats.countA > 0 && (
-              <div 
-                style={{ width: `${factoryStats.pctA}%` }} 
-                className="bg-[#0E936B] hover:brightness-110 transition-all relative group cursor-pointer flex items-center justify-center text-[11px] text-white font-bold"
-                title={`Grade A: ${factoryStats.countA} ${t.overallDashboard.opUnit} (${factoryStats.pctA}%)`}
+              <div
+                tabIndex={0}
+                style={{ width: `${factoryStats.pctA}%` }}
+                className="bg-[#047857] hover:brightness-110 transition-all relative group cursor-pointer flex items-center justify-center text-xs text-white font-black"
+                title={`${t.overallDashboard.gradeATitle}: ${factoryStats.countA} ${t.overallDashboard.opUnit} (${factoryStats.pctA}%)`}
+                aria-label={`${t.overallDashboard.gradeATitle}: ${factoryStats.countA} ${t.overallDashboard.opUnit} (${factoryStats.pctA}%)`}
               >
-                {parseFloat(factoryStats.pctA) >= 5 && `${factoryStats.pctA}%`}
+                {parseFloat(factoryStats.pctA) >= 9
+                  ? `A · ${factoryStats.pctA}%`
+                  : parseFloat(factoryStats.pctA) >= 5
+                  ? `${factoryStats.pctA}%`
+                  : ''}
+                <div className="hidden group-hover:flex group-focus-visible:flex flex-col items-center absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-30 pointer-events-none">
+                  <div className="bg-[#102A2A] text-white text-[11px] font-bold px-2.5 py-1 rounded-[6px] shadow-lg whitespace-nowrap border border-white/15">
+                    {t.overallDashboard.gradeATitle} (A): {factoryStats.countA} {t.overallDashboard.opUnit} ({factoryStats.pctA}%)
+                  </div>
+                  <div className="w-2 h-2 bg-[#102A2A] rotate-45 -mt-1" />
+                </div>
               </div>
             )}
             {factoryStats.countB > 0 && (
-              <div 
-                style={{ width: `${factoryStats.pctB}%` }} 
-                className="bg-[#1597D4] hover:brightness-110 transition-all relative group cursor-pointer flex items-center justify-center text-[11px] text-white font-bold"
-                title={`Grade B: ${factoryStats.countB} ${t.overallDashboard.opUnit} (${factoryStats.pctB}%)`}
+              <div
+                tabIndex={0}
+                style={{ width: `${factoryStats.pctB}%` }}
+                className="bg-[#38BDF8] hover:brightness-105 transition-all relative group cursor-pointer flex items-center justify-center text-xs text-[#082F49] font-black"
+                title={`${t.overallDashboard.gradeBTitle}: ${factoryStats.countB} ${t.overallDashboard.opUnit} (${factoryStats.pctB}%)`}
+                aria-label={`${t.overallDashboard.gradeBTitle}: ${factoryStats.countB} ${t.overallDashboard.opUnit} (${factoryStats.pctB}%)`}
               >
-                {parseFloat(factoryStats.pctB) >= 5 && `${factoryStats.pctB}%`}
+                {parseFloat(factoryStats.pctB) >= 9
+                  ? `B · ${factoryStats.pctB}%`
+                  : parseFloat(factoryStats.pctB) >= 5
+                  ? `${factoryStats.pctB}%`
+                  : ''}
+                <div className="hidden group-hover:flex group-focus-visible:flex flex-col items-center absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-30 pointer-events-none">
+                  <div className="bg-[#102A2A] text-white text-[11px] font-bold px-2.5 py-1 rounded-[6px] shadow-lg whitespace-nowrap border border-white/15">
+                    {t.overallDashboard.gradeBTitle} (B): {factoryStats.countB} {t.overallDashboard.opUnit} ({factoryStats.pctB}%)
+                  </div>
+                  <div className="w-2 h-2 bg-[#102A2A] rotate-45 -mt-1" />
+                </div>
               </div>
             )}
             {factoryStats.countC > 0 && (
-              <div 
-                style={{ width: `${factoryStats.pctC}%` }} 
-                className="bg-[#F59E0B] hover:brightness-110 transition-all relative group cursor-pointer flex items-center justify-center text-[11px] text-white font-bold"
-                title={`Grade C: ${factoryStats.countC} ${t.overallDashboard.opUnit} (${factoryStats.pctC}%)`}
+              <div
+                tabIndex={0}
+                style={{ width: `${factoryStats.pctC}%` }}
+                className="bg-[#F59E0B] hover:brightness-105 transition-all relative group cursor-pointer flex items-center justify-center text-xs text-[#451A03] font-black"
+                title={`${t.overallDashboard.gradeCTitle}: ${factoryStats.countC} ${t.overallDashboard.opUnit} (${factoryStats.pctC}%)`}
+                aria-label={`${t.overallDashboard.gradeCTitle}: ${factoryStats.countC} ${t.overallDashboard.opUnit} (${factoryStats.pctC}%)`}
               >
-                {parseFloat(factoryStats.pctC) >= 5 && `${factoryStats.pctC}%`}
+                {parseFloat(factoryStats.pctC) >= 9
+                  ? `C · ${factoryStats.pctC}%`
+                  : parseFloat(factoryStats.pctC) >= 5
+                  ? `${factoryStats.pctC}%`
+                  : ''}
+                <div className="hidden group-hover:flex group-focus-visible:flex flex-col items-center absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-30 pointer-events-none">
+                  <div className="bg-[#102A2A] text-white text-[11px] font-bold px-2.5 py-1 rounded-[6px] shadow-lg whitespace-nowrap border border-white/15">
+                    {t.overallDashboard.gradeCTitle} (C): {factoryStats.countC} {t.overallDashboard.opUnit} ({factoryStats.pctC}%)
+                  </div>
+                  <div className="w-2 h-2 bg-[#102A2A] rotate-45 -mt-1" />
+                </div>
               </div>
             )}
             {factoryStats.countHelper > 0 && (
-              <div 
-                style={{ width: `${factoryStats.pctHelper}%` }} 
-                className="bg-[#94A3B8] hover:brightness-110 transition-all relative group cursor-pointer flex items-center justify-center text-[11px] text-white font-bold"
-                title={`Helper: ${factoryStats.countHelper} ${t.overallDashboard.opUnit} (${factoryStats.pctHelper}%)`}
+              <div
+                tabIndex={0}
+                style={{ width: `${factoryStats.pctHelper}%` }}
+                className="bg-[#94A3B8] hover:brightness-105 transition-all relative group cursor-pointer flex items-center justify-center text-xs text-[#0F172A] font-black"
+                title={`${t.overallDashboard.helperTitle}: ${factoryStats.countHelper} ${t.overallDashboard.opUnit} (${factoryStats.pctHelper}%)`}
+                aria-label={`${t.overallDashboard.helperTitle}: ${factoryStats.countHelper} ${t.overallDashboard.opUnit} (${factoryStats.pctHelper}%)`}
               >
-                {parseFloat(factoryStats.pctHelper) >= 5 && `${factoryStats.pctHelper}%`}
+                {parseFloat(factoryStats.pctHelper) >= 9
+                  ? `H · ${factoryStats.pctHelper}%`
+                  : parseFloat(factoryStats.pctHelper) >= 5
+                  ? `${factoryStats.pctHelper}%`
+                  : ''}
+                <div className="hidden group-hover:flex group-focus-visible:flex flex-col items-center absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-30 pointer-events-none">
+                  <div className="bg-[#102A2A] text-white text-[11px] font-bold px-2.5 py-1 rounded-[6px] shadow-lg whitespace-nowrap border border-white/15">
+                    {t.overallDashboard.helperTitle} (H): {factoryStats.countHelper} {t.overallDashboard.opUnit} ({factoryStats.pctHelper}%)
+                  </div>
+                  <div className="w-2 h-2 bg-[#102A2A] rotate-45 -mt-1" />
+                </div>
               </div>
             )}
+          </div>
+
+          {/* Text Legend for Distribution Bar */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1 text-xs">
+            <div className="inline-flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-[5px] bg-[#6D28D9] text-white text-[10px] font-black inline-flex items-center justify-center shrink-0">S</span>
+              <span className="font-bold text-[#102A2A]">{t.overallDashboard.gradeSTitle}:</span>
+              <span className="font-semibold text-[#374151] tabular-nums">{factoryStats.countS} ({factoryStats.pctS}%)</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-[5px] bg-[#047857] text-white text-[10px] font-black inline-flex items-center justify-center shrink-0">A</span>
+              <span className="font-bold text-[#102A2A]">{t.overallDashboard.gradeATitle}:</span>
+              <span className="font-semibold text-[#374151] tabular-nums">{factoryStats.countA} ({factoryStats.pctA}%)</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-[5px] bg-[#38BDF8] text-[#082F49] text-[10px] font-black inline-flex items-center justify-center shrink-0">B</span>
+              <span className="font-bold text-[#102A2A]">{t.overallDashboard.gradeBTitle}:</span>
+              <span className="font-semibold text-[#374151] tabular-nums">{factoryStats.countB} ({factoryStats.pctB}%)</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-[5px] bg-[#F59E0B] text-[#451A03] text-[10px] font-black inline-flex items-center justify-center shrink-0">C</span>
+              <span className="font-bold text-[#102A2A]">{t.overallDashboard.gradeCTitle}:</span>
+              <span className="font-semibold text-[#374151] tabular-nums">{factoryStats.countC} ({factoryStats.pctC}%)</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-[5px] bg-[#94A3B8] text-[#0F172A] text-[10px] font-black inline-flex items-center justify-center shrink-0">H</span>
+              <span className="font-bold text-[#102A2A]">{t.overallDashboard.helperTitle}:</span>
+              <span className="font-semibold text-[#374151] tabular-nums">{factoryStats.countHelper} ({factoryStats.pctHelper}%)</span>
+            </div>
           </div>
         </div>
 
@@ -647,11 +812,22 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h3 className="text-base sm:text-lg font-bold text-[#102A2A] flex items-center gap-2">
-                <Layers className="w-5 h-5 text-[#214E49]" />
+                <Layers className="w-5 h-5 text-[#214E49]" aria-hidden="true" />
                 <span>{isAllFactory ? 'Operator Breakdown Across All Lines' : t.overallDashboard.lineBreakdownTitle.replace('{factory}', selectedFactory)}</span>
-                <div className="relative group/info inline-flex items-center cursor-help ml-0.5" title={t.overallDashboard.lineBreakdownSubtitle}>
-                  <Info className="w-4 h-4 text-[#647878] hover:text-[#102A2A] transition-colors" />
-                  <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover/info:flex flex-col items-center z-50 pointer-events-none w-max max-w-xs sm:max-w-sm">
+                <div className="relative inline-flex items-center ml-0.5">
+                  <button
+                    type="button"
+                    aria-label={`Info: ${isAllFactory ? 'Operator Breakdown Across All Lines' : t.overallDashboard.lineBreakdownTitle.replace('{factory}', selectedFactory)}`}
+                    aria-describedby="tip-line-breakdown"
+                    className="peer p-0.5 rounded-full text-[#374151] hover:text-[#102A2A] transition-colors cursor-help"
+                  >
+                    <Info className="w-4 h-4" aria-hidden="true" />
+                  </button>
+                  <div
+                    id="tip-line-breakdown"
+                    role="tooltip"
+                    className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden peer-hover:flex peer-focus:flex peer-focus-visible:flex flex-col items-center z-50 pointer-events-none w-max max-w-xs sm:max-w-sm"
+                  >
                     <div className="bg-[#163F3B] text-white text-[11px] font-normal leading-normal px-2.5 py-1.5 rounded-[8px] shadow-lg border border-[#2E625C] text-center">
                       {t.overallDashboard.lineBreakdownSubtitle}
                     </div>
@@ -663,13 +839,13 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
 
             {/* Quick Line Search */}
             <div className="flex items-center gap-2 bg-[#FFFFFF] px-3.5 py-2 rounded-[10px] border border-[#D8E5E5] max-w-xs w-full sm:w-auto shadow-2xs">
-              <Search className="w-4 h-4 text-[#647878] shrink-0" />
+              <Search className="w-4 h-4 text-[#647878] shrink-0" aria-hidden="true" />
               <input
                 type="text"
                 value={lineSearch}
                 onChange={(e) => setLineSearch(e.target.value)}
                 placeholder={t.overallDashboard.searchLinePlaceholder}
-                className="text-xs sm:text-[13px] bg-transparent outline-none w-full placeholder:text-[#647878] text-[#102A2A]"
+                className="text-xs sm:text-[13px] bg-transparent rounded-md w-full placeholder:text-[#647878] text-[#102A2A]"
               />
             </div>
           </div>
@@ -718,14 +894,14 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
                             )}
                           </div>
                         </td>
-                        <td className="py-3.5 px-3.5 text-[#647878] whitespace-nowrap">
+                        <td className="py-3.5 px-3.5 text-[#374151] whitespace-nowrap">
                           {item.leader?.chief && item.leader.chief !== '-' ? (
                             <div>
                               <span className="font-bold text-[#102A2A] block text-xs sm:text-[13px]">{item.leader.chief}</span>
-                              <span className="text-[11px] text-[#647878]">{t.overallDashboard.chiefRole}</span>
+                              <span className="text-xs text-[#374151] font-semibold">{t.overallDashboard.chiefRole}</span>
                             </div>
                           ) : (
-                            <span className="text-[#94A3B8] italic text-xs">-</span>
+                            <span className="text-[#475569] font-bold text-xs">–</span>
                           )}
                         </td>
                         <td className="py-3.5 px-3.5 text-center font-bold text-[#102A2A] whitespace-nowrap">
@@ -733,55 +909,57 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
                             {item.total}
                           </span>
                         </td>
-                        <td className="py-3.5 px-3 text-center font-bold text-[#0E936B] bg-emerald-50/30 whitespace-nowrap">
+                        <td className="py-3.5 px-3 text-center font-bold text-[#5B21B6] bg-purple-50/40 whitespace-nowrap">
                           {item.countS > 0 ? (
-                            <span className="bg-[#E8F8F2] text-[#0E936B] px-2.5 py-1 rounded-[8px] tabular-nums text-xs sm:text-[13px]">
+                            <span className="bg-[#F3E8FF] text-[#5B21B6] px-2.5 py-1 rounded-[8px] tabular-nums text-xs sm:text-[13px]">
                               {item.countS}
                             </span>
-                          ) : <span className="text-sm font-normal text-[#94A3B8]">-</span>}
+                          ) : <span className="text-sm font-bold text-[#334155]">–</span>}
                         </td>
-                        <td className="py-3.5 px-3 text-center font-bold text-[#0E936B] bg-emerald-50/30 whitespace-nowrap">
+                        <td className="py-3.5 px-3 text-center font-bold text-[#047857] bg-emerald-50/30 whitespace-nowrap">
                           {item.countA > 0 ? (
-                            <span className="bg-[#E8F8F2] text-[#0E936B] px-2.5 py-1 rounded-[8px] tabular-nums text-xs sm:text-[13px]">
+                            <span className="bg-[#E8F8F2] text-[#047857] px-2.5 py-1 rounded-[8px] tabular-nums text-xs sm:text-[13px]">
                               {item.countA}
                             </span>
-                          ) : <span className="text-sm font-normal text-[#94A3B8]">-</span>}
+                          ) : <span className="text-sm font-bold text-[#334155]">–</span>}
                         </td>
                         <td className="py-3.5 px-3 text-center font-bold text-[#0F78AC] bg-sky-50/30 whitespace-nowrap">
                           {item.countB > 0 ? (
                             <span className="bg-[#EBF6FC] text-[#0F78AC] px-2.5 py-1 rounded-[8px] tabular-nums text-xs sm:text-[13px]">
                               {item.countB}
                             </span>
-                          ) : <span className="text-sm font-normal text-[#94A3B8]">-</span>}
+                          ) : <span className="text-sm font-bold text-[#334155]">–</span>}
                         </td>
                         <td className="py-3.5 px-3 text-center font-bold text-[#C77E05] bg-amber-50/30 whitespace-nowrap">
                           {item.countC > 0 ? (
                             <span className="bg-[#FEF6E7] text-[#C77E05] px-2.5 py-1 rounded-[8px] tabular-nums text-xs sm:text-[13px]">
                               {item.countC}
                             </span>
-                          ) : <span className="text-sm font-normal text-[#94A3B8]">-</span>}
+                          ) : <span className="text-sm font-bold text-[#334155]">–</span>}
                         </td>
                         <td className="py-3.5 px-3 text-center font-bold text-[#64748B] bg-slate-50/40 whitespace-nowrap">
                           {item.countHelper > 0 ? (
                             <span className="bg-[#F1F5F9] text-[#64748B] px-2.5 py-1 rounded-[8px] tabular-nums text-xs sm:text-[13px]">
                               {item.countHelper}
                             </span>
-                          ) : <span className="text-sm font-normal text-[#94A3B8]">-</span>}
+                          ) : <span className="text-sm font-bold text-[#334155]">–</span>}
                         </td>
                         <td className="py-3.5 px-3.5 text-center whitespace-nowrap">
                           <div className="flex items-center justify-center gap-1.5">
                             <span className="font-bold text-[#102A2A] tabular-nums text-xs sm:text-[13px]">{lineRate}%</span>
-                            <span className="text-[11px] sm:text-xs text-[#647878] tabular-nums">({item.multiSkillCount} {t.overallDashboard.opUnit})</span>
+                            <span className="text-xs font-bold text-[#374151] tabular-nums">({item.multiSkillCount} {t.overallDashboard.opUnit})</span>
                           </div>
                         </td>
                         <td className="py-3.5 px-4 text-right whitespace-nowrap">
                           <button
+                            type="button"
                             onClick={() => onNavigateToLine(item.factory || selectedFactory, item.line)}
                             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#214E49] hover:bg-[#163F3B] text-white rounded-[8px] text-xs font-bold shadow-2xs transition-all cursor-pointer"
+                            aria-label={`${t.overallDashboard.openMatrixBtn} ${item.factory || selectedFactory} ${item.line}`}
                             title={t.overallDashboard.openMatrixTooltip.replace('{factory}', item.factory || selectedFactory).replace('{line}', item.line)}
                           >
                             <span>{t.overallDashboard.openMatrixBtn}</span>
-                            <ArrowUpRight className="w-3.5 h-3.5 text-[#F4C430]" />
+                            <ArrowUpRight className="w-3.5 h-3.5 text-[#F4C430]" aria-hidden="true" />
                           </button>
                         </td>
                       </tr>
@@ -801,16 +979,27 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
         <div className="ops-card p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <div className="w-10 h-10 rounded-[10px] bg-[#EAF5F5] flex items-center justify-center text-[#214E49] shrink-0 border border-[#D8E5E5]">
-              <Layers className="w-5 h-5" />
+              <Layers className="w-5 h-5" aria-hidden="true" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-bold text-[#102A2A] tracking-tight">
                   {t.overallDashboard.benchmarkTitle}
                 </h2>
-                <div className="relative group/info inline-flex items-center cursor-help ml-0.5" title={`${t.overallDashboard.benchmarkSubtitle} (${monthLabel} ${selectedYear})`}>
-                  <Info className="w-4 h-4 text-[#647878] hover:text-[#102A2A] transition-colors" />
-                  <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover/info:flex flex-col items-center z-50 pointer-events-none w-max max-w-xs sm:max-w-sm">
+                <div className="relative inline-flex items-center ml-0.5">
+                  <button
+                    type="button"
+                    aria-label={`Info: ${t.overallDashboard.benchmarkTitle}`}
+                    aria-describedby="tip-benchmark"
+                    className="peer p-0.5 rounded-full text-[#374151] hover:text-[#102A2A] transition-colors cursor-help"
+                  >
+                    <Info className="w-4 h-4" aria-hidden="true" />
+                  </button>
+                  <div
+                    id="tip-benchmark"
+                    role="tooltip"
+                    className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden peer-hover:flex peer-focus:flex peer-focus-visible:flex flex-col items-center z-50 pointer-events-none w-max max-w-xs sm:max-w-sm"
+                  >
                     <div className="bg-[#163F3B] text-white text-[11px] font-normal leading-normal px-2.5 py-1.5 rounded-[8px] shadow-lg border border-[#2E625C] text-center">
                       {t.overallDashboard.benchmarkSubtitle} • {monthLabel} {selectedYear}
                     </div>
@@ -858,7 +1047,7 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
                       <div className={`w-9 h-9 rounded-[10px] flex items-center justify-center font-bold text-xs ${
                         isSelected ? 'bg-[#214E49] text-white' : 'bg-[#EAF5F5] text-[#214E49] border border-[#D8E5E5]'
                       }`}>
-                        <Building2 className="w-4 h-4" />
+                        <Building2 className="w-4 h-4" aria-hidden="true" />
                       </div>
                       <div>
                         <h4 className="text-base font-bold text-[#102A2A] tracking-tight">
@@ -917,27 +1106,94 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
                       </div>
 
                       {/* Progress Bar */}
-                      <div className="mt-3.5 space-y-1.5">
-                        <div className="flex items-center justify-between text-xs text-[#647878] font-medium">
+                      <div className="mt-3.5 space-y-2">
+                        <div className="flex items-center justify-between text-xs text-[#374151] font-semibold">
                           <span>Skill Distribution</span>
-                          <span className="text-[#102A2A] font-semibold tabular-nums">{item.total} Ops</span>
+                          <span className="text-[#102A2A] font-bold tabular-nums">{item.total} {t.overallDashboard.opUnit}</span>
                         </div>
-                        <div className="h-2 w-full bg-[#EAF5F5] rounded-full overflow-hidden flex shadow-inner">
+                        <div className="h-2.5 w-full bg-[#EAF5F5] rounded-full flex shadow-inner [&>*:first-child]:rounded-l-full [&>*:last-child]:rounded-r-full">
                           {item.countS > 0 && (
-                            <div style={{ width: `${item.pctS}%` }} className="bg-[#12B886]" title={`Grade S: ${item.countS} (${item.pctS}%)`} />
+                            <div
+                              tabIndex={0}
+                              style={{ width: `${item.pctS}%` }}
+                              className="bg-[#6D28D9] relative group cursor-pointer"
+                              title={`Grade S: ${item.countS} ${t.overallDashboard.opUnit} (${item.pctS}%)`}
+                              aria-label={`Grade S: ${item.countS} ${t.overallDashboard.opUnit} (${item.pctS}%)`}
+                            >
+                              <div className="hidden group-hover:flex group-focus-visible:flex flex-col items-center absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-30 pointer-events-none">
+                                <div className="bg-[#102A2A] text-white text-[10px] font-bold px-2 py-0.5 rounded-[5px] shadow-md whitespace-nowrap">
+                                  S: {item.countS} ({item.pctS}%)
+                                </div>
+                              </div>
+                            </div>
                           )}
                           {item.countA > 0 && (
-                            <div style={{ width: `${item.pctA}%` }} className="bg-[#0E936B]" title={`Grade A: ${item.countA} (${item.pctA}%)`} />
+                            <div
+                              tabIndex={0}
+                              style={{ width: `${item.pctA}%` }}
+                              className="bg-[#047857] relative group cursor-pointer"
+                              title={`Grade A: ${item.countA} ${t.overallDashboard.opUnit} (${item.pctA}%)`}
+                              aria-label={`Grade A: ${item.countA} ${t.overallDashboard.opUnit} (${item.pctA}%)`}
+                            >
+                              <div className="hidden group-hover:flex group-focus-visible:flex flex-col items-center absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-30 pointer-events-none">
+                                <div className="bg-[#102A2A] text-white text-[10px] font-bold px-2 py-0.5 rounded-[5px] shadow-md whitespace-nowrap">
+                                  A: {item.countA} ({item.pctA}%)
+                                </div>
+                              </div>
+                            </div>
                           )}
                           {item.countB > 0 && (
-                            <div style={{ width: `${item.pctB}%` }} className="bg-[#1597D4]" title={`Grade B: ${item.countB} (${item.pctB}%)`} />
+                            <div
+                              tabIndex={0}
+                              style={{ width: `${item.pctB}%` }}
+                              className="bg-[#38BDF8] relative group cursor-pointer"
+                              title={`Grade B: ${item.countB} ${t.overallDashboard.opUnit} (${item.pctB}%)`}
+                              aria-label={`Grade B: ${item.countB} ${t.overallDashboard.opUnit} (${item.pctB}%)`}
+                            >
+                              <div className="hidden group-hover:flex group-focus-visible:flex flex-col items-center absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-30 pointer-events-none">
+                                <div className="bg-[#102A2A] text-white text-[10px] font-bold px-2 py-0.5 rounded-[5px] shadow-md whitespace-nowrap">
+                                  B: {item.countB} ({item.pctB}%)
+                                </div>
+                              </div>
+                            </div>
                           )}
                           {item.countC > 0 && (
-                            <div style={{ width: `${item.pctC}%` }} className="bg-[#F59E0B]" title={`Grade C: ${item.countC} (${item.pctC}%)`} />
+                            <div
+                              tabIndex={0}
+                              style={{ width: `${item.pctC}%` }}
+                              className="bg-[#F59E0B] relative group cursor-pointer"
+                              title={`Grade C: ${item.countC} ${t.overallDashboard.opUnit} (${item.pctC}%)`}
+                              aria-label={`Grade C: ${item.countC} ${t.overallDashboard.opUnit} (${item.pctC}%)`}
+                            >
+                              <div className="hidden group-hover:flex group-focus-visible:flex flex-col items-center absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-30 pointer-events-none">
+                                <div className="bg-[#102A2A] text-white text-[10px] font-bold px-2 py-0.5 rounded-[5px] shadow-md whitespace-nowrap">
+                                  C: {item.countC} ({item.pctC}%)
+                                </div>
+                              </div>
+                            </div>
                           )}
                           {item.countHelper > 0 && (
-                            <div style={{ width: `${item.pctHelper}%` }} className="bg-[#94A3B8]" title={`Helper: ${item.countHelper} (${item.pctHelper}%)`} />
+                            <div
+                              tabIndex={0}
+                              style={{ width: `${item.pctHelper}%` }}
+                              className="bg-[#94A3B8] relative group cursor-pointer"
+                              title={`Helper: ${item.countHelper} ${t.overallDashboard.opUnit} (${item.pctHelper}%)`}
+                              aria-label={`Helper: ${item.countHelper} ${t.overallDashboard.opUnit} (${item.pctHelper}%)`}
+                            >
+                              <div className="hidden group-hover:flex group-focus-visible:flex flex-col items-center absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-30 pointer-events-none">
+                                <div className="bg-[#102A2A] text-white text-[10px] font-bold px-2 py-0.5 rounded-[5px] shadow-md whitespace-nowrap">
+                                  H: {item.countHelper} ({item.pctHelper}%)
+                                </div>
+                              </div>
+                            </div>
                           )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-[#374151] font-semibold">
+                          <span className="inline-flex items-center gap-1"><span className="w-3.5 h-3.5 rounded-[3px] bg-[#6D28D9] text-white text-[9px] font-black inline-flex items-center justify-center">S</span>{item.pctS}%</span>
+                          <span className="inline-flex items-center gap-1"><span className="w-3.5 h-3.5 rounded-[3px] bg-[#047857] text-white text-[9px] font-black inline-flex items-center justify-center">A</span>{item.pctA}%</span>
+                          <span className="inline-flex items-center gap-1"><span className="w-3.5 h-3.5 rounded-[3px] bg-[#38BDF8] text-[#082F49] text-[9px] font-black inline-flex items-center justify-center">B</span>{item.pctB}%</span>
+                          <span className="inline-flex items-center gap-1"><span className="w-3.5 h-3.5 rounded-[3px] bg-[#F59E0B] text-[#451A03] text-[9px] font-black inline-flex items-center justify-center">C</span>{item.pctC}%</span>
+                          <span className="inline-flex items-center gap-1"><span className="w-3.5 h-3.5 rounded-[3px] bg-[#94A3B8] text-[#0F172A] text-[9px] font-black inline-flex items-center justify-center">H</span>{item.pctHelper}%</span>
                         </div>
                       </div>
                     </>
@@ -947,7 +1203,9 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
                 {/* Focus Button */}
                 <div className="mt-5 pt-3.5 border-t border-[#D8E5E5]">
                   <button
+                    type="button"
                     onClick={() => onFactoryChange(item.factory)}
+                    aria-label={isSelected ? `${t.overallDashboard.viewingNow}: ${item.factory}` : t.overallDashboard.focusFactoryBtn.replace('{factory}', item.factory)}
                     className={`w-full py-2 px-3 rounded-[8px] text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                       isSelected
                         ? 'bg-[#214E49] text-white shadow-xs'
@@ -955,7 +1213,7 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
                     }`}
                   >
                     <span>{isSelected ? t.overallDashboard.viewingNow : t.overallDashboard.focusFactoryBtn.replace('{factory}', item.factory)}</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
+                    <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -968,11 +1226,22 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-base font-bold text-[#102A2A] flex items-center gap-2">
-                <BarChart2 className="w-4 h-4 text-[#214E49]" />
+                <BarChart2 className="w-4 h-4 text-[#214E49]" aria-hidden="true" />
                 <span>{t.overallDashboard.compTableTitle.replace('{period}', `${monthLabel} ${selectedYear}`)}</span>
-                <div className="relative group/info inline-flex items-center cursor-help ml-0.5" title={t.overallDashboard.compTableSubtitle}>
-                  <Info className="w-3.5 h-3.5 text-[#647878] hover:text-[#102A2A] transition-colors" />
-                  <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover/info:flex flex-col items-center z-50 pointer-events-none w-max max-w-xs sm:max-w-sm">
+                <div className="relative inline-flex items-center ml-0.5">
+                  <button
+                    type="button"
+                    aria-label={`Info: ${t.overallDashboard.compTableTitle.replace('{period}', `${monthLabel} ${selectedYear}`)}`}
+                    aria-describedby="tip-comp-table"
+                    className="peer p-0.5 rounded-full text-[#374151] hover:text-[#102A2A] transition-colors cursor-help"
+                  >
+                    <Info className="w-3.5 h-3.5" aria-hidden="true" />
+                  </button>
+                  <div
+                    id="tip-comp-table"
+                    role="tooltip"
+                    className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden peer-hover:flex peer-focus:flex peer-focus-visible:flex flex-col items-center z-50 pointer-events-none w-max max-w-xs sm:max-w-sm"
+                  >
                     <div className="bg-[#163F3B] text-white text-[11px] font-normal leading-normal px-2.5 py-1.5 rounded-[8px] shadow-lg border border-[#2E625C] text-center">
                       {t.overallDashboard.compTableSubtitle}
                     </div>
@@ -1009,7 +1278,7 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
                     >
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          <Building2 className={`w-4 h-4 ${isCurrent ? 'text-[#214E49]' : 'text-[#647878]'}`} />
+                          <Building2 className={`w-4 h-4 ${isCurrent ? 'text-[#214E49]' : 'text-[#647878]'}`} aria-hidden="true" />
                           <span className="font-bold text-sm text-[#102A2A]">{f.factory}</span>
                           {isCurrent && (
                             <span className="text-[9px] font-bold bg-[#E8F8F2] text-[#0E936B] border border-[#B8EBD8] px-2 py-0.5 rounded-[6px]">
@@ -1036,21 +1305,21 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
                       </td>
                       <td className="py-3.5 px-3 text-center whitespace-nowrap">
                         {f.hasNoData ? (
-                          <span className="text-[#94A3B8] tabular-nums">-</span>
+                          <span className="text-[#475569] font-bold tabular-nums">–</span>
                         ) : (
                           <>
-                            <span className="tabular-nums font-bold text-xs sm:text-[13px] text-[#0E936B]">{f.countS}</span>
-                            <span className="text-[10px] text-[#0E936B] block">({f.pctS}%)</span>
+                            <span className="tabular-nums font-bold text-xs sm:text-[13px] text-[#5B21B6]">{f.countS}</span>
+                            <span className="text-[10px] font-semibold text-[#5B21B6] block">({f.pctS}%)</span>
                           </>
                         )}
                       </td>
                       <td className="py-3.5 px-3 text-center whitespace-nowrap">
                         {f.hasNoData ? (
-                          <span className="text-[#94A3B8] tabular-nums">-</span>
+                          <span className="text-[#475569] font-bold tabular-nums">–</span>
                         ) : (
                           <>
-                            <span className="tabular-nums font-bold text-xs sm:text-[13px] text-[#0E936B]">{f.countA}</span>
-                            <span className="text-[10px] text-[#0E936B] block">({f.pctA}%)</span>
+                            <span className="tabular-nums font-bold text-xs sm:text-[13px] text-[#047857]">{f.countA}</span>
+                            <span className="text-[10px] font-semibold text-[#047857] block">({f.pctA}%)</span>
                           </>
                         )}
                       </td>
@@ -1092,7 +1361,9 @@ export const OverallDashboardTab: React.FC<OverallDashboardTabProps> = ({
                       </td>
                       <td className="py-3.5 px-4 text-right whitespace-nowrap">
                         <button
+                          type="button"
                           onClick={() => onFactoryChange(f.factory)}
+                          aria-label={`${isCurrent ? t.overallDashboard.btnSelected : t.overallDashboard.btnSelect} ${f.factory}`}
                           className={`px-3 py-1.5 rounded-[8px] text-xs font-bold transition-all cursor-pointer ${
                             isCurrent
                               ? 'bg-[#D8E5E5] text-[#214E49]'

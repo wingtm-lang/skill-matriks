@@ -69,7 +69,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className={`w-screen h-screen min-h-screen m-0 p-0 overflow-x-hidden overflow-y-auto lg:overflow-hidden bg-[#1B433E] relative flex flex-col lg:flex-row select-none font-sans transition-opacity duration-200 ${
+    <div className={`dark-focus-surface w-screen h-screen min-h-screen m-0 p-0 overflow-x-hidden overflow-y-auto lg:overflow-hidden bg-[#1B433E] relative flex flex-col lg:flex-row select-none font-sans transition-opacity duration-200 ${
       isSuccessing ? 'opacity-0 pointer-events-none' : 'opacity-100'
     }`}>
       
@@ -111,7 +111,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
       {/* Top Right Quick Language Selector */}
       <div className="absolute top-4 right-4 sm:top-6 sm:right-8 z-30 flex items-center bg-[#14332F]/85 backdrop-blur-md rounded-full p-1 border border-white/15 shadow-md">
-        <Languages className="w-3.5 h-3.5 text-[#8FC4D1] ml-2.5 mr-1" />
+        <Languages className="w-3.5 h-3.5 text-[#8FC4D1] ml-2.5 mr-1" aria-hidden="true" />
         <button
           type="button"
           onClick={() => setLanguage('en')}
@@ -218,7 +218,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder={language === 'id' ? 'Enter your username or NIK' : 'Enter your username'}
-                  className="w-full bg-[#122D2A] hover:bg-[#0E2421] focus:bg-[#0E2421] text-white text-xs sm:text-sm px-5 py-3.5 rounded-full border border-[#2E625C] focus:border-[#8FC4D1] focus:ring-2 focus:ring-[#8FC4D1]/30 outline-none transition-all placeholder:text-[#6C8E8A]"
+                  className="w-full bg-[#122D2A] hover:bg-[#0E2421] focus:bg-[#0E2421] text-white text-xs sm:text-sm px-5 py-3.5 rounded-full border border-[#2E625C] focus:border-[#8FC4D1] transition-all placeholder:text-[#6C8E8A]"
                   disabled={isLoading}
                   autoComplete="username"
                   required
@@ -237,7 +237,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={language === 'id' ? 'Enter your password' : 'Enter your password'}
-                  className="w-full bg-[#122D2A] hover:bg-[#0E2421] focus:bg-[#0E2421] text-white text-xs sm:text-sm px-5 pr-12 py-3.5 rounded-full border border-[#2E625C] focus:border-[#8FC4D1] focus:ring-2 focus:ring-[#8FC4D1]/30 outline-none transition-all placeholder:text-[#6C8E8A]"
+                  className="w-full bg-[#122D2A] hover:bg-[#0E2421] focus:bg-[#0E2421] text-white text-xs sm:text-sm px-5 pr-12 py-3.5 rounded-full border border-[#2E625C] focus:border-[#8FC4D1] transition-all placeholder:text-[#6C8E8A]"
                   disabled={isLoading}
                   autoComplete="current-password"
                   required
@@ -245,13 +245,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-[#6C8E8A] hover:text-white cursor-pointer"
-                  tabIndex={-1}
+                  aria-label={showPassword ? (language === 'id' ? 'Sembunyikan password' : 'Hide password') : (language === 'id' ? 'Tampilkan password' : 'Show password')}
+                  className="absolute inset-y-0 right-1 my-1 px-3 rounded-full flex items-center text-[#6C8E8A] hover:text-white cursor-pointer"
                 >
                   {showPassword ? (
-                    <EyeOff className="w-4 h-4 text-[#8FC4D1]" />
+                    <EyeOff className="w-4 h-4 text-[#8FC4D1]" aria-hidden="true" />
                   ) : (
-                    <Eye className="w-4 h-4 text-[#8FC4D1]" />
+                    <Eye className="w-4 h-4 text-[#8FC4D1]" aria-hidden="true" />
                   )}
                 </button>
               </div>

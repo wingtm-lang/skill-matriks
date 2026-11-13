@@ -270,8 +270,8 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUse
                 </h2>
                 <p className="text-xs text-[#708888]">
                   {language === 'id'
-                    ? 'Kelola NIK, password, dan level izin yang tersinkronisasi pada sheet "by_worker" Kolom AJ..AM'
-                    : 'Manage NIK, passwords, and permission roles synced to sheet "by_worker" Col AJ..AM'}
+                    ? 'Kelola NIK, password, dan level izin akun pengguna'
+                    : 'Manage NIK, passwords, and user permission roles'}
                 </p>
               </div>
             </div>
@@ -352,7 +352,7 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUse
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={language === 'id' ? 'Cari NIK atau Nama...' : 'Search NIK or Name...'}
-              className="w-full pl-10 pr-3 py-2 bg-[#F8FAFA] text-xs text-[#304848] rounded-xl border border-[#D0E0E0] focus:border-[#2AAFA3] outline-none"
+              className="w-full pl-10 pr-3 py-2 bg-[#F8FAFA] text-xs text-[#304848] rounded-xl border border-[#D0E0E0] focus:border-[#2AAFA3]"
             />
           </div>
 
@@ -361,7 +361,7 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUse
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="bg-[#F8FAFA] text-xs font-semibold text-[#304848] border border-[#D0E0E0] rounded-xl px-3 py-2 outline-none cursor-pointer"
+              className="bg-[#F8FAFA] text-xs font-semibold text-[#304848] border border-[#D0E0E0] rounded-xl px-3 py-2 cursor-pointer"
             >
               <option value="ALL">{language === 'id' ? 'Semua Role' : 'All Roles'}</option>
               <option value="admin master">Admin Master</option>
@@ -378,11 +378,11 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUse
             <thead>
               <tr className="bg-[#F0F5F5] text-[#507070] font-bold border-b border-[#E0E8E8]">
                 <th className="py-3 px-4 w-12 text-center">No</th>
-                <th className="py-3 px-4">NIK (Kolom AJ)</th>
-                <th className="py-3 px-4">Log In Profile (Kolom AL)</th>
-                <th className="py-3 px-4">Role (Kolom AM)</th>
-                <th className="py-3 px-4">Tampilan Default (Kolom AN)</th>
-                <th className="py-3 px-4">Password (Kolom AK)</th>
+                <th className="py-3 px-4">NIK</th>
+                <th className="py-3 px-4">Log In Profile / Nama</th>
+                <th className="py-3 px-4">Role</th>
+                <th className="py-3 px-4">Tampilan Default</th>
+                <th className="py-3 px-4">Password</th>
                 <th className="py-3 px-4 text-center">Hak Akses</th>
                 <th className="py-3 px-4 text-right">Aksi</th>
               </tr>
@@ -441,20 +441,24 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUse
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
+                            type="button"
                             onClick={() => handleOpenEdit(u)}
+                            aria-label={`Edit akun ${u.name || u.nik} (${u.nik})`}
                             className="p-1.5 rounded-lg bg-[#F0F5F5] hover:bg-[#2AAFA3]/15 text-[#405858] hover:text-[#2AAFA3] transition-colors cursor-pointer"
                             title="Edit Akun"
                           >
-                            <Edit3 className="w-3.5 h-3.5" />
+                            <Edit3 className="w-3.5 h-3.5" aria-hidden="true" />
                           </button>
 
                           {!isSelf && (
                             <button
+                              type="button"
                               onClick={() => handleOpenDelete(u)}
+                              aria-label={`Hapus akun ${u.name || u.nik} (${u.nik})`}
                               className="p-1.5 rounded-lg bg-[#F0F5F5] hover:bg-rose-100 text-[#405858] hover:text-rose-600 transition-colors cursor-pointer"
                               title="Hapus Akun"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
                           )}
                         </div>
@@ -484,7 +488,7 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUse
                     {language === 'id' ? 'Tambah Pengguna Baru' : 'Add New User'}
                   </h3>
                   <p className="text-xs text-[#A0B5B5]">
-                    {language === 'id' ? 'Akan ditanamkan ke sheet "by_worker" Kolom AJ:AM' : 'Will be saved to sheet "by_worker" Col AJ:AM'}
+                    {language === 'id' ? 'Daftarkan pengguna baru ke sistem' : 'Register a new user to the system'}
                   </p>
                 </div>
               </div>
@@ -501,14 +505,14 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUse
               {/* NIK */}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-[#405858]">
-                  NIK / Worker Code (Kolom AJ) <span className="text-rose-500">*</span>
+                  NIK / Worker Code <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={formNik}
                   onChange={(e) => setFormNik(e.target.value)}
                   placeholder="Contoh: 20240192 atau ADMIN02"
-                  className="w-full bg-[#F8FAFA] text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-[#D0E0E0] focus:border-[#2AAFA3] outline-none"
+                  className="w-full bg-[#F8FAFA] text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-[#D0E0E0] focus:border-[#2AAFA3]"
                   required
                 />
               </div>
@@ -516,14 +520,14 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUse
               {/* Log In Profile / Nama */}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-[#405858]">
-                  Log In Profile / Nama Lengkap (Kolom AL) <span className="text-rose-500">*</span>
+                  Log In Profile / Nama Lengkap <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder="Contoh: Budi Santoso (Supervisor IE)"
-                  className="w-full bg-[#F8FAFA] text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-[#D0E0E0] focus:border-[#2AAFA3] outline-none"
+                  className="w-full bg-[#F8FAFA] text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-[#D0E0E0] focus:border-[#2AAFA3]"
                   required
                 />
               </div>
@@ -531,7 +535,7 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUse
               {/* Password */}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-[#405858]">
-                  Password (Kolom AK) <span className="text-rose-500">*</span>
+                  Password <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
                   <input
@@ -539,28 +543,29 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUse
                     value={formPassword}
                     onChange={(e) => setFormPassword(e.target.value)}
                     placeholder="Masukkan password akun..."
-                    className="w-full bg-[#F8FAFA] text-xs sm:text-sm pl-3 pr-10 py-2.5 rounded-xl border border-[#D0E0E0] focus:border-[#2AAFA3] outline-none"
+                    className="w-full bg-[#F8FAFA] text-xs sm:text-sm pl-3 pr-10 py-2.5 rounded-xl border border-[#D0E0E0] focus:border-[#2AAFA3]"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#80A0A0] hover:text-[#405858] cursor-pointer"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
                   </button>
                 </div>
               </div>
 
-              {/* Tampilan Default Pabrik (Kolom AN) */}
+              {/* Tampilan Default Pabrik */}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-[#405858]">
-                  Tampilan Default Pabrik (Kolom AN)
+                  Tampilan Default Pabrik
                 </label>
                 <select
                   value={formDefaultView}
                   onChange={(e) => setFormDefaultView(e.target.value)}
-                  className="w-full bg-[#F8FAFA] text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-[#D0E0E0] focus:border-[#2AAFA3] outline-none cursor-pointer font-bold text-[#183935]"
+                  className="w-full bg-[#F8FAFA] text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-[#D0E0E0] focus:border-[#2AAFA3] cursor-pointer font-bold text-[#183935]"
                 >
                   <option value="All Factory">All Factory (Semua Pabrik)</option>
                   <option value="Factory 1">Factory 1</option>
@@ -575,13 +580,15 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUse
               {/* Role Selection */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-[#405858]">
-                  Pilih Role Akses (Kolom AM) <span className="text-rose-500">*</span>
+                  Pilih Role Akses <span className="text-rose-500">*</span>
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   
-                  <div
+                  <button
+                    type="button"
                     onClick={() => setFormRole('viewer')}
-                    className={`p-3 rounded-2xl border cursor-pointer transition-all ${
+                    aria-pressed={formRole === 'viewer'}
+                    className={`p-3 rounded-2xl border cursor-pointer transition-all text-left ${
                       formRole === 'viewer'
                         ? 'border-[#2AAFA3] bg-teal-50/50 shadow-xs'
                         : 'border-[#E0E8E8] hover:bg-[#F8FAFA]'
@@ -589,14 +596,16 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUse
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs font-bold text-[#183935]">Viewer</span>
-                      <Users className="w-3.5 h-3.5 text-sky-600" />
+                      <Users className="w-3.5 h-3.5 text-sky-600" aria-hidden="true" />
                     </div>
                     <p className="text-[10px] text-[#708888]">Hanya melihat dashboard & matriks (read-only).</p>
-                  </div>
+                  </button>
 
-                  <div
+                  <button
+                    type="button"
                     onClick={() => setFormRole('editor')}
-                    className={`p-3 rounded-2xl border cursor-pointer transition-all ${
+                    aria-pressed={formRole === 'editor'}
+                    className={`p-3 rounded-2xl border cursor-pointer transition-all text-left ${
                       formRole === 'editor'
                         ? 'border-[#2AAFA3] bg-teal-50/50 shadow-xs'
                         : 'border-[#E0E8E8] hover:bg-[#F8FAFA]'
@@ -604,14 +613,16 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUse
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs font-bold text-[#183935]">Editor</span>
-                      <Edit3 className="w-3.5 h-3.5 text-[#2AAFA3]" />
+                      <Edit3 className="w-3.5 h-3.5 text-[#2AAFA3]" aria-hidden="true" />
                     </div>
                     <p className="text-[10px] text-[#708888]">Dapat menambah & menghapus operator.</p>
-                  </div>
+                  </button>
 
-                  <div
+                  <button
+                    type="button"
                     onClick={() => setFormRole('admin master')}
-                    className={`p-3 rounded-2xl border cursor-pointer transition-all ${
+                    aria-pressed={formRole === 'admin master'}
+                    className={`p-3 rounded-2xl border cursor-pointer transition-all text-left ${
                       formRole === 'admin master'
                         ? 'border-amber-500 bg-amber-50/50 shadow-xs'
                         : 'border-[#E0E8E8] hover:bg-[#F8FAFA]'
@@ -619,10 +630,10 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUse
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs font-bold text-amber-900">Admin Master</span>
-                      <Shield className="w-3.5 h-3.5 text-amber-600" />
+                      <Shield className="w-3.5 h-3.5 text-amber-600" aria-hidden="true" />
                     </div>
                     <p className="text-[10px] text-[#708888]">Akses penuh & manajemen user.</p>
-                  </div>
+                  </button>
 
                 </div>
               </div>
@@ -706,7 +717,7 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUse
                   type="text"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  className="w-full bg-[#F8FAFA] text-xs px-3 py-2.5 rounded-xl border border-[#D0E0E0] focus:border-[#2AAFA3] outline-none"
+                  className="w-full bg-[#F8FAFA] text-xs px-3 py-2.5 rounded-xl border border-[#D0E0E0] focus:border-[#2AAFA3]"
                   required
                 />
               </div>
@@ -719,25 +730,26 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUse
                     value={formPassword}
                     onChange={(e) => setFormPassword(e.target.value)}
                     placeholder="Masukkan password baru..."
-                    className="w-full bg-[#F8FAFA] text-xs pl-3 pr-10 py-2.5 rounded-xl border border-[#D0E0E0] focus:border-[#2AAFA3] outline-none"
+                    className="w-full bg-[#F8FAFA] text-xs pl-3 pr-10 py-2.5 rounded-xl border border-[#D0E0E0] focus:border-[#2AAFA3]"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#80A0A0] cursor-pointer"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
                   </button>
                 </div>
               </div>
 
-              {/* Tampilan Default Pabrik (Kolom AN) */}
+              {/* Tampilan Default Pabrik */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-[#405858]">Tampilan Default Pabrik (Kolom AN)</label>
+                <label className="text-xs font-bold text-[#405858]">Tampilan Default Pabrik</label>
                 <select
                   value={formDefaultView}
                   onChange={(e) => setFormDefaultView(e.target.value)}
-                  className="w-full bg-[#F8FAFA] text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-[#D0E0E0] focus:border-[#2AAFA3] outline-none cursor-pointer font-bold text-[#183935]"
+                  className="w-full bg-[#F8FAFA] text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-[#D0E0E0] focus:border-[#2AAFA3] cursor-pointer font-bold text-[#183935]"
                 >
                   <option value="All Factory">All Factory (Semua Pabrik)</option>
                   <option value="Factory 1">Factory 1</option>

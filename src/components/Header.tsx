@@ -83,11 +83,12 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Left Section: Mobile Toggle & Context Title */}
         <div className="flex items-center space-x-3">
           <button
+            type="button"
             onClick={onToggleSidebar}
             className="lg:hidden p-2 rounded-[10px] bg-[#EAF5F5] border border-[#D8E5E5] text-[#214E49] hover:bg-[#D4E8E8] transition-colors cursor-pointer"
             aria-label="Toggle Menu"
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="w-5 h-5" aria-hidden="true" />
           </button>
 
           <div className="flex items-center space-x-3">
@@ -107,7 +108,7 @@ export const Header: React.FC<HeaderProps> = ({
                   </span>
                 )}
               </div>
-              <p className="text-[11px] sm:text-xs text-[#647878] font-medium">
+              <p className="text-[11px] sm:text-xs text-[#374151] font-semibold">
                 {t.header.systemSubtitle}
               </p>
             </div>
@@ -119,13 +120,14 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Factory Selector */}
           <div className="flex items-center space-x-1.5 bg-[#FFFFFF] hover:bg-[#EAF5F5] border border-[#D8E5E5] hover:border-[#2E625C]/40 rounded-[10px] px-2.5 py-1.5 transition-colors">
-            <Building2 className="w-3.5 h-3.5 text-[#2E625C]" />
-            <span className="text-[11px] text-[#647878] font-medium hidden sm:inline">{t.header.factory}:</span>
+            <Building2 className="w-3.5 h-3.5 text-[#2E625C]" aria-hidden="true" />
+            <span className="text-[11px] text-[#1E3A36] font-bold hidden sm:inline">{t.header.factory}:</span>
             <select
               value={selectedFactory}
               onChange={(e) => onFactoryChange(e.target.value)}
               disabled={selectableFactories.length <= 1}
-              className={`bg-transparent text-xs font-bold text-[#102A2A] outline-none pr-1 ${
+              aria-label={t.header.factory}
+              className={`bg-transparent text-xs font-bold text-[#102A2A] rounded-md pr-1 ${
                 selectableFactories.length <= 1 ? 'cursor-default pointer-events-none' : 'cursor-pointer'
               }`}
             >
@@ -144,7 +146,7 @@ export const Header: React.FC<HeaderProps> = ({
                 ? 'bg-amber-50/70 border-amber-200 text-amber-800'
                 : 'bg-[#FFFFFF] hover:bg-[#EAF5F5] border-[#D8E5E5] hover:border-[#2E625C]/40'
             }`}>
-              <GitFork className={`w-3.5 h-3.5 ${
+              <GitFork aria-hidden="true" className={`w-3.5 h-3.5 ${
                 normalizeFactoryName(selectedFactory).toLowerCase() === 'factory 3b' ? 'text-amber-500' : 'text-[#1477B8]'
               }`} />
               {normalizeFactoryName(selectedFactory).toLowerCase() === 'factory 3b' ? (
@@ -155,7 +157,8 @@ export const Header: React.FC<HeaderProps> = ({
                 <select
                   value={selectedLine}
                   onChange={(e) => onLineChange(e.target.value)}
-                  className="bg-transparent text-xs font-bold text-[#102A2A] outline-none cursor-pointer pr-1"
+                  aria-label="Line"
+                  className="bg-transparent text-xs font-bold text-[#102A2A] rounded-md cursor-pointer pr-1"
                 >
                   {lineList.map((l) => (
                     <option key={l} value={l}>
@@ -169,14 +172,15 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Point-in-Time Reporting Filter (Month & Year) */}
           <div className="flex items-center space-x-1.5 bg-[#FFFFFF] hover:bg-[#EAF5F5] border border-[#D8E5E5] hover:border-[#2E625C]/40 rounded-[10px] px-2.5 py-1.5 transition-colors" title="Point-in-Time Operational Reporting Filter">
-            <Calendar className="w-3.5 h-3.5 text-[#2E625C]" />
-            <span className="text-[11px] text-[#647878] font-medium hidden sm:inline">{t.header.period}</span>
+            <Calendar className="w-3.5 h-3.5 text-[#2E625C]" aria-hidden="true" />
+            <span className="text-[11px] text-[#1E3A36] font-bold hidden sm:inline">{t.header.period}</span>
             
             {/* Month Select */}
             <select
               value={selectedMonth}
               onChange={(e) => onMonthChange && onMonthChange(parseInt(e.target.value, 10))}
-              className="bg-transparent text-xs font-bold text-[#102A2A] outline-none cursor-pointer pr-1"
+              aria-label="Month"
+              className="bg-transparent text-xs font-bold text-[#102A2A] rounded-md cursor-pointer pr-1"
             >
               {monthOptions.map((m) => (
                 <option key={m.value} value={m.value}>
@@ -185,13 +189,14 @@ export const Header: React.FC<HeaderProps> = ({
               ))}
             </select>
 
-            <span className="text-[#A5BDBD] text-xs">/</span>
+            <span className="text-[#A5BDBD] text-xs" aria-hidden="true">/</span>
 
             {/* Year Select */}
             <select
               value={selectedYear}
               onChange={(e) => onYearChange && onYearChange(parseInt(e.target.value, 10))}
-              className="bg-transparent text-xs font-bold text-[#102A2A] outline-none cursor-pointer"
+              aria-label="Year"
+              className="bg-transparent text-xs font-bold text-[#102A2A] rounded-md cursor-pointer"
             >
               {AVAILABLE_YEARS.map((yr) => (
                 <option key={yr} value={yr}>
@@ -204,12 +209,14 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Refresh / Status Button */}
           {onRefresh && (
             <button
+              type="button"
               onClick={onRefresh}
               disabled={isLoading}
+              aria-label={t.header.syncTooltip}
               title={t.header.syncTooltip}
               className="flex items-center space-x-1.5 bg-[#214E49] hover:bg-[#163F3B] text-white rounded-[10px] px-3 py-1.5 text-xs font-semibold cursor-pointer transition-all disabled:opacity-50 shadow-xs"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw aria-hidden="true" className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">{isLoading ? t.common.syncing : t.common.sync}</span>
             </button>
           )}

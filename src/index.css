@@ -27,6 +27,11 @@
     --border-color: #D8E5E5;
     --card-shadow: 0 4px 20px rgba(22, 63, 59, 0.05);
     --card-shadow-hover: 0 8px 28px rgba(22, 63, 59, 0.09);
+    --header-height: 96px;
+  }
+
+  html {
+    scroll-padding-top: var(--header-height);
   }
 
   body {
@@ -36,6 +41,17 @@
     letter-spacing: -0.01em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  :focus-visible {
+    outline: 2px solid #0b5fff;
+    outline-offset: 2px;
+  }
+
+  aside :focus-visible,
+  .dark-focus-surface :focus-visible {
+    outline: 2px solid #93C5FD;
+    outline-offset: 2px;
   }
 }
 
@@ -112,9 +128,12 @@
   transition: border-color 180ms ease, box-shadow 180ms ease;
 }
 .ops-input:focus {
-  outline: none;
   border-color: #2E625C;
   box-shadow: 0 0 0 3px rgba(46, 98, 92, 0.12);
+}
+.ops-input:focus-visible {
+  outline: 2px solid #0b5fff;
+  outline-offset: 2px;
 }
 
 /* Small Control Badges (8px radius) */

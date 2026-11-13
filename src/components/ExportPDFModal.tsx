@@ -552,7 +552,7 @@ export const ExportPDFModal: React.FC<ExportPDFModalProps> = ({
                   <select
                     value={selectedOperationFilter}
                     onChange={(e) => setSelectedOperationFilter(e.target.value)}
-                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-teal-500 cursor-pointer"
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 cursor-pointer"
                   >
                     <option value="ALL">
                       {pdfT.allOperationsOption} ({operators.length})

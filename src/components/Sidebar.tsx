@@ -53,7 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   interface NavItem {
     id: string;
     label: string;
-    icon: React.ComponentType<{ className?: string }>;
+    icon: React.ComponentType<{ className?: string; 'aria-hidden'?: boolean | 'true' | 'false' }>;
     badge?: string;
     adminOnly?: boolean;
   }
@@ -105,8 +105,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Sidebar Container */}
       <aside
         className={`fixed top-0 left-0 bottom-0 z-50 w-72 bg-[#214E49] text-[#E5F0ED] flex flex-col justify-between transition-transform duration-250 ease-in-out lg:translate-x-0 shadow-xl ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:static lg:h-screen lg:shrink-0 lg:rounded-r-[20px] my-0 lg:my-3 lg:ml-3 lg:h-[calc(100vh-24px)] border-r border-[#2E625C]/40`}
+          isOpen ? 'translate-x-0 visible' : '-translate-x-full invisible lg:visible'
+        } lg:sticky lg:top-0 lg:h-screen lg:min-h-screen lg:shrink-0 m-0 border-r border-[#2E625C]/40`}
       >
         {/* Top Branding */}
         <div className="p-5 pb-3">
@@ -131,10 +131,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             {/* Mobile close button */}
             <button
+              type="button"
               onClick={onClose}
+              aria-label={language === 'id' ? 'Tutup menu navigasi' : 'Close navigation menu'}
               className="lg:hidden text-[#A3C8C4] hover:text-white p-1 rounded-lg hover:bg-white/10 cursor-pointer"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -159,13 +161,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onTabChange('search');
               onClose();
             }}
-            className="w-full flex items-center justify-between px-3 py-2 text-xs bg-black/20 hover:bg-black/30 text-[#A3C8C4] hover:text-white border border-white/10 hover:border-[#8FC4D1]/40 rounded-[10px] outline-none transition-all cursor-pointer group"
+            className="w-full flex items-center justify-between px-3 py-2 text-xs bg-black/20 hover:bg-black/30 text-[#A3C8C4] hover:text-white border border-white/10 hover:border-[#8FC4D1]/40 rounded-[10px] transition-all cursor-pointer group"
           >
             <div className="flex items-center gap-2 truncate">
-              <Search className="w-3.5 h-3.5 text-[#8FC4D1] group-hover:scale-110 transition-transform shrink-0" />
+              <Search className="w-3.5 h-3.5 text-[#8FC4D1] group-hover:scale-110 transition-transform shrink-0" aria-hidden="true" />
               <span className="truncate text-[11px]">{t.sidebar.searchPlaceholder}</span>
             </div>
-            <ChevronRight className="w-3.5 h-3.5 text-[#A3C8C4]/50 group-hover:text-white transition-colors shrink-0" />
+            <ChevronRight className="w-3.5 h-3.5 text-[#A3C8C4]/50 group-hover:text-white transition-colors shrink-0" aria-hidden="true" />
           </button>
         </div>
 
@@ -182,10 +184,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             return (
               <button
                 key={item.id}
+                type="button"
                 onClick={() => {
                   onTabChange(item.id);
                   onClose();
                 }}
+                aria-current={isActive ? 'page' : undefined}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-[10px] text-left transition-all duration-200 group cursor-pointer relative ${
                   isActive
                     ? 'bg-white/12 text-white font-semibold shadow-xs'
@@ -194,7 +198,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 {/* Active Indicator Bar on Left */}
                 {isActive && (
-                  <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-[#F4C430] rounded-r-full" />
+                  <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-[#F4C430] rounded-r-full" aria-hidden="true" />
                 )}
 
                 <div className="flex items-center space-x-3 ml-1">
@@ -205,7 +209,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         : 'bg-white/8 text-[#A3C8C4] group-hover:text-white group-hover:bg-white/12'
                     }`}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className="w-4 h-4" aria-hidden="true" />
                   </div>
                   <span className="text-[13px] font-semibold tracking-tight">{item.label}</span>
                 </div>
@@ -216,6 +220,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </span>
                 ) : (
                   <ChevronRight
+                    aria-hidden="true"
                     className={`w-4 h-4 transition-transform ${
                       isActive
                         ? 'text-white translate-x-0.5'
@@ -237,13 +242,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="button"
                 onClick={() => setIsUserMenuOpen((prev) => !prev)}
+                aria-expanded={isUserMenuOpen}
                 className="w-full flex items-center justify-between space-x-2 text-left cursor-pointer group hover:opacity-95"
                 title={language === 'id' ? 'Klik untuk menu profil' : 'Click for profile menu'}
               >
                 <div className="flex items-center space-x-2.5 truncate">
                   {/* Profil Icon instead of initial/NIK */}
                   <div className="w-7 h-7 rounded-[8px] bg-[#2E625C] text-white flex items-center justify-center shrink-0 border border-white/10 group-hover:bg-[#3B7B74] transition-colors">
-                    <User className="w-4 h-4 text-white" />
+                    <User className="w-4 h-4 text-white" aria-hidden="true" />
                   </div>
                   <p className="text-xs font-bold text-white truncate leading-tight">
                     {currentUser.name}
@@ -251,6 +257,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
 
                 <ChevronDown 
+                  aria-hidden="true"
                   className={`w-3.5 h-3.5 text-[#A3C8C4] group-hover:text-white transition-transform duration-200 shrink-0 ${
                     isUserMenuOpen ? 'rotate-180 text-white' : ''
                   }`} 
@@ -269,7 +276,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     className="px-2 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-[6px] text-[10px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer"
                     title={language === 'id' ? 'Ubah Password & Profil' : 'Change Password & Profile'}
                   >
-                    <KeyRound className="w-3 h-3 text-[#8FC4D1]" />
+                    <KeyRound className="w-3 h-3 text-[#8FC4D1]" aria-hidden="true" />
                     <span>{language === 'id' ? 'Profil' : 'Profile'}</span>
                   </button>
 
@@ -279,10 +286,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       if (onLogout) onLogout();
                       setIsUserMenuOpen(false);
                     }}
-                    className="px-2 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 rounded-[6px] text-[10px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer"
+                    className="px-2.5 py-1.5 bg-[#881337] hover:bg-[#9F1239] border border-rose-400/40 text-white rounded-[6px] text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
                     title={language === 'id' ? 'Keluar dari sesi' : 'Logout of session'}
                   >
-                    <LogOut className="w-3 h-3 text-rose-400" />
+                    <LogOut className="w-3 h-3 text-white" aria-hidden="true" />
                     <span>{language === 'id' ? 'Keluar' : 'Logout'}</span>
                   </button>
                 </div>
@@ -293,7 +300,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {/* Language Switcher */}
           <div className="flex items-center justify-between pt-0.5">
             <div className="flex items-center space-x-1.5 text-[#A3C8C4]">
-              <Languages className="w-3.5 h-3.5 text-[#8FC4D1]" />
+              <Languages className="w-3.5 h-3.5 text-[#8FC4D1]" aria-hidden="true" />
               <span className="font-bold text-white text-[11px]">{t.header.language}</span>
             </div>
             <div className="flex items-center bg-black/30 rounded-[8px] p-0.5 border border-white/10">

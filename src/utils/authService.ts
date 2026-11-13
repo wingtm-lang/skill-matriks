@@ -529,7 +529,7 @@ export async function updateUserDefaultView(
     await fetch(`${GAS_URL}?${params.toString()}`);
   } catch (e2) {}
 
-  return { success: true, message: "Tampilan default berhasil diperbarui di Google Sheets (Kolom AN)." };
+  return { success: true, message: "Tampilan default berhasil diperbarui." };
 }
 
 /**

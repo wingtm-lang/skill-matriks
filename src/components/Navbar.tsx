@@ -85,7 +85,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <select
                 value={selectedFactory}
                 onChange={(e) => onFactoryChange(e.target.value)}
-                className="bg-slate-900 text-xs font-semibold text-white px-2.5 py-1.5 rounded-md border-none focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+                className="bg-slate-900 text-xs font-semibold text-white px-2.5 py-1.5 rounded-md border-none cursor-pointer"
               >
                 {sortFactoriesNumerically(FACTORIES).map((f) => (
                   <option key={f} value={f}>
@@ -104,7 +104,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <select
                 value={selectedLine}
                 onChange={(e) => onLineChange(e.target.value)}
-                className="bg-slate-900 text-xs font-semibold text-white px-2.5 py-1.5 rounded-md border-none focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+                className="bg-slate-900 text-xs font-semibold text-white px-2.5 py-1.5 rounded-md border-none cursor-pointer"
               >
                 {sortLinesNumerically(LINES).map((l) => (
                   <option key={l} value={l}>
@@ -123,7 +123,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <select
                 value={selectedMonth}
                 onChange={(e) => onMonthChange && onMonthChange(parseInt(e.target.value, 10))}
-                className="bg-slate-900 text-xs font-semibold text-white px-2 py-1.5 rounded-md border-none focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer pr-1"
+                className="bg-slate-900 text-xs font-semibold text-white px-2 py-1.5 rounded-md border-none cursor-pointer pr-1"
               >
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
                   <option key={m} value={m}>
@@ -134,7 +134,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <select
                 value={selectedYear}
                 onChange={(e) => onYearChange && onYearChange(parseInt(e.target.value, 10))}
-                className="bg-slate-900 text-xs font-semibold text-white px-2 py-1.5 rounded-md border-none focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer ml-1"
+                className="bg-slate-900 text-xs font-semibold text-white px-2 py-1.5 rounded-md border-none cursor-pointer ml-1"
               >
                 {AVAILABLE_YEARS.map((yr) => (
                   <option key={yr} value={yr}>
@@ -153,7 +153,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <select
                 value={userRole}
                 onChange={(e) => onRoleChange(e.target.value as any)}
-                className="bg-slate-900 text-xs font-semibold text-emerald-400 px-2.5 py-1.5 rounded-md border-none focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer"
+                className="bg-slate-900 text-xs font-semibold text-emerald-400 px-2.5 py-1.5 rounded-md border-none cursor-pointer"
               >
                 <option value="VIEWER">{t.header.roleViewer}</option>
                 <option value="EDITOR">{t.header.roleEditor}</option>

@@ -163,20 +163,19 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               </div>
             )}
 
-            {/* 1. Pengaturan Tampilan Default (Refernsi Kolom AN Sheet by_worker) */}
+            {/* 1. Pengaturan Tampilan Default */}
             <div className="p-3.5 bg-[#EAF5F5] rounded-[12px] border border-[#D8E5E5] space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-[#102A2A] flex items-center gap-1.5">
                   <Building2 className="w-4 h-4 text-[#214E49]" />
-                  <span>{language === 'id' ? 'Tampilan Default Pabrik (Kolom AN)' : 'Default Factory View (Col AN)'}</span>
+                  <span>{language === 'id' ? 'Tampilan Default Pabrik' : 'Default Factory View'}</span>
                 </label>
-                <span className="text-[10px] font-mono text-[#647878] bg-white px-2 py-0.5 rounded border border-[#D8E5E5]">by_worker!AN</span>
               </div>
 
               <select
                 value={defaultView}
                 onChange={(e) => setDefaultView(e.target.value)}
-                className="w-full bg-white text-xs sm:text-sm px-3 py-2 rounded-[10px] border border-[#D8E5E5] text-[#102A2A] font-bold outline-none cursor-pointer focus:border-[#214E49]"
+                className="w-full bg-white text-xs sm:text-sm px-3 py-2 rounded-[10px] border border-[#D8E5E5] text-[#102A2A] font-bold cursor-pointer focus:border-[#214E49]"
               >
                 <option value="All Factory">All Factory (Semua Pabrik)</option>
                 <option value="Factory 1">Factory 1</option>
@@ -212,14 +211,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   value={oldPassword}
                   onChange={(e) => setOldPassword(e.target.value)}
                   placeholder={language === 'id' ? 'Masukkan password lama...' : 'Enter current password...'}
-                  className="w-full bg-[#FFFFFF] text-xs sm:text-sm pl-3 pr-10 py-2.5 rounded-[10px] border border-[#D8E5E5] focus:border-[#214E49] outline-none text-[#102A2A]"
+                  className="w-full bg-[#FFFFFF] text-xs sm:text-sm pl-3 pr-10 py-2.5 rounded-[10px] border border-[#D8E5E5] focus:border-[#214E49] text-[#102A2A]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowOld(!showOld)}
+                  aria-label={showOld ? 'Hide current password' : 'Show current password'}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#647878] hover:text-[#102A2A] cursor-pointer"
                 >
-                  {showOld ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showOld ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
                 </button>
               </div>
             </div>
@@ -235,14 +235,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder={language === 'id' ? 'Minimal 4 karakter...' : 'Min. 4 characters...'}
-                  className="w-full bg-[#FFFFFF] text-xs sm:text-sm pl-3 pr-10 py-2.5 rounded-[10px] border border-[#D8E5E5] focus:border-[#214E49] outline-none text-[#102A2A]"
+                  className="w-full bg-[#FFFFFF] text-xs sm:text-sm pl-3 pr-10 py-2.5 rounded-[10px] border border-[#D8E5E5] focus:border-[#214E49] text-[#102A2A]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowNew(!showNew)}
+                  aria-label={showNew ? 'Hide new password' : 'Show new password'}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#647878] hover:text-[#102A2A] cursor-pointer"
                 >
-                  {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showNew ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
                 </button>
               </div>
             </div>
@@ -258,14 +259,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder={language === 'id' ? 'Ulangi password baru...' : 'Repeat new password...'}
-                  className="w-full bg-[#FFFFFF] text-xs sm:text-sm pl-3 pr-10 py-2.5 rounded-[10px] border border-[#D8E5E5] focus:border-[#214E49] outline-none text-[#102A2A]"
+                  className="w-full bg-[#FFFFFF] text-xs sm:text-sm pl-3 pr-10 py-2.5 rounded-[10px] border border-[#D8E5E5] focus:border-[#214E49] text-[#102A2A]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
+                  aria-label={showConfirm ? 'Hide confirm password' : 'Show confirm password'}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#647878] hover:text-[#102A2A] cursor-pointer"
                 >
-                  {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showConfirm ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
                 </button>
               </div>
             </div>
