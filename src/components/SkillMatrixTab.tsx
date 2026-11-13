@@ -1174,8 +1174,12 @@ export const SkillMatrixTab: React.FC<SkillMatrixTabProps> = ({
 
       {/* ADD / EDIT MODAL */}
       {(isAddModalOpen || isEditModalOpen) && (
-        <div className="fixed inset-0 bg-[#304848]/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-[#E0E8E8] rounded-[24px] max-w-xl w-full p-6 shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto">
+        <div className={`fixed inset-0 bg-[#304848]/40 backdrop-blur-xs z-50 flex justify-center ${
+          isAddModalOpen ? 'items-start pt-[20px] px-4 pb-4 overflow-y-auto' : 'items-center p-4'
+        }`}>
+          <div className={`bg-white border border-[#E0E8E8] rounded-[24px] max-w-xl w-full p-6 shadow-2xl animate-fade-in overflow-y-auto ${
+            isAddModalOpen ? 'max-h-[calc(100vh-40px)]' : 'max-h-[90vh]'
+          }`}>
             
             <div className="flex items-center justify-between pb-4 border-b border-[#E0E8E8] mb-4">
               <div className="flex items-center gap-2.5">
