@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Users, 
   UserPlus, 
@@ -805,7 +806,7 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUse
       )}
 
       {/* MODAL: KONFIRMASI HAPUS USER */}
-      {isDeleteModalOpen && selectedUser && (
+      {isDeleteModalOpen && selectedUser && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
           <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-[#E0E8E8] p-5 sm:p-6 space-y-4">
             
@@ -841,7 +842,8 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUse
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>
