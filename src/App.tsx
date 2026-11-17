@@ -95,9 +95,12 @@ export default function App() {
     // Pre-hydrate from cache if current operators list is empty for instant display
     const cachedData = getStoredOperatorsCache();
     if (cachedData && cachedData.operators.length > 0) {
-      setOperators(cachedData.operators);
+      setOperators(cachedData.operators.map((op: Operator) => ({
+        ...op,
+        factory: normalizeFactoryName(op.factory),
+      })));
       if (cachedData.factories.length > 0) {
-        setAvailableFactories(sortFactoriesNumerically(Array.from(new Set([...FACTORIES, ...cachedData.factories]))));
+        setAvailableFactories(sortFactoriesNumerically(Array.from(new Set([...FACTORIES, ...cachedData.factories.map(normalizeFactoryName)]))));
       }
       if (cachedData.lines.length > 0) {
         setAvailableLines(sortLinesNumerically(Array.from(new Set([...LINES, ...cachedData.lines]))));
@@ -156,7 +159,7 @@ export default function App() {
           setSyncError(null);
 
           if (Array.isArray(proxyData.factories) && proxyData.factories.length > 0) {
-            setAvailableFactories(sortFactoriesNumerically(Array.from(new Set([...FACTORIES, ...proxyData.factories]))));
+            setAvailableFactories(sortFactoriesNumerically(Array.from(new Set([...FACTORIES, ...proxyData.factories.map(normalizeFactoryName)]))));
           }
           if (Array.isArray(proxyData.lines) && proxyData.lines.length > 0) {
             setAvailableLines(sortLinesNumerically(Array.from(new Set([...LINES, ...proxyData.lines]))));
@@ -190,7 +193,7 @@ export default function App() {
         setSyncError(null);
 
         if (Array.isArray(directData.factories) && directData.factories.length > 0) {
-          setAvailableFactories(sortFactoriesNumerically(Array.from(new Set([...FACTORIES, ...directData.factories]))));
+          setAvailableFactories(sortFactoriesNumerically(Array.from(new Set([...FACTORIES, ...directData.factories.map(normalizeFactoryName)]))));
         }
         if (Array.isArray(directData.lines) && directData.lines.length > 0) {
           setAvailableLines(sortLinesNumerically(Array.from(new Set([...LINES, ...directData.lines]))));

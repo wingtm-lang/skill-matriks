@@ -508,6 +508,9 @@ app.get("/api/sheets/operators", async (req, res) => {
       if (raw === undefined || raw === null || raw === "") return "Factory 1";
       const str = String(raw).trim();
       if (!str || str === "-") return "Factory 1";
+      if (/3\s*a/i.test(str) || /^(?:factory\s*)?3$/i.test(str)) {
+        return "Factory 3A";
+      }
       if (/3\s*b/i.test(str)) {
         return "Factory 3B";
       }
@@ -829,10 +832,8 @@ app.get("/api/sheets/operators", async (req, res) => {
       const ie = row[32] !== undefined && row[32] !== null ? String(row[32]).trim() : "";
 
       if (rawF && rawL && (chief || supervisor || ie)) {
-        const fNum = rawF.replace(/[^0-9]/g, "") || rawF;
-        const lNum = rawL.replace(/[^0-9]/g, "") || rawL;
-        const fName = `Factory ${fNum}`;
-        const lName = `Line ${lNum}`;
+        const fName = formatFactory(rawF);
+        const lName = formatLine(rawL);
         const key = `${fName}_${lName}`;
 
         if (!lineLeadersMap.has(key)) {
@@ -1049,11 +1050,12 @@ app.post("/api/sheets/append-by-worker", async (req, res) => {
     const name = String(operator.name).trim().toUpperCase();
     const doj = String(operator.doj || "-").trim();
     
-    // Format Factory: hanya angka atau 3B (e.g. "Factory 1" -> "1", "Factory 3B" -> "3B")
+    // Format Factory: hanya angka, 3A, atau 3B (e.g. "Factory 1" -> "1", "Factory 3A" -> "3A", "Factory 3B" -> "3B")
     const rawFac = String(operator.factory || "1").trim();
+    const is3A = /3\s*a/i.test(rawFac) || /^(?:factory\s*)?3$/i.test(rawFac);
     const is3B = /3\s*b/i.test(rawFac);
     const facMatch = rawFac.match(/\d+/);
-    const factory = is3B ? "3B" : (facMatch ? facMatch[0] : (rawFac.replace(/factory\s*/i, "").trim() || "1"));
+    const factory = is3A ? "3A" : is3B ? "3B" : (facMatch ? facMatch[0] : (rawFac.replace(/factory\s*/i, "").trim() || "1"));
 
     // Format Line: hanya nomor line (e.g. "Line 28" -> "28", "Line 1" -> "1", "28" -> "28")
     const rawLine = String(operator.line || "1").trim();

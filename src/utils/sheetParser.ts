@@ -33,6 +33,12 @@ export function formatFactory(raw: any): string {
   if (raw === undefined || raw === null || raw === "") return "Factory 1";
   const str = String(raw).trim();
   if (!str || str === "-") return "Factory 1";
+  if (/3\s*a/i.test(str) || /^(?:factory\s*)?3$/i.test(str)) {
+    return "Factory 3A";
+  }
+  if (/3\s*b/i.test(str)) {
+    return "Factory 3B";
+  }
   if (/^factory\s*\d+/i.test(str)) {
     const num = str.match(/\d+/)?.[0];
     return `Factory ${num}`;
@@ -338,10 +344,8 @@ export function parseSheetRowsToOperators(rows: any[][]): {
     const rawIE = row[32] !== undefined && row[32] !== null ? row[32].toString().trim() : "";
 
     if (rawF && rawL && (rawChief || rawSpv || rawIE)) {
-      const fNum = rawF.replace(/[^0-9]/g, "") || rawF;
-      const lNum = rawL.replace(/[^0-9]/g, "") || rawL;
-      const fName = `Factory ${fNum}`;
-      const lName = `Line ${lNum}`;
+      const fName = formatFactory(rawF);
+      const lName = formatLine(rawL);
       const key = `${fName}_${lName}`;
 
       if (!lineLeadersMap.has(key)) {

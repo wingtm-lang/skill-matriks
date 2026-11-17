@@ -431,210 +431,210 @@ export const DEFAULT_LINE_LEADERS: LineLeader[] = [
     "ie": "Siti"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 1",
     "chief": "Sumarni",
     "supervisor": "Andrian",
     "ie": "Putri"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 2",
     "chief": "Sumarni",
     "supervisor": "Lalan Leonita",
     "ie": "Putri"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 3",
     "chief": "Sumarni",
     "supervisor": "-",
     "ie": "Putri"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 4",
     "chief": "Sumarni",
     "supervisor": "Nanang Kosim",
     "ie": "Putri"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 5",
     "chief": "Yani",
     "supervisor": "Sukmawati",
     "ie": "Putri"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 6",
     "chief": "Yani",
     "supervisor": "Ujang Darsim",
     "ie": "Putri"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 7",
     "chief": "Yani",
     "supervisor": "-",
     "ie": "Putri"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 8",
     "chief": "Emis Karmila",
     "supervisor": "Runasih",
     "ie": "Putri"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 9",
     "chief": "Emis Karmila",
     "supervisor": "Nurjanah",
     "ie": "Putri"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 10",
     "chief": "Emis Karmila",
     "supervisor": "Irman Diansah",
     "ie": "Putri"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 11",
     "chief": "Emis Karmila",
     "supervisor": "Umar Mardiansyah",
     "ie": "Evi"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 12",
     "chief": "Tanti",
     "supervisor": "-",
     "ie": "Evi"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 13",
     "chief": "Tanti",
     "supervisor": "Kiki Natalia",
     "ie": "Evi"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 14",
     "chief": "Tanti",
     "supervisor": "Imelda Permata",
     "ie": "Evi"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 15",
     "chief": "Tanti",
     "supervisor": "Rita Diana",
     "ie": "Evi"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 16",
     "chief": "Aisah Setiawati",
     "supervisor": "Wardah",
     "ie": "Lisa"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 17",
     "chief": "Aisah Setiawati",
     "supervisor": "Rangga Anugrah",
     "ie": "Lisa"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 18",
     "chief": "Aisah Setiawati",
     "supervisor": "Vicky Hardiansyah",
     "ie": "Lisa"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 19",
     "chief": "Aisah Setiawati",
     "supervisor": "Khodijah Tunnisa",
     "ie": "Lisa"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 20",
     "chief": "Sri Mulyani",
     "supervisor": "Khuriyatul",
     "ie": "Lisa"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 21",
     "chief": "Sri Mulyani",
     "supervisor": "Witasari",
     "ie": "Lisa"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 22",
     "chief": "Sri Mulyani",
     "supervisor": "Iin Karlina",
     "ie": "Lisa"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 23",
     "chief": "Enjang Suryana",
     "supervisor": "Heti Rohaeti",
     "ie": "Lisa"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 24",
     "chief": "Enjang Suryana",
     "supervisor": "M. Ulwi Nasori",
     "ie": "Lisa"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 25",
     "chief": "Enjang Suryana",
     "supervisor": "Hamidah",
     "ie": "Lisa"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 26",
     "chief": "Enjang Suryana",
     "supervisor": "Erica Amelya",
     "ie": "Evi"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 27",
     "chief": "Slamet",
     "supervisor": "Sarilah",
     "ie": "Evi"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 28",
     "chief": "Slamet",
     "supervisor": "Leny Listiyani",
     "ie": "Evi"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 29",
     "chief": "Slamet",
     "supervisor": "Dwi Lusi Angrayani",
     "ie": "Evi"
   },
   {
-    "factory": "Factory 3",
+    "factory": "Factory 3A",
     "line": "Line 30",
     "chief": "Slamet",
     "supervisor": "Anisa Nuraeni",
@@ -647,13 +647,19 @@ export function getLineLeader(
   factory: string,
   line: string
 ): LineLeader {
-  const fNum = factory.replace(/[^0-9]/g, "") || factory;
+  const cleanFacKey = (val: string) => {
+    const s = String(val || "").trim();
+    if (/3\s*a/i.test(s) || /^(?:factory\s*)?3$/i.test(s)) return "3A";
+    if (/3\s*b/i.test(s)) return "3B";
+    return s.replace(/[^0-9]/g, "") || s;
+  };
+  const fNum = cleanFacKey(factory);
   const lNum = line.replace(/[^0-9]/g, "") || line;
 
   const list = leaders && leaders.length > 0 ? leaders : DEFAULT_LINE_LEADERS;
 
   const found = list.find((l) => {
-    const itemFNum = l.factory.replace(/[^0-9]/g, "") || l.factory;
+    const itemFNum = cleanFacKey(l.factory);
     const itemLNum = l.line.replace(/[^0-9]/g, "") || l.line;
     return itemFNum === fNum && itemLNum === lNum;
   });

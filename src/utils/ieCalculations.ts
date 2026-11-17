@@ -405,7 +405,10 @@ export function normalizeFactoryName(raw: any): string {
     return "All Factory";
   }
 
-  // Khusus Factory 3B: jaga agar tidak terpotong menjadi Factory 3
+  // Khusus Factory 3A & 3B: jaga agar tidak terpotong menjadi Factory 3
+  if (/3\s*a/i.test(str) || /^(?:factory\s*)?3$/i.test(str)) {
+    return "Factory 3A";
+  }
   if (/3\s*b/i.test(str)) {
     return "Factory 3B";
   }
@@ -435,12 +438,13 @@ export function normalizeLineName(raw: any): string {
 }
 
 /**
- * Format nama factory murni untuk penulisan ke Google Sheets Kolom A (hanya angka).
- * Contoh: "Factory 1" -> "1", "Factory 2" -> "2", "Factory 3B" -> "3B"
+ * Format nama factory murni untuk penulisan ke Google Sheets Kolom A (hanya angka / kode).
+ * Contoh: "Factory 1" -> "1", "Factory 2" -> "2", "Factory 3A" -> "3A", "Factory 3B" -> "3B"
  */
 export function formatFactoryForSheet(raw: any): string {
   if (raw === undefined || raw === null) return "1";
   const str = String(raw).trim();
+  if (/3\s*a/i.test(str) || /^(?:factory\s*)?3$/i.test(str)) return "3A";
   if (/3\s*b/i.test(str)) return "3B";
   const match = str.match(/\d+/);
   return match ? match[0] : (str.replace(/factory\s*/i, "").trim() || "1");
